@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Positioning Engine — DealInbox{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🧬 Positioning Engine</h1>
+    <p class="page-sub">Improve how brands see you. Get better deals.</p>
+  </div>
+  <a href="{{ url_for('settings') }}" class="btn">Edit profile →</a>
+</div>
+
+<div class="pos-layout">
+  <div class="pos-main">
+
+    <!-- Score overview -->
+    <div class="card pos-score-card" id="posScoreCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="dc-title" style="margin-bottom:4px">Market positioning score</div>
+          <div style="font-size:12px;color:var(--t3)">Based on your profile, deals, and response patterns.</div>
+        </div>
+        <div class="pos-score-ring" id="posRingWrap">
+          <svg viewBox="0 0 80 80" width="72" height="72">
+            <circle cx="40" cy="40" r="32" fill="none" stroke="var(--bg3)" stroke-width="8"/>
+            <circle cx="40" cy="40" r="32" fill="none" stroke="var(--green)" stroke-width="8"
+                    stroke-dasharray="201" stroke-dashoffset="201"
+                    id="posArc" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="pos-score-num" id="posScoreNum">—</div>
+        </div>
+      </div>
+      <div class="pos-bar-row" id="posBarRow" style="display:none">
+        <div class="pos-bar-track">
+          <div class="pos-bar-fill" id="posBarFill" style="width:0%"></div>
+        </div>
+        <div class="pos-bar-labels">
+          <span>Weak</span><span>Average</span><span>Strong</span><span>Premium</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="card" id="suggestionsCard">
+      <div class="dc-title">Improvement suggestions</div>
+      <div id="sugLoader" style="text-align:center;padding:30px;color:var(--t3)">
+        <div class="spinner"></div>
+        <div style="margin-top:10px;font-size:13px">Analysing your profile and deals…</div>
+      </div>
+      <div id="suggList" style="display:none"></div>
+    </div>
+
+    <!-- Profile preview -->
+    <div class="card">
+      <div class="dc-title">How brands see your page now</div>
+      <div class="profile-preview" id="profilePreview">
+        <div class="pp-mock-av">{{ user.name[0].upper() if user.name else 'C' }}</div>
+        <div class="pp-mock-name">{{ user.name or 'Your Name' }}</div>
+        <div class="pp-mock-handle">@{{ user.username }}</div>
+        <div class="pp-mock-tags">
+          {% if user.niche %}<span class="pp-mock-tag">{{ user.niche }}</span>{% endif %}
+          {% if user.platform %}<span class="pp-mock-tag">{{ user.platform }}</span>{% endif %}
+          {% if user.followers %}<span class="pp-mock-tag">{{ user.followers }} followers</span>{% endif %}
+        </div>
+        {% if user.bio %}
+        <div class="pp-mock-bio">"{{ user.bio }}"</div>
+        {% else %}
+        <div class="pp-mock-bio empty">No bio — brands can't tell if you're the right fit.</div>
+        {% endif %}
+        {% if user.min_budget %}
+        <div class="pp-mock-budget">💰 Min. budget {{ user.min_budget }}</div>
+        {% else %}
+        <div class="pp-mock-budget empty">No minimum budget shown — attracts all enquiries including lowballers.</div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('settings') }}" class="btn btn-primary btn-full" style="margin-top:12px">Edit profile →</a>
+    </div>
+  </div>
+
+  <div class="pos-sidebar">
+    <!-- Quick stats -->
+    <div class="card">
+      <div class="dc-title">Your deal data</div>
+      <div id="posStats" style="color:var(--t3);font-size:12px">Loading…</div>
+    </div>
+
+    <!-- Bio builder -->
+    <div class="card">
+      <div class="dc-title">✍️ Bio builder</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Build a brand-friendly bio in seconds.</div>
+      <div class="fg" style="margin-bottom:8px">
+        <label>Primary niche</label>
+        <input type="text" id="bioNiche" class="inp" placeholder="Beauty, Tech, Finance…" value="{{ user.niche or '' }}">
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label>Platform</label>
+        <input type="text" id="bioPlatform" class="inp" placeholder="Instagram, YouTube…" value="{{ user.platform or '' }}">
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label>Audience (optional)</label>
+        <input type="text" id="bioAudience" class="inp" placeholder="25–34 female, Tier 1 cities">
+      </div>
+      <div class="fg" style="margin-bottom:10px">
+        <label>Brand types you like</label>
+        <input type="text" id="bioBrands" class="inp" placeholder="skincare, D2C, fintech…">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="buildBio()">Generate bio →</button>
+      <div id="bioOutput" style="display:none;margin-top:10px">
+        <div class="bio-result" id="bioResult"></div>
+        <button class="btn btn-sm btn-green" style="margin-top:8px" onclick="copyBio()">Copy bio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.pos-layout{display:grid;grid-template-columns:1fr 280px;gap:14px}
+@media(max-width:700px){.pos-layout{grid-template-columns:1fr}}
+.pos-score-ring{position:relative;width:72px;height:72px;flex-shrink:0}
+.pos-score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--t1)}
+.pos-bar-row{margin-top:14px}
+.pos-bar-track{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.pos-bar-fill{height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981);border-radius:99px;transition:width .8s ease}
+.pos-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
+.sugg-item{padding:14px 0;border-bottom:1px solid var(--border)}
+.sugg-item:last-child{border-bottom:none}
+.sugg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sugg-icon{font-size:18px}
+.sugg-area{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:600;flex:1}
+.sugg-severity{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+.sev-high{background:rgba(239,68,68,.12);color:#ef4444}
+.sev-medium{background:rgba(245,158,11,.12);color:#f59e0b}
+.sev-low{background:rgba(16,185,129,.12);color:#10b981}
+.sugg-problem{font-size:13px;color:var(--t1);font-weight:500;margin-bottom:5px}
+.sugg-fix{font-size:12px;color:var(--t2);line-height:1.5;background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px}
+.sugg-bio-tweak{font-size:11px;color:var(--blue);font-style:italic}
+.profile-preview{background:var(--bg3);border-radius:10px;padding:16px;text-align:center}
+.pp-mock-av{width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 10px}
+.pp-mock-name{font-size:16px;font-weight:700;color:var(--t1)}
+.pp-mock-handle{font-size:12px;color:var(--t3);margin-bottom:8px}
+.pp-mock-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:8px}
+.pp-mock-tag{font-size:11px;background:var(--bg2);border:1px solid var(--border);padding:3px 8px;border-radius:99px;color:var(--t2)}
+.pp-mock-bio{font-size:12px;color:var(--t2);font-style:italic;margin-bottom:8px}
+.pp-mock-bio.empty,.pp-mock-budget.empty{color:#ef4444;font-style:normal;font-size:11px}
+.pp-mock-budget{font-size:12px;color:var(--t2)}
+.bio-result{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);line-height:1.6}
+.posstat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.posstat-row:last-child{border-bottom:none}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<script>
+(async function loadPositioning(){
+  const res = await fetch('/api/positioning-analysis');
+  const d = await res.json();
+
+  if(!d.ready){
+    document.getElementById('sugLoader').innerHTML=`<div style="color:var(--t3);font-size:13px;padding:12px 0">${d.message}</div>`;
+    return;
+  }
+
+  // Score arc
+  const arc = 201;
+  const offset = arc - (arc * d.score / 100);
+  document.getElementById('posArc').style.strokeDashoffset = offset;
+  document.getElementById('posScoreNum').textContent = d.score;
+
+  // Color arc by score
+  const arcEl = document.getElementById('posArc');
+  if(d.score < 40) arcEl.style.stroke = '#ef4444';
+  else if(d.score < 70) arcEl.style.stroke = '#f59e0b';
+  else arcEl.style.stroke = '#10b981';
+
+  // Bar
+  document.getElementById('posBarRow').style.display='block';
+  setTimeout(()=>{ document.getElementById('posBarFill').style.width = d.score+'%'; }, 100);
+
+  // Stats
+  document.getElementById('posStats').innerHTML = `
+    <div class="posstat-row"><span style="color:var(--t3)">Total enquiries</span><span style="font-weight:600;color:var(--t1)">${d.total_enqs}</span></div>
+    <div class="posstat-row"><span style="color:var(--t3)">Avg budget</span><span style="font-weight:600;color:var(--t1)">₹${(d.avg_budget||0).toLocaleString('en-IN')}</span></div>
+    <div class="posstat-row"><span style="color:var(--t3)">Low-budget %</span><span style="font-weight:600;color:${d.pct_low>60?'#ef4444':'var(--green)'}">${d.pct_low}%</span></div>
+    <div class="posstat-row"><span style="color:var(--t3)">Top platform</span><span style="font-weight:600;color:var(--t1)">${d.top_platform}</span></div>
+  `;
+
+  // Suggestions
+  const loader = document.getElementById('sugLoader');
+  const list = document.getElementById('suggList');
+  loader.style.display='none';
+  list.style.display='block';
+  if(!d.suggestions.length){
+    list.innerHTML='<div style="color:var(--green);padding:12px 0;font-size:13px">✅ Your positioning looks strong! Keep it up.</div>';
+    return;
+  }
+  list.innerHTML = d.suggestions.map(s=>`
+    <div class="sugg-item">
+      <div class="sugg-head">
+        <span class="sugg-icon">${s.icon}</span>
+        <span class="sugg-area">${s.area}</span>
+        <span class="sugg-severity sev-${s.severity}">${s.severity.charAt(0).toUpperCase()+s.severity.slice(1)}</span>
+      </div>
+      <div class="sugg-problem">${s.problem}</div>
+      <div class="sugg-fix">💡 ${s.fix}</div>
+      ${s.bio_tweak ? `<div class="sugg-bio-tweak">✏️ ${s.bio_tweak}</div>` : ''}
+    </div>
+  `).join('');
+})();
+
+function buildBio(){
+  const niche = document.getElementById('bioNiche').value.trim();
+  const platform = document.getElementById('bioPlatform').value.trim();
+  const audience = document.getElementById('bioAudience').value.trim();
+  const brands = document.getElementById('bioBrands').value.trim();
+  if(!niche||!platform){showToast('Fill in niche and platform first!');return;}
+  const bio = `${niche} creator on ${platform}${audience?', audience: '+audience:''}. I partner with ${brands||'brands'} that align with my community.${audience?' My followers trust my recommendations.':''}`;
+  document.getElementById('bioResult').textContent = bio;
+  document.getElementById('bioOutput').style.display='block';
+  window._generatedBio = bio;
+}
+function copyBio(){
+  navigator.clipboard.writeText(window._generatedBio||'').then(()=>showToast('Bio copied!'));
+}
+</script>
+{% endblock %}

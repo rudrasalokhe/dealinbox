@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}404 — DealInbox{% endblock %}{% block body_class %}not-found-body{% endblock %}{% block content %}
+<div class="nf-wrap">
+  <div class="nf-num">404</div>
+  <h2>Page not found</h2>
+  <p style="margin-bottom:18px;color:var(--t3)">This creator doesn't exist or their page is unavailable.</p>
+  <a href="{{ url_for('index') }}" class="btn">← Go home</a>
+</div>
+{% endblock %}

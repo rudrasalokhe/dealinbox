@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collab with {{ user.name }} — DealInbox</title>
+  <meta name="description" content="{{ user.bio or 'Send a brand collaboration enquiry to ' + user.name + '.' }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="pp-body">
+
+<nav class="pp-nav">
+  <a href="{{ url_for('index') }}" class="pp-nav-logo">dealinbox</a>
+</nav>
+
+<div class="pp-wrap">
+  <!-- Creator card -->
+  <div class="pp-creator">
+    <div class="pp-av">{{ user.name[0].upper() if user.name else 'C' }}</div>
+    <div class="pp-creator-info">
+      <h1 class="pp-name">{{ user.name }}</h1>
+      <div class="pp-handle">@{{ user.username }}</div>
+      {% if user.niche or user.platform or user.followers %}
+      <div class="pp-tags">
+        {% if user.niche %}<span class="pp-tag">{{ user.niche }}</span>{% endif %}
+        {% if user.platform %}<span class="pp-tag">{{ user.platform }}</span>{% endif %}
+        {% if user.followers %}<span class="pp-tag">{{ user.followers }} followers</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.bio %}
+  <p class="pp-bio">{{ user.bio }}</p>
+  {% endif %}
+
+  <div class="pp-meta-row">
+    {% if user.response_time %}<span class="pp-meta-item">⏱ Responds within {{ user.response_time }}</span>{% endif %}
+    {% if user.min_budget %}<span class="pp-meta-item">₹ Min. budget {{ user.min_budget }}</span>{% endif %}
+  </div>
+
+  <!-- Enquiry form -->
+  <div class="pp-form-card">
+    <div class="pp-form-head">
+      <h2>Send a collab enquiry</h2>
+      <p>Fill in the details below and {{ user.name.split()[0] if user.name else 'the creator' }} will get back to you.</p>
+    </div>
+    <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}" class="pp-form">
+      <div class="form-row-2">
+        <div class="fg"><label>Brand name *</label><input type="text" name="brand_name" placeholder="Mamaearth" required></div>
+        <div class="fg"><label>Your name</label><input type="text" name="contact_name" placeholder="Rahul Sharma"></div>
+      </div>
+      <div class="fg"><label>Work email *</label><input type="email" name="email" placeholder="rahul@mamaearth.in" required></div>
+      <div class="form-row-2">
+        <div class="fg">
+          <label>Platform</label>
+          <select name="platform">
+            <option value="">Select platform</option>
+            {% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Budget range</label>
+          <select name="budget">
+            <option value="">Select budget</option>
+            {% for b in budgets %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Timeline</label><input type="text" name="timeline" placeholder="e.g. This month, Q4 2025"></div>
+      <div class="fg">
+        <label>Campaign brief *</label>
+        <textarea name="brief" rows="5" placeholder="Tell {{ user.name.split()[0] if user.name else 'them' }} about your brand, what you're promoting, and what you need..." required></textarea>
+      </div>
+      <div class="fg">
+        <label>Deliverables</label>
+        <textarea name="deliverables" rows="3" placeholder="e.g. 1 Instagram Reel + 3 Stories, product tagged, link in bio."></textarea>
+      </div>
+      <button type="submit" class="g-btn-primary pp-submit">Send enquiry →</button>
+      <p class="pp-form-note">Goes directly to {{ user.name.split()[0] if user.name else 'creator' }}'s DealInbox. No spam, ever.</p>
+    </form>
+  </div>
+</div>
+
+<div class="pp-footer">Powered by <a href="{{ url_for('index') }}">dealinbox</a></div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
