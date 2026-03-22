@@ -162,7 +162,7 @@
 </div>
 
 <script>
-function copyLink(){navigator.clipboard.writeText("dealsinbox.in/@{{ session.username }}").then(()=>showToast("Link copied!"))}
+function copyLink(){navigator.clipboard.writeText("www.dealsinbox.in/@{{ session.username }}").then(()=>showToast("Link copied!"))}
 function shareLink(){if(navigator.share)navigator.share({title:'My DealInbox',url:'https://dealinbox.in/@{{ session.username }}'});else copyLink()}
 function addRate(){const c=document.getElementById('rateItems');const d=document.createElement('div');d.className='rate-item';d.innerHTML=`<select><option>Instagram Reel</option><option>Instagram Story</option><option>Instagram Post</option><option>YouTube Video</option><option>YouTube Short</option><option>TikTok Video</option></select><input type="text" placeholder="₹0"><button onclick="removeRate(this)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:2px">×</button>`;c.appendChild(d)}
 function removeRate(btn){if(document.getElementById('rateItems').children.length>1)btn.closest('.rate-item').remove()}
