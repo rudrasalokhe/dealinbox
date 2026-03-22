@@ -165,6 +165,29 @@ def pro_required(f):
 @app.route("/ping")
 def ping():
     return "pong", 200
+  @app.route("/ping")
+def ping():
+    return "pong", 200
+
+@app.route("/api/instagram-sync", methods=["POST"])
+@login_required
+def instagram_sync():
+    uid  = session["uid"]
+    data = request.json
+    users_col.update_one({"_id": oid(uid)}, {"$set": {
+        "instagram":    data.get("username", ""),
+        "followers":    data.get("followers", ""),
+        "bio":          data.get("bio", ""),
+        "ig_posts":     data.get("posts", ""),
+        "ig_following": data.get("following", ""),
+        "ig_synced_at": now()
+    }})
+    log(uid, "Instagram synced via extension", data.get("username",""))
+    return jsonify({"ok": True})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LANDING
+# ═══════════════════════════════════════════════════════════════════════════════
 # ═══════════════════════════════════════════════════════════════════════════════
 # LANDING
 # ═══════════════════════════════════════════════════════════════════════════════
