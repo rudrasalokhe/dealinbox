@@ -15,7 +15,7 @@
 <div class="app-wrap">
   <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
   <aside class="sidebar">
-    <div class="sb-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="28" style="border-radius:6px;"> dealinbox</div>
+    <div class="sb-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="24" style="border-radius:6px; object-fit:cover;"> dealinbox</div>
     <div class="sb-user">
       <div class="sb-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
       <div class="sb-info">
@@ -62,7 +62,7 @@
   <div class="app-main">
 {% else %}
 <nav class="pub-nav">
-  <a href="{{ url_for('index') }}" class="nav-logo">dealinbox</a>
+  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> dealinbox</a>
   <div class="pub-nav-right">
     <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
     <a href="{{ url_for('signup') }}" class="pub-nav-cta">Get started</a>
@@ -84,7 +84,7 @@
 {% else %}
 <footer class="g-footer">
   <div class="g-footer-inner">
-    <span class="g-footer-logo">dealinbox</span>
+    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> dealinbox</span>
     <span>Never lose a brand deal again.</span>
     <span>© 2026</span>
   </div>
