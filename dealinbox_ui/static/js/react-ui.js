@@ -32,6 +32,14 @@
           ]),
         ]),
       ]),
+      h("section", { className: "features-v2", key: "f" }, [
+        h("header", null, [h("p", { className: "l-section-label" }, "Why creators switch"), h("h2", null, "One focused workspace for inbound deals, visibility, and faster closes.")]),
+        h("div", { className: "f2-grid" }, [
+          h("article", null, [h("h3", null, "Pipeline clarity"), h("p", null, "Track every enquiry with clear status and owner-ready history.")]),
+          h("article", null, [h("h3", null, "Premium trust"), h("p", null, "Give brands a tracking link and polished communication flow.")]),
+          h("article", null, [h("h3", null, "Actionable analytics"), h("p", null, "See conversion, response speed, and value trend in one place.")]),
+        ]),
+      ]),
     ]);
   }
 
@@ -91,6 +99,12 @@
                 ))
               : h("p", { className: "empty-small" }, "No recent activity yet."),
           ]),
+          h("section", { className: "db-card", key: "platforms" }, [
+            h("div", { className: "db-card-head" }, [h("h2", null, "Top enquiry channels")]),
+            (state.top_platforms || []).length
+              ? h("div", { className: "db-mini-list" }, state.top_platforms.map((p, i) => h("div", { className: "mini-row", key: i }, [h("strong", null, p.name), h("span", null, `${p.count} enquiries`)])))
+              : h("p", { className: "empty-small" }, "Not enough data yet."),
+          ]),
         ]),
         h("aside", { className: "db-right-col", key: "right" }, [
           h("section", { className: "db-card", key: "check" }, [
@@ -122,6 +136,13 @@
             h("h3", null, `Scale beyond ${state.FREE_ENQUIRY_LIMIT} enquiries/month`),
             h("p", null, `You have used ${state.enq_this_month} this month.`),
             h("a", { href: state.urls.upgrade, className: "btn btn-primary btn-full" }, "Upgrade to Pro"),
+          ]),
+          h("section", { className: "db-card", key: "insights" }, [
+            h("div", { className: "db-card-head" }, [h("h2", null, "Actionable insights")]),
+            h("div", { className: "db-mini-list" }, [
+              h("div", { className: "mini-row" }, [h("strong", null, "Avg response"), h("span", null, state.avg_response_hours ? `${state.avg_response_hours}h` : "Insufficient data")]),
+              ...(state.insights || []).map((text, i) => h("div", { className: "mini-row", key: i + "in" }, [h("span", null, text)])),
+            ]),
           ]),
         ]),
       ]),
@@ -169,9 +190,10 @@
       h("section", { className: "enx-toolbar db-card", key: "toolbar" }, [
         h("div", { className: "enx-search" }, h("input", { type: "search", placeholder: "Search brand, contact, email, or brief…", value: query, onChange: (e) => setQuery(e.target.value) })),
         h("div", { className: "enx-saved" }, [
-          h("button", { className: "btn btn-sm", onClick: () => setSaved("high") }, "High value"),
-          h("button", { className: "btn btn-sm", onClick: () => setSaved("new") }, "Needs response"),
-          h("button", { className: "btn btn-sm", onClick: () => setSaved("closing") }, "Closing soon"),
+          h("button", { className: "btn btn-sm", onClick: () => setSaved("high") }, `High value (${state.saved_views?.high || 0})`),
+          h("button", { className: "btn btn-sm", onClick: () => setSaved("new") }, `Needs response (${state.saved_views?.new || 0})`),
+          h("button", { className: "btn btn-sm", onClick: () => setSaved("closing") }, `Closing soon (${state.saved_views?.closing || 0})`),
+          h("button", { className: "btn btn-sm", onClick: () => setSaved("") }, "Clear"),
         ]),
       ]),
       h("div", { className: "filter-tabs", key: "tabs" }, [
@@ -200,6 +222,12 @@
             h("div", { className: "kanban-body" }, rows.filter((r) => r.status === s.key).map((r) => h("a", { href: `${state.urls.detail_prefix}${r.id}`, className: "kanban-card", key: r.id }, [h("div", { className: "kc-brand" }, r.brand_name), h("div", { className: "kc-meta" }, `${r.platform} · ${r.budget}`)]))),
           ])
         )),
+      h("section", { className: "db-card", key: "activity" }, [
+        h("div", { className: "db-card-head" }, [h("h2", null, "Recent workflow activity")]),
+        (state.recent_activity || []).length
+          ? h("div", { className: "timeline" }, (state.recent_activity || []).map((a, i) => h("div", { className: "tl-item", key: i }, [h("i"), h("div", null, [h("h5", null, a.action), a.detail ? h("p", null, a.detail) : null, h("small", null, a.created_at_fmt)])])))
+          : h("p", { className: "empty-small" }, "No recent actions yet."),
+      ]),
     ]);
   }
 

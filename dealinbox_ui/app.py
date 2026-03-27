@@ -343,6 +343,13 @@ def dashboard():
 
     conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
     avg_value = round(total_val / accepted) if accepted else 0
+    response_samples = []
+    for e in all_enq:
+        c_at = to_naive(e.get("created_at"))
+        u_at = to_naive(e.get("updated_at"))
+        if c_at and u_at and u_at > c_at:
+            response_samples.append((u_at - c_at).total_seconds() / 3600)
+    avg_response_hours = round(sum(response_samples) / len(response_samples), 1) if response_samples else None
 
     notifications = []
     if new_count:
@@ -351,6 +358,18 @@ def dashboard():
         notifications.append({"type": "reminder", "text": f"{len(pending_tasks)} reminder{'s are' if len(pending_tasks) != 1 else ' is'} due within 7 days."})
     if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
         notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
+    top_platforms = {}
+    for e in all_enq:
+        p = (e.get("platform") or "Unknown").strip()
+        top_platforms[p] = top_platforms.get(p, 0) + 1
+    top_platform_rows = sorted(top_platforms.items(), key=lambda x: x[1], reverse=True)[:4]
+    actionable_insights = []
+    if conversion < 20 and len(all_enq) >= 5:
+        actionable_insights.append("Conversion is below 20% — tighten qualifying questions on your public page.")
+    if avg_response_hours and avg_response_hours > 24:
+        actionable_insights.append("Average response is above 24h — use reminders to respond faster.")
+    if not actionable_insights:
+        actionable_insights.append("Pipeline health is stable — keep daily review rhythm for consistent closes.")
 
     dashboard_state = {
         "name": (session.get("name") or "Creator"),
@@ -386,6 +405,9 @@ def dashboard():
             "reminder_due_fmt": fmt_date(r.get("reminder_due")) if r.get("reminder_due") else "Soon",
         } for r in pending_tasks],
         "notifications": notifications,
+        "top_platforms": [{"name": k, "count": v} for k, v in top_platform_rows],
+        "avg_response_hours": avg_response_hours,
+        "insights": actionable_insights,
         "is_pro_user": is_pro(user),
         "FREE_ENQUIRY_LIMIT": FREE_ENQUIRY_LIMIT,
         "enq_this_month": enq_this_month,
@@ -449,6 +471,16 @@ def enquiries_page():
             "created_at_fmt": fmt_dt(e.get("created_at")),
             "search_blob": f"{e.get('brand_name','')} {e.get('contact_name','')} {e.get('email','')} {e.get('brief','')}".lower(),
         } for e in enqs],
+        "saved_views": {
+            "high": sum(1 for e in enqs if (e.get("budget_num", 0) or 0) >= 25000),
+            "new": sum(1 for e in enqs if e.get("status") in ["new", "reviewing"]),
+            "closing": sum(1 for e in enqs if e.get("status") in ["negotiating", "accepted"]),
+        },
+        "recent_activity": [{
+            "action": a.get("action", ""),
+            "detail": a.get("detail", ""),
+            "created_at_fmt": fmt_dt(a.get("created_at")),
+        } for a in activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(6)],
         "urls": {
             "base": url_for("enquiries_page"),
             "detail_prefix": "/enquiries/",
