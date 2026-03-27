@@ -38,22 +38,58 @@
     </article>
   </section>
 
-  <div class="db-main-grid">
-    <div class="db-left-col">
-      <section class="db-card">
-        <div class="db-card-head">
-          <h2>Pipeline by stage</h2>
-          <a href="{{ url_for('enquiries_page') }}" class="ch-link">Manage deals →</a>
-        </div>
-        <div class="db-stage-grid">
-          {% for s, info in STATUSES.items() %}
-          <div class="db-stage-item">
-            <div class="db-stage-top"><span class="dot" style="background:{{ info.color }}"></span>{{ info.label }}</div>
-            <strong>{{ pipeline.get(s, 0) }}</strong>
-          </div>
-          {% endfor %}
-        </div>
-      </section>
+{% if total == 0 %}
+<div class="onboard-banner">
+  <div>
+    <h3>Start your DealInbox in 2 minutes</h3>
+    <p>Add your public link to Instagram bio and stories. Brands who arrive via your page send higher quality briefs with budget context.</p>
+  </div>
+  <div class="onboard-actions">
+    <button class="btn btn-primary" onclick="copyLink()">Copy my link</button>
+    <a href="{{ url_for('settings') }}" class="btn">Polish profile →</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="kpi-grid">
+  <div class="kpi-card {% if new_count > 0 %}hi{% endif %}">
+    <div class="kpi-top"><span class="kpi-icon">✉</span>{% if new_count > 0 %}<span class="kpi-new-badge">new</span>{% endif %}</div>
+    <div class="kpi-val">{{ new_count }}</div>
+    <div class="kpi-label">New enquiries</div>
+    <a href="{{ url_for('enquiries_page') }}?status=new" class="kpi-link">View →</a>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><span class="kpi-icon">✓</span></div>
+    <div class="kpi-val">{{ accepted }}</div>
+    <div class="kpi-label">Deals closed</div>
+    <a href="{{ url_for('enquiries_page') }}?status=closed" class="kpi-link">View →</a>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><span class="kpi-icon">₹</span></div>
+    <div class="kpi-val">₹{{ "{:,}".format(total_val) }}</div>
+    <div class="kpi-label">Pipeline value</div>
+    <a href="{{ url_for('analytics') }}" class="kpi-link">Analytics →</a>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><span class="kpi-icon">≡</span></div>
+    <div class="kpi-val">{{ total }}</div>
+    <div class="kpi-label">Total enquiries</div>
+    <a href="{{ url_for('enquiries_page') }}" class="kpi-link">View →</a>
+  </div>
+</div>
+
+<div class="pip-wrap">
+  <div class="pip-bar">
+    {% for s, info in STATUSES.items() %}{% if pipeline.get(s, 0) > 0 %}
+    <div class="pip-seg" style="background:{{ info.color }};flex:{{ pipeline.get(s,0) }}"></div>
+    {% endif %}{% endfor %}
+  </div>
+  <div class="pip-legend">
+    {% for s, info in STATUSES.items() %}
+    <div class="pip-item"><span class="pip-dot" style="background:{{ info.color }}"></span>{{ info.label }} <strong style="color:var(--t1);margin-left:2px">{{ pipeline.get(s, 0) }}</strong></div>
+    {% endfor %}
+  </div>
+</div>
 
       <section class="db-card">
         <div class="db-card-head">
@@ -167,9 +203,10 @@
 </div>
 
 <script>
-function copyPublicLink(){
-  navigator.clipboard.writeText('https://dealinbox.in/@{{ session.username }}')
-    .then(()=>showToast('Public page link copied'));
-}
+function copyLink(){navigator.clipboard.writeText("https://dealinbox.in/@{{ session.username }}").then(()=>showToast("Link copied!"))}
+function shareLink(){if(navigator.share)navigator.share({title:'My DealInbox',url:'https://dealinbox.in/@{{ session.username }}'});else copyLink()}
+function addRate(){const c=document.getElementById('rateItems');const d=document.createElement('div');d.className='rate-item';d.innerHTML=`<select><option>Instagram Reel</option><option>Instagram Story</option><option>Instagram Post</option><option>YouTube Video</option><option>YouTube Short</option><option>TikTok Video</option></select><input type="text" placeholder="₹0"><button onclick="removeRate(this)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:2px">×</button>`;c.appendChild(d)}
+function removeRate(btn){if(document.getElementById('rateItems').children.length>1)btn.closest('.rate-item').remove()}
+function copyRateCard(){let t='My Rate Card — @{{ session.username }}\n\n';document.querySelectorAll('#rateItems .rate-item').forEach(i=>{t+=`• ${i.querySelector('select').value}: ${i.querySelector('input').value||'₹TBD'}\n`});t+='\nBook me at dealinbox.in/@{{ session.username }}';navigator.clipboard.writeText(t).then(()=>showToast('Rate card copied!'))}
 </script>
 {% endblock %}
