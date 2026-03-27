@@ -25,3 +25,16 @@
   </div>
 </body>
 </html>
+{% extends "base.html" %}
+{% block title %}Service temporarily unavailable — DealInbox{% endblock %}
+{% block content %}
+<div class="nf-wrap" style="margin:80px auto;text-align:center;max-width:560px;padding:0 20px;">
+  <div class="nf-num" style="font-size:3rem;">500</div>
+  <h2 style="margin-bottom:10px;">We’re fixing this right now.</h2>
+  <p style="color:var(--t3);margin-bottom:18px;">DealInbox hit a temporary issue. Please refresh in a few seconds, or come back shortly.</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Reload homepage</a>
+    <a href="mailto:support@dealinbox.in" class="btn">Contact support</a>
+  </div>
+</div>
+{% endblock %}

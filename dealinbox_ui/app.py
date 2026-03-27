@@ -172,6 +172,8 @@ def inject_globals():
             return enquiries.count_documents({"user_id": session["uid"], "status": "new"})
         except Exception:
             return 0
+        if "uid" not in session: return 0
+        return safe_count(enquiries, {"user_id": session["uid"], "status": "new"}, fallback=0)
     return dict(
         new_enquiry_count=new_enquiry_count,
         get_user=get_user,
@@ -240,6 +242,8 @@ def index():
         enq_total = enquiries.count_documents({})
     except Exception:
         enq_total = 0
+    total     = safe_count(users_col, {}, fallback=0)
+    enq_total = safe_count(enquiries, {}, fallback=0)
     return render_template("index.html", total=total, enq_total=enq_total)
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
@@ -803,6 +807,7 @@ def internal_error(e):
         return render_template("500.html"), 500
     except Exception:
         return "Service temporarily unavailable", 500
+    return render_template("500.html"), 500
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRY EXTRAS — notes, reminders, bulk, search, star, snooze
 # ═══════════════════════════════════════════════════════════════════════════════
