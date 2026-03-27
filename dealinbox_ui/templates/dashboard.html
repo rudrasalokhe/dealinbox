@@ -132,6 +132,20 @@
         {% endif %}
       </section>
 
+
+      <section class="db-card">
+        <div class="db-card-head"><h2>Notifications</h2></div>
+        {% if notifications %}
+        <div class="db-mini-list">
+          {% for n in notifications %}
+          <div class="mini-row"><strong>{{ n.type|upper }}</strong><span>{{ n.text }}</span></div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-small">No urgent notifications right now.</p>
+        {% endif %}
+      </section>
+
       <section class="db-card quick-actions">
         <div class="db-card-head"><h2>Quick actions</h2></div>
         <a class="qa-btn" href="{{ url_for('enquiries_page') }}">Open enquiry board</a>

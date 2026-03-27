@@ -311,6 +311,14 @@ def dashboard():
     conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
     avg_value = round(total_val / accepted) if accepted else 0
 
+    notifications = []
+    if new_count:
+        notifications.append({"type": "new", "text": f"{new_count} new enquiry{'ies' if new_count != 1 else ''} needs your attention."})
+    if pending_tasks:
+        notifications.append({"type": "reminder", "text": f"{len(pending_tasks)} reminder{'s are' if len(pending_tasks) != 1 else ' is'} due within 7 days."})
+    if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
+        notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
+
     return render_template("dashboard.html",
                            new_count=new_count,
                            accepted=accepted,
@@ -329,7 +337,8 @@ def dashboard():
                            checklist=checklist,
                            pending_tasks=pending_tasks,
                            conversion=conversion,
-                           avg_value=avg_value)
+                           avg_value=avg_value,
+                           notifications=notifications)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRIES
 # ═══════════════════════════════════════════════════════════════════════════════
