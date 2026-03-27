@@ -2,23 +2,34 @@
 {% block title %}Sign Up — DealInbox{% endblock %}
 {% block body_class %}auth-body{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-  <a href="{{ url_for('index') }}" class="auth-logo">dealinbox</a>
-  <div class="auth-card">
-    <h1 class="auth-h1">Create your page.</h1>
-    <p class="auth-sub">Join {{ creator_count }}+ creators managing brand deals.</p>
-    <form method="POST" class="auth-form">
-      <div class="fg"><label>Full name</label><input type="text" name="name" placeholder="Priya Sharma" required autofocus></div>
-      <div class="fg">
-        <label>Username</label>
-        <div class="input-prefix"><span class="iprefix">@</span><input type="text" name="username" placeholder="yourname" required></div>
-        <div class="hint">Your page: dealinbox.in/@yourname</div>
-      </div>
-      <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required></div>
-      <div class="fg"><label>Password</label><input type="password" name="password" placeholder="Min. 6 characters" required minlength="6"></div>
-      <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Create free account →</button>
-    </form>
+<div class="auth-premium">
+  <div class="auth-panel">
+    <a href="{{ url_for('index') }}" class="auth-logo">dealinbox</a>
+    <h1 class="auth-h1">Build a premium inbound engine for brand deals.</h1>
+    <p class="auth-sub">Join {{ creator_count }}+ creators using DealInbox to replace chaotic DMs with a high-trust deal system.</p>
+    <ul class="auth-points">
+      <li>Your own enquiry page at /@username</li>
+      <li>Pipeline, reminders, and analytics</li>
+      <li>Upgrade-ready Pro workflow as you grow</li>
+    </ul>
   </div>
-  <div class="auth-foot">Already have an account? <a href="{{ url_for('login') }}">Log in →</a></div>
+  <div class="auth-card-wrap">
+    <div class="auth-card">
+      <h2 class="auth-h1" style="font-size:1.4rem">Create account</h2>
+      <p class="auth-sub">Go live in under 60 seconds.</p>
+      <form method="POST" class="auth-form">
+        <div class="fg"><label>Full name</label><input type="text" name="name" placeholder="Priya Sharma" required autofocus></div>
+        <div class="fg">
+          <label>Username</label>
+          <div class="input-prefix"><span class="iprefix">@</span><input type="text" name="username" placeholder="yourname" required></div>
+          <div class="hint">Your public URL: dealinbox.in/@yourname</div>
+        </div>
+        <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required></div>
+        <div class="fg"><label>Password</label><input type="password" name="password" placeholder="Min. 6 characters" required minlength="6"></div>
+        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Create free account →</button>
+      </form>
+      <div class="auth-foot">Already have an account? <a href="{{ url_for('login') }}">Log in →</a></div>
+    </div>
+  </div>
 </div>
 {% endblock %}
