@@ -1,103 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Enquiries — DealInbox{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Enquiries</h1><p class="page-sub">All your brand deal enquiries.</p></div>
-  <div class="ph-actions">
-    <div class="view-toggle">
-      <button class="vt-btn active" id="btnTable" onclick="setView('table')">Table</button>
-      <button class="vt-btn" id="btnKanban" onclick="setView('kanban')">Kanban</button>
-    </div>
-    <button class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
+<div id="enquiriesReactRoot"></div>
+<script id="enquiriesState" type="application/json">{{ enquiries_state|tojson }}</script>
+<noscript>
+  <div class="premium-empty">
+    <h3>JavaScript required</h3>
+    <p>Please enable JavaScript to load the new enquiries workspace.</p>
   </div>
-</div>
-
-<div class="filter-tabs">
-  <a href="{{ url_for('enquiries_page') }}" class="ft-tab {% if not status_f %}active{% endif %}">All <span class="ft-count">{{ counts.get('all', 0) }}</span></a>
-  {% for s, info in STATUSES.items() %}
-  <a href="{{ url_for('enquiries_page') }}?status={{ s }}" class="ft-tab {% if status_f == s %}active{% endif %}">{{ info.label }} <span class="ft-count">{{ counts.get(s, 0) }}</span></a>
-  {% endfor %}
-</div>
-
-{% if enqs %}
-<div id="viewTable">
-  <div class="enq-table-wrap">
-    <table class="enq-table">
-      <thead><tr><th>Brand</th><th>Platform</th><th>Budget</th><th>Score</th><th>Status</th><th>Received</th><th>Update</th></tr></thead>
-      <tbody>
-        {% for e in enqs %}
-        {% set score = 40 %}{% if e.budget %}{% set score = score + 25 %}{% endif %}{% if e.brief and e.brief|length > 50 %}{% set score = score + 20 %}{% endif %}{% if e.deliverables %}{% set score = score + 15 %}{% endif %}
-        <tr class="{% if e.status == 'new' %}row-new{% endif %}" onclick="window.location='{{ url_for('enquiry_detail', eid=e._id) }}'" style="cursor:pointer">
-          <td>
-            <div class="etd-brand">{% if e.status == 'new' %}<span class="nd"></span>{% endif %}{{ e.brand_name }}</div>
-            <div class="etd-contact">{{ e.contact_name or '' }}</div>
-          </td>
-          <td class="td-muted">{{ e.platform or '—' }}</td>
-          <td class="{% if e.budget %}td-green{% else %}td-muted{% endif %}">{{ e.budget or '—' }}</td>
-          <td onclick="event.stopPropagation()">
-            <span class="score {% if score >= 75 %}score-hot{% elif score >= 55 %}score-warm{% else %}score-cold{% endif %}">{{ score }}</span>
-          </td>
-          <td><span class="status-pill pill-{{ e.status }}" style="background:{{ STATUSES[e.status].color if e.status in STATUSES else '#333' }}15;color:{{ STATUSES[e.status].color if e.status in STATUSES else '#888' }}">{{ STATUSES[e.status].label if e.status in STATUSES else e.status }}</span></td>
-          <td class="td-time">{{ fmt_dt(e.created_at) }}</td>
-          <td onclick="event.stopPropagation()">
-            <select class="quick-status-select" data-id="{{ e._id }}" onchange="quickStatus(this)">
-              {% for s, info in STATUSES.items() %}<option value="{{ s }}" {% if e.status == s %}selected{% endif %}>{{ info.label }}</option>{% endfor %}
-            </select>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div id="viewKanban" style="display:none">
-  <div class="kanban-grid">
-    {% for s, info in STATUSES.items() %}
-    <div class="kanban-col">
-      <div class="kanban-head">
-        <span class="kanban-label" style="color:{{ info.color }}">{{ info.label }}</span>
-        <span class="kanban-count">{{ counts.get(s,0) }}</span>
-      </div>
-      <div class="kanban-body">
-        {% for e in enqs if e.status == s %}
-        <a href="{{ url_for('enquiry_detail', eid=e._id) }}" class="kanban-card">
-          <div class="kc-brand">{{ e.brand_name }}</div>
-          <div class="kc-meta">{{ e.platform or '' }}{% if e.budget %} · {{ e.budget }}{% endif %}</div>
-        </a>
-        {% else %}
-        <div style="text-align:center;padding:12px;font-size:11px;color:var(--t4)">Empty</div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% else %}
-<div class="empty-state">
-  <div class="es-icon">✉</div>
-  <h3>No enquiries {% if status_f %}with this status{% endif %}</h3>
-  {% if not status_f %}<p>Share your page link to start receiving brand enquiries.</p><a href="/@{{ session.username }}" target="_blank" class="btn">View my page ↗</a>{% endif %}
-</div>
-{% endif %}
-
-<script>
-function setView(v){
-  document.getElementById('viewTable').style.display=v==='table'?'block':'none';
-  const k=document.getElementById('viewKanban');if(k)k.style.display=v==='kanban'?'block':'none';
-  document.getElementById('btnTable').className='vt-btn'+(v==='table'?' active':'');
-  document.getElementById('btnKanban').className='vt-btn'+(v==='kanban'?' active':'');
-}
-async function quickStatus(sel){
-  const r=await fetch(`/api/enquiry/${sel.dataset.id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:sel.value})});
-  const d=await r.json();if(d.ok)showToast(`→ ${d.label}`);
-}
-function exportCSV(){
-  const rows=[['Brand','Platform','Budget','Status','Received']];
-  document.querySelectorAll('.enq-table tbody tr').forEach(tr=>{
-    const c=tr.querySelectorAll('td');if(c.length>0)rows.push([c[0]?.querySelector('.etd-brand')?.textContent?.trim()||'',c[1]?.textContent?.trim()||'',c[2]?.textContent?.trim()||'',c[4]?.textContent?.trim()||'',c[5]?.textContent?.trim()||'']);
-  });
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n'));a.download='enquiries.csv';a.click();showToast('Exported');
-}
-</script>
+</noscript>
 {% endblock %}

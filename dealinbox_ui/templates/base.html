@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -61,6 +63,7 @@
   </aside>
   <div class="app-main">
 {% else %}
+{% block public_nav %}
 <nav class="pub-nav">
   <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> dealinbox</a>
   <div class="pub-nav-right">
@@ -68,6 +71,7 @@
     <a href="{{ url_for('signup') }}" class="pub-nav-cta">Get started</a>
   </div>
 </nav>
+{% endblock %}
 {% endif %}
 
 <div class="flash-container">
@@ -78,7 +82,20 @@
   {% endwith %}
 </div>
 
-{% if session.uid %}<div class="app-content">{% endif %}
+{% if session.uid %}
+<div class="app-topbar">
+  <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search deals</button>
+  <div class="top-actions">
+    <span class="top-plan">{{ session.get("plan", "free")|upper }}</span>
+    <a href="{{ url_for('upgrade') }}" class="btn btn-sm">Upgrade</a>
+  </div>
+</div>
+<div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
+<div class="command-palette" id="commandPalette">
+  <input type="search" id="globalSearch" placeholder="Search brand, contact, or email..." oninput="runGlobalSearch(this.value)">
+  <div id="globalSearchResults" class="gs-results"></div>
+</div>
+<div class="app-content">{% endif %}
 {% block content %}{% endblock %}
 {% if session.uid %}</div></div></div>
 {% else %}
@@ -92,6 +109,28 @@
 {% endif %}
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/react-ui.js') }}"></script>
 {% block extra_js %}{% endblock %}
+<script>
+function toggleCommandBar(force){
+  const p=document.getElementById('commandPalette');
+  const o=document.getElementById('commandOverlay');
+  if(!p||!o)return;
+  const open = typeof force === 'boolean' ? force : !p.classList.contains('open');
+  p.classList.toggle('open', open); o.classList.toggle('open', open);
+  if(open){setTimeout(()=>document.getElementById('globalSearch')?.focus(),50);}
+}
+async function runGlobalSearch(q){
+  const box=document.getElementById('globalSearchResults');
+  if(!box)return;
+  if(!q || q.length<2){box.innerHTML='<p class="empty-small">Type at least 2 characters…</p>';return;}
+  const res=await fetch('/api/search?q='+encodeURIComponent(q));
+  const data=await res.json();
+  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching enquiries.</p>';return;}
+  box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
+}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});
+</script>
+
 </body>
 </html>
