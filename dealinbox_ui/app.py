@@ -154,10 +154,13 @@ UPI_NAME = os.getenv("UPI_NAME", "DealInbox")
 def inject_globals():
     def get_user():
         if "uid" not in session: return None
-        return users_col.find_one({"_id": oid(session["uid"])})
+        try:
+            return users_col.find_one({"_id": oid(session["uid"])})
+        except Exception:
+            return None
     def new_enquiry_count():
         if "uid" not in session: return 0
-        return enquiries.count_documents({"user_id": session["uid"], "status": "new"})
+        return safe_count(enquiries, {"user_id": session["uid"], "status": "new"}, fallback=0)
     return dict(
         new_enquiry_count=new_enquiry_count,
         get_user=get_user,
@@ -218,8 +221,8 @@ def instagram_sync():
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/")
 def index():
-    total     = users_col.count_documents({})
-    enq_total = enquiries.count_documents({})
+    total     = safe_count(users_col, {}, fallback=0)
+    enq_total = safe_count(enquiries, {}, fallback=0)
     return render_template("index.html", total=total, enq_total=enq_total)
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
@@ -776,6 +779,10 @@ def admin_pending():
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    return render_template("500.html"), 500
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRY EXTRAS — notes, reminders, bulk, search, star, snooze
 # ═══════════════════════════════════════════════════════════════════════════════
