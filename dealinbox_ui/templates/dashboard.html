@@ -38,6 +38,19 @@
     </article>
   </section>
 
+{% if total == 0 %}
+<div class="onboard-banner">
+  <div>
+    <h3>Start your DealInbox in 2 minutes</h3>
+    <p>Add your public link to Instagram bio and stories. Brands who arrive via your page send higher quality briefs with budget context.</p>
+  </div>
+  <div class="onboard-actions">
+    <button class="btn btn-primary" onclick="copyLink()">Copy my link</button>
+    <a href="{{ url_for('settings') }}" class="btn">Polish profile →</a>
+  </div>
+</div>
+{% endif %}
+
   <div class="db-main-grid">
     <div class="db-left-col">
       <section class="db-card">
@@ -167,9 +180,10 @@
 </div>
 
 <script>
-function copyPublicLink(){
-  navigator.clipboard.writeText('https://dealinbox.in/@{{ session.username }}')
-    .then(()=>showToast('Public page link copied'));
-}
+function copyLink(){navigator.clipboard.writeText("https://dealinbox.in/@{{ session.username }}").then(()=>showToast("Link copied!"))}
+function shareLink(){if(navigator.share)navigator.share({title:'My DealInbox',url:'https://dealinbox.in/@{{ session.username }}'});else copyLink()}
+function addRate(){const c=document.getElementById('rateItems');const d=document.createElement('div');d.className='rate-item';d.innerHTML=`<select><option>Instagram Reel</option><option>Instagram Story</option><option>Instagram Post</option><option>YouTube Video</option><option>YouTube Short</option><option>TikTok Video</option></select><input type="text" placeholder="₹0"><button onclick="removeRate(this)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:2px">×</button>`;c.appendChild(d)}
+function removeRate(btn){if(document.getElementById('rateItems').children.length>1)btn.closest('.rate-item').remove()}
+function copyRateCard(){let t='My Rate Card — @{{ session.username }}\n\n';document.querySelectorAll('#rateItems .rate-item').forEach(i=>{t+=`• ${i.querySelector('select').value}: ${i.querySelector('input').value||'₹TBD'}\n`});t+='\nBook me at dealinbox.in/@{{ session.username }}';navigator.clipboard.writeText(t).then(()=>showToast('Rate card copied!'))}
 </script>
 {% endblock %}

@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block title %}DealInbox — Premium creator deal workspace{% endblock %}
 {% block body_class %}landing-body{% endblock %}
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% endblock %}
 
 {% block public_nav %}
-<nav class="ln-nav ln-nav-v2">
+<nav class="ln-nav">
   <a href="/" class="ln-logo">dealinbox</a>
   <div class="ln-nav-links">
     <a href="#features">Features</a>
@@ -17,6 +21,8 @@
   </div>
 </nav>
 {% endblock %}
+
+{% block content %}
 
 {% block content %}
 <section class="hero-v2">
@@ -120,15 +126,36 @@
   </div>
 </section>
 
-<section id="faq" class="l-faq">
+
+<section class="l-trust">
+  <div class="l-container">
+    <div class="l-section-label">Why teams trust DealInbox</div>
+    <div class="l-trust-grid">
+      <div class="l-trust-item"><strong>Built for real workflows</strong><p>Structured briefs, status updates, and reminders that reduce dropped conversations.</p></div>
+      <div class="l-trust-item"><strong>Transparent for brands</strong><p>Every enquiry gets a shareable tracking link so progress is visible without back-and-forth.</p></div>
+      <div class="l-trust-item"><strong>Revenue-first dashboard</strong><p>Track close rates and pipeline value so you can improve conversion month over month.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="l-faq" id="faq">
   <div class="l-container">
     <div class="l-section-label">FAQ</div>
-    <h2 class="l-section-h2">Everything you need before switching from DMs.</h2>
+    <h2 class="l-section-h2">Answers before you sign up.</h2>
     <div class="l-faq-list">
-      <details><summary>Do brands need an account?</summary><p>No. Brands submit once and get a tracking link instantly.</p></details>
-      <details><summary>Can I stay on free forever?</summary><p>Yes. Free is great for starting out; Pro unlocks scale features.</p></details>
-      <details><summary>Will this break my existing workflow?</summary><p>No. Just replace “DM for collabs” with your DealInbox link and keep everything else running.</p></details>
+      <details><summary>Can I use DealInbox without paying?</summary><p>Yes. The Free plan includes your public enquiry page, deal tracking, and up to 20 enquiries per month.</p></details>
+      <details><summary>Will this replace my DMs?</summary><p>It complements them. Put your DealInbox link in bio so serious brand enquiries arrive structured with budget and timeline.</p></details>
+      <details><summary>Do brands need an account?</summary><p>No signup required for brands. They submit once and get a tracking link for updates.</p></details>
     </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="l-footer">
+  <div class="l-container l-footer-inner">
+    <span class="l-footer-logo">dealinbox</span>
+    <span>Never lose a brand deal again.</span>
+    <span>© 2026</span>
   </div>
 </section>
 
