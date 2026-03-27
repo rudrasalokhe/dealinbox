@@ -344,6 +344,52 @@ def dashboard():
     if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
         notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
 
+    dashboard_state = {
+        "name": (session.get("name") or "Creator"),
+        "username": session.get("username", ""),
+        "stats": {
+            "total_val": total_val,
+            "conversion": conversion,
+            "new_count": new_count,
+            "profile_completion_pct": completion,
+            "accepted": accepted,
+            "total": len(all_enq),
+            "avg_value": avg_value,
+        },
+        "pipeline": [{"key": s, "label": info["label"], "color": info["color"], "count": pipeline.get(s, 0)} for s, info in STATUSES.items()],
+        "recent": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "platform": e.get("platform") or "Platform TBD",
+            "budget": e.get("budget") or "Budget TBD",
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+        } for e in recent],
+        "activity": [{
+            "action": a.get("action", ""),
+            "detail": a.get("detail", ""),
+            "created_at_fmt": fmt_dt(a.get("created_at")),
+        } for a in activity],
+        "checklist": checklist,
+        "pending_tasks": [{
+            "id": str(r.get("_id")),
+            "brand_name": r.get("brand_name", ""),
+            "reminder_due_fmt": fmt_date(r.get("reminder_due")) if r.get("reminder_due") else "Soon",
+        } for r in pending_tasks],
+        "notifications": notifications,
+        "is_pro_user": is_pro(user),
+        "FREE_ENQUIRY_LIMIT": FREE_ENQUIRY_LIMIT,
+        "enq_this_month": enq_this_month,
+        "urls": {
+            "public_page": url_for("public_page", username=session.get("username", "")),
+            "enquiries": url_for("enquiries_page"),
+            "settings": url_for("settings"),
+            "analytics_or_upgrade": url_for("analytics") if is_pro(user) else url_for("upgrade"),
+            "upgrade": url_for("upgrade"),
+            "status_base": "/enquiries/",
+        }
+    }
     return render_template("dashboard.html",
                            new_count=new_count,
                            accepted=accepted,
@@ -363,7 +409,8 @@ def dashboard():
                            pending_tasks=pending_tasks,
                            conversion=conversion,
                            avg_value=avg_value,
-                           notifications=notifications)
+                           notifications=notifications,
+                           dashboard_state=dashboard_state)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRIES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -377,10 +424,35 @@ def enquiries_page():
     enqs   = list(enquiries.find(q).sort("created_at", DESCENDING))
     counts = {s: enquiries.count_documents({"user_id": uid, "status": s}) for s in STATUSES}
     counts["all"] = enquiries.count_documents({"user_id": uid})
+    enquiries_state = {
+        "status_f": status_f,
+        "counts": counts,
+        "statuses": [{"key": s, "label": info["label"], "color": info["color"]} for s, info in STATUSES.items()],
+        "enquiries": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "contact_name": e.get("contact_name", ""),
+            "email": e.get("email", ""),
+            "platform": e.get("platform") or "—",
+            "budget": e.get("budget") or "—",
+            "budget_num": e.get("budget_num", 0) or 0,
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+            "search_blob": f"{e.get('brand_name','')} {e.get('contact_name','')} {e.get('email','')} {e.get('brief','')}".lower(),
+        } for e in enqs],
+        "urls": {
+            "base": url_for("enquiries_page"),
+            "detail_prefix": "/enquiries/",
+            "api_status_prefix": "/api/enquiry/",
+            "public_page": url_for("public_page", username=session.get("username", "")),
+        }
+    }
     return render_template("enquiries.html",
                            enqs=enqs, counts=counts,
                            status_f=status_f, STATUSES=STATUSES,
-                           fmt_dt=fmt_dt)
+                           fmt_dt=fmt_dt,
+                           enquiries_state=enquiries_state)
 @app.route("/enquiries/export")
 @login_required
 @pro_required
