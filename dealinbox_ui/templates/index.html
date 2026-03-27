@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}DealInbox — Your brand deal inbox{% endblock %}
+{% block title %}DealInbox — Premium creator deal workspace{% endblock %}
 {% block body_class %}landing-body{% endblock %}
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,220 +10,119 @@
 <nav class="ln-nav">
   <a href="/" class="ln-logo">dealinbox</a>
   <div class="ln-nav-links">
-    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#workflow">Workflow</a>
     <a href="#pricing">Pricing</a>
     <a href="#faq">FAQ</a>
   </div>
   <div class="ln-nav-right">
     <a href="{{ url_for('login') }}" class="ln-login">Log in</a>
-    <a href="{{ url_for('signup') }}" class="ln-cta">Get started</a>
+    <a href="{{ url_for('signup') }}" class="ln-cta">Start free</a>
   </div>
 </nav>
 {% endblock %}
 
 {% block content %}
 
-<!-- HERO -->
-<section class="l-hero">
-  <div class="l-hero-inner">
-    <div class="l-badge">{{ total }}+ creators · Free to start</div>
-    <h1 class="l-h1">Every brand deal,<br><em>finally organised.</em></h1>
-    <p class="l-sub">One link in your bio. Brands submit a proper brief with budget. Everything lands in your dashboard — tracked, followed up, never lost.</p>
-    <div class="l-hero-ctas">
-      <a href="{{ url_for('signup') }}" class="l-btn-primary">Create your page — it's free</a>
-      <a href="/@demo" target="_blank" class="l-btn-ghost">See a live example ↗</a>
+{% block content %}
+<section class="hero-v2">
+  <div class="hero-v2-copy">
+    <span class="hero-chip">{{ total }}+ creators · {{ enq_total }}+ enquiries handled</span>
+    <h1>The premium operating system for creator-brand deals.</h1>
+    <p>DealInbox gives you a high-trust enquiry page, a modern pipeline workspace, and clear status tracking so brands take you seriously and deals move faster.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Create my DealInbox</a>
+      <a href="/@demo" target="_blank" class="btn btn-lg">View live demo ↗</a>
     </div>
-    <div class="l-proof">
-      <span>{{ enq_total }} deals tracked</span>
-      <span class="l-proof-dot">·</span>
-      <span>No credit card required</span>
-      <span class="l-proof-dot">·</span>
-      <span>Live in 60 seconds</span>
+    <div class="hero-proof-row">
+      <div><strong>60 sec</strong><span>to launch</span></div>
+      <div><strong>20+</strong><span>free monthly enquiries</span></div>
+      <div><strong>24/7</strong><span>brand status visibility</span></div>
     </div>
   </div>
-
-  <!-- Dashboard preview -->
-  <div class="l-preview">
-    <div class="lp-chrome">
-      <div class="lp-dots"><i></i><i></i><i></i></div>
-      <div class="lp-addr">dealinbox.in/dashboard</div>
+  <div class="hero-v2-preview">
+    <div class="hp-head">
+      <span></span><span></span><span></span>
+      <p>dealinbox.in/dashboard</p>
     </div>
-    <div class="lp-body">
-      <div class="lp-sidebar">
-        <div class="lp-sb-logo">dealinbox</div>
-        <div class="lp-sb-item active">Dashboard</div>
-        <div class="lp-sb-item">Enquiries <span class="lp-badge">3</span></div>
-        <div class="lp-sb-item">Analytics</div>
-        <div class="lp-sb-item">Settings</div>
+    <div class="hp-body">
+      <div class="hp-kpis">
+        <article><small>Pipeline value</small><strong>₹2,45,000</strong></article>
+        <article><small>Conversion</small><strong>38%</strong></article>
+        <article><small>Needs response</small><strong>6</strong></article>
       </div>
-      <div class="lp-main">
-        <div class="lp-kpis">
-          <div class="lp-kpi"><div class="lp-kv">₹2.4L</div><div class="lp-kl">Pipeline</div></div>
-          <div class="lp-kpi"><div class="lp-kv">12</div><div class="lp-kl">This month</div></div>
-          <div class="lp-kpi"><div class="lp-kv">68%</div><div class="lp-kl">Close rate</div></div>
-        </div>
-        <div class="lp-table">
-          <div class="lp-th"><span>Brand</span><span>Budget</span><span>Status</span></div>
-          <div class="lp-tr"><span class="lp-brand">Mamaearth</span><span class="lp-amt">₹25,000</span><span class="lp-s lp-s-new">New</span></div>
-          <div class="lp-tr"><span class="lp-brand">boAt Lifestyle</span><span class="lp-amt">₹45,000</span><span class="lp-s lp-s-neg">Negotiating</span></div>
-          <div class="lp-tr"><span class="lp-brand">Nykaa</span><span class="lp-amt">₹18,000</span><span class="lp-s lp-s-done">Closed</span></div>
-          <div class="lp-tr"><span class="lp-brand">Sugar Cosmetics</span><span class="lp-amt">₹12,000</span><span class="lp-s lp-s-rev">Reviewing</span></div>
-        </div>
+      <div class="hp-list">
+        <div><b>Minimalist</b><span>₹45,000 · Negotiating</span></div>
+        <div><b>SkinQ</b><span>₹20,000 · Reviewing</span></div>
+        <div><b>Nykaa</b><span>₹32,000 · Accepted</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- PROBLEM / SOLUTION -->
-<section class="l-ps">
-  <div class="l-container">
-    <div class="l-ps-grid">
-      <div class="l-ps-col l-ps-bad">
-        <div class="l-ps-label">The problem</div>
-        <h2>Brand DMs are a mess.</h2>
-        <ul>
-          <li>Deals buried under 200 unread messages</li>
-          <li>No record of what was agreed or when</li>
-          <li>Follow-ups slip through, deals go cold</li>
-          <li>Zero visibility into your pipeline</li>
-          <li>Brands don't know how to reach you</li>
-        </ul>
-      </div>
-      <div class="l-ps-divider">
-        <div class="l-ps-arrow">→</div>
-      </div>
-      <div class="l-ps-col l-ps-good">
-        <div class="l-ps-label">With DealInbox</div>
-        <h2>One link. Zero chaos.</h2>
-        <ul>
-          <li>Brands fill a structured form with budget</li>
-          <li>Every deal in one clean dashboard</li>
-          <li>Status tracking from inquiry to payment</li>
-          <li>Analytics — revenue, platforms, close rate</li>
-          <li>Brands track their own request status</li>
-        </ul>
-      </div>
-    </div>
+<section class="logo-strip">
+  <p>Trusted by creators working with top brands</p>
+  <div>
+    <span>Nykaa</span><span>boAt</span><span>Mamaearth</span><span>Lenskart</span><span>Plum</span><span>Wow Skin</span>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="l-how" id="how">
-  <div class="l-container">
-    <div class="l-section-label">How it works</div>
-    <h2 class="l-section-h2">Up and running<br>in three steps.</h2>
-    <div class="l-steps">
-      <div class="l-step">
-        <div class="l-step-n">01</div>
-        <h3>Sign up, get your link</h3>
-        <p>Create an account in 60 seconds. Your page is instantly live at <strong>dealinbox.in/@yourname</strong>.</p>
-      </div>
-      <div class="l-step-line"></div>
-      <div class="l-step">
-        <div class="l-step-n">02</div>
-        <h3>Put it in your bio</h3>
-        <p>Replace "DM me for collabs" with your DealInbox link. Brands arrive on a professional page and submit a full brief — budget included.</p>
-      </div>
-      <div class="l-step-line"></div>
-      <div class="l-step">
-        <div class="l-step-n">03</div>
-        <h3>Close deals from your dashboard</h3>
-        <p>Every enquiry arrives with full context. Track it, reply, update status. Brands get a live tracking link so they never chase you for updates.</p>
-      </div>
-    </div>
+<section id="features" class="features-v2">
+  <header>
+    <p class="l-section-label">Platform capabilities</p>
+    <h2>Everything required to run a high-value creator business.</h2>
+  </header>
+  <div class="f2-grid">
+    <article><h3>Premium enquiry page</h3><p>Collect complete campaign briefs with budgets and timelines.</p></article>
+    <article><h3>Pipeline workspace</h3><p>Move deals from new → reviewing → negotiating → closed with confidence.</p></article>
+    <article><h3>Brand tracking portal</h3><p>Give brands their own status page and reduce follow-up noise.</p></article>
+    <article><h3>Analytics + insights</h3><p>Track conversion rates, deal value, and workflow bottlenecks.</p></article>
+    <article><h3>Templates and quick actions</h3><p>Respond faster with structured workflows instead of scattered DMs.</p></article>
+    <article><h3>Upgrade-ready growth</h3><p>Scale from free to pro with unlimited inbound and exports.</p></article>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="l-features">
-  <div class="l-container">
-    <div class="l-section-label">Features</div>
-    <h2 class="l-section-h2">Built for creators<br>who mean business.</h2>
-    <div class="l-feat-grid">
-      <div class="l-feat l-feat-wide">
-        <div class="l-feat-icon">📬</div>
-        <h3>Professional enquiry page</h3>
-        <p>Your own page at <strong>dealinbox.in/@yourname</strong>. Structured form so brands include budget, platform, timeline and brief — not just "hey wanna collab?"</p>
-      </div>
-      <div class="l-feat">
-        <div class="l-feat-icon">📊</div>
-        <h3>Deal dashboard</h3>
-        <p>Pipeline view from New to Closed. Table or Kanban. Never lose track of where a deal stands.</p>
-      </div>
-      <div class="l-feat">
-        <div class="l-feat-icon">📈</div>
-        <h3>Revenue analytics</h3>
-        <p>Monthly deal value, conversion rate, best platforms. Know your numbers cold.</p>
-      </div>
-      <div class="l-feat">
-        <div class="l-feat-icon">⚡</div>
-        <h3>AI quick reply</h3>
-        <p>Generate a reply in one click — interested, counter-offer, need more info, or politely decline.</p>
-      </div>
-      <div class="l-feat">
-        <div class="l-feat-icon">🔗</div>
-        <h3>Brand tracking portal</h3>
-        <p>Each brand gets a live link to follow their enquiry status. No more "just checking in" messages.</p>
-      </div>
-    </div>
+<section id="workflow" class="workflow-v2">
+  <header>
+    <p class="l-section-label">How it works</p>
+    <h2>A complete inbound deal loop in 3 steps.</h2>
+  </header>
+  <div class="wf-grid">
+    <article><span>01</span><h3>Publish your page</h3><p>Share your custom DealInbox URL in bio, media kit, and pitch decks.</p></article>
+    <article><span>02</span><h3>Triage like a pro</h3><p>Use filters, saved views, and reminders to prioritize serious deals.</p></article>
+    <article><span>03</span><h3>Close with confidence</h3><p>Track movement, update statuses, and keep brands aligned with zero chaos.</p></article>
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="l-pricing" id="pricing">
-  <div class="l-container">
-    <div class="l-section-label">Pricing</div>
-    <h2 class="l-section-h2">Simple, honest pricing.</h2>
-    <p class="l-pricing-sub">Free forever for the basics. Early creators get Pro free for 2 months — no card needed.</p>
-
-    <!-- Countdown -->
-    <div class="l-timer">
-      <div class="l-timer-label">Launch offer ends in</div>
-      <div class="l-timer-clock">
-        <div class="l-tc"><span id="tcD">--</span><small>days</small></div>
-        <div class="l-tc-sep">:</div>
-        <div class="l-tc"><span id="tcH">--</span><small>hrs</small></div>
-        <div class="l-tc-sep">:</div>
-        <div class="l-tc"><span id="tcM">--</span><small>min</small></div>
-        <div class="l-tc-sep">:</div>
-        <div class="l-tc"><span id="tcS">--</span><small>sec</small></div>
-      </div>
-    </div>
-
-    <div class="l-price-cards">
-      <div class="l-price-card">
-        <div class="l-pc-plan">Free</div>
-        <div class="l-pc-price">₹0<span>/mo</span></div>
-        <div class="l-pc-desc">Get started, no cost ever.</div>
-        <ul class="l-pc-list">
-          <li>Enquiry page at /@yourname</li>
-          <li>Up to 20 enquiries / month</li>
-          <li>Status tracking & notes</li>
-          <li>Brand tracking portal</li>
-          <li class="l-dim">Analytics dashboard</li>
-          <li class="l-dim">Unlimited enquiries</li>
-          <li class="l-dim">CSV export</li>
-        </ul>
-        <a href="{{ url_for('signup') }}" class="l-pc-btn">Start free</a>
-      </div>
-
-      <div class="l-price-card l-price-featured">
-        <div class="l-pc-tag">Most popular · Free for 2 months</div>
-        <div class="l-pc-plan">Pro</div>
-        <div class="l-pc-price">₹0<span> now, then ₹199/mo</span></div>
-        <div class="l-pc-desc">Full access during your 2-month free window.</div>
-        <ul class="l-pc-list">
-          <li>Everything in Free</li>
-          <li>Unlimited enquiries</li>
-          <li>Full analytics dashboard</li>
-          <li>Revenue tracking</li>
-          <li>Export to CSV</li>
-          <li>AI quick reply</li>
-          <li>Priority support</li>
-        </ul>
-        <a href="{{ url_for('signup') }}" class="l-pc-btn l-pc-btn-dark">Claim 2 months free →</a>
-      </div>
-    </div>
+<section id="pricing" class="pricing-v2">
+  <header>
+    <p class="l-section-label">Pricing</p>
+    <h2>Simple plans. Serious value.</h2>
+  </header>
+  <div class="pv2-cards">
+    <article class="pv2-card">
+      <h3>Free</h3>
+      <p class="pv2-price">₹0<span>/month</span></p>
+      <ul>
+        <li>Public enquiry page</li>
+        <li>Pipeline tracking</li>
+        <li>Brand portal updates</li>
+        <li>Up to 20 enquiries/month</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="btn btn-full">Get started</a>
+    </article>
+    <article class="pv2-card featured">
+      <span class="tag">Most popular</span>
+      <h3>Pro</h3>
+      <p class="pv2-price">₹199<span>/month</span></p>
+      <ul>
+        <li>Unlimited enquiries</li>
+        <li>Advanced analytics</li>
+        <li>CSV export + workflows</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full">Start Pro trial</a>
+    </article>
   </div>
 </section>
 
@@ -258,22 +157,10 @@
     <span>Never lose a brand deal again.</span>
     <span>© 2026</span>
   </div>
-</footer>
+</section>
 
-<script>
-(function(){
-  const end = new Date();
-  end.setDate(end.getDate() + 61);
-  function pad(n){ return String(n).padStart(2,'0'); }
-  function tick(){
-    const diff = end - new Date();
-    if(diff <= 0) return;
-    document.getElementById('tcD').textContent = pad(Math.floor(diff/86400000));
-    document.getElementById('tcH').textContent = pad(Math.floor((diff%86400000)/3600000));
-    document.getElementById('tcM').textContent = pad(Math.floor((diff%3600000)/60000));
-    document.getElementById('tcS').textContent = pad(Math.floor((diff%60000)/1000));
-  }
-  tick(); setInterval(tick, 1000);
-})();
-</script>
+<section class="cta-v2">
+  <h2>Ready to run your creator business like a premium brand?</h2>
+  <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Launch DealInbox now</a>
+</section>
 {% endblock %}
