@@ -242,7 +242,15 @@ def index():
         enq_total = enquiries.count_documents({})
     except Exception:
         enq_total = 0
-    return render_template("index.html", total=total, enq_total=enq_total)
+    landing_state = {
+        "total": total,
+        "enq_total": enq_total,
+        "urls": {
+            "signup": url_for("signup"),
+            "login": url_for("login"),
+        }
+    }
+    return render_template("index.html", total=total, enq_total=enq_total, landing_state=landing_state)
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
