@@ -135,13 +135,6 @@ def profile_completion(user):
         bool((user.get("response_time") or "").strip()),
     ]
     return int(round((sum(fields) / len(fields)) * 100))
-
-
-def safe_count(collection, query=None, fallback=0):
-    try:
-        return collection.count_documents(query or {})
-    except Exception:
-        return fallback
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
