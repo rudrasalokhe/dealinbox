@@ -117,6 +117,21 @@ def is_pro(user):
         if delta.days < 60:
             return True
     return False
+
+def profile_completion(user):
+    if not user:
+        return 0
+    fields = [
+        bool((user.get("name") or "").strip()),
+        bool((user.get("bio") or "").strip()),
+        bool((user.get("platform") or "").strip()),
+        bool((user.get("niche") or "").strip()),
+        bool((user.get("followers") or "").strip()),
+        bool((user.get("collab_email") or "").strip()),
+        bool((user.get("min_budget") or "").strip()),
+        bool((user.get("response_time") or "").strip()),
+    ]
+    return int(round((sum(fields) / len(fields)) * 100))
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
@@ -271,19 +286,39 @@ def dashboard():
     user = users_col.find_one({"_id": oid(uid)})
     plan = user.get("plan","free") if user else "free"
     all_enq   = list(enquiries.find({"user_id": uid}).sort("created_at", DESCENDING))
-    new_count = sum(1 for e in all_enq if e["status"] == "new")
-    accepted  = sum(1 for e in all_enq if e["status"] in ["accepted","closed"])
-    total_val = sum(e.get("budget_num", 0) for e in all_enq if e["status"] in ["accepted","closed","negotiating"])
-    recent    = all_enq[:5]
-    activity  = list(activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(6))
-    pipeline  = {s: sum(1 for e in all_enq if e["status"] == s) for s in STATUSES}
-    enq_this_month = 0
-    if plan == "free" and not is_pro(user):
-        month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        enq_this_month = enquiries.count_documents({
-            "user_id": uid,
-            "created_at": {"$gte": month_start}
-        })
+    new_count = sum(1 for e in all_enq if e.get("status") == "new")
+    accepted  = sum(1 for e in all_enq if e.get("status") in ["accepted","closed"])
+    total_val = sum(e.get("budget_num", 0) for e in all_enq if e.get("status") in ["accepted","closed","negotiating"])
+    recent    = all_enq[:6]
+    activity  = list(activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(8))
+    pipeline  = {s: sum(1 for e in all_enq if e.get("status") == s) for s in STATUSES}
+
+    month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    enq_this_month = enquiries.count_documents({"user_id": uid, "created_at": {"$gte": month_start}})
+    pending_tasks = list(enquiries.find({
+        "user_id": uid,
+        "reminder_due": {"$lte": now() + timedelta(days=7)},
+        "reminder_done": {"$ne": True}
+    }).sort("reminder_due", 1).limit(5))
+
+    completion = profile_completion(user)
+    checklist = [
+        {"title": "Complete your profile", "done": completion >= 80, "link": url_for("settings")},
+        {"title": "Share your public enquiry page", "done": len(all_enq) > 0, "link": url_for("public_page", username=session.get("username", ""))},
+        {"title": "Close your first deal", "done": accepted > 0, "link": url_for("enquiries_page")},
+    ]
+
+    conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
+    avg_value = round(total_val / accepted) if accepted else 0
+
+    notifications = []
+    if new_count:
+        notifications.append({"type": "new", "text": f"{new_count} new enquiry{'ies' if new_count != 1 else ''} needs your attention."})
+    if pending_tasks:
+        notifications.append({"type": "reminder", "text": f"{len(pending_tasks)} reminder{'s are' if len(pending_tasks) != 1 else ' is'} due within 7 days."})
+    if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
+        notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
+
     return render_template("dashboard.html",
                            new_count=new_count,
                            accepted=accepted,
@@ -297,7 +332,13 @@ def dashboard():
                            plan=plan,
                            enq_this_month=enq_this_month,
                            FREE_ENQUIRY_LIMIT=FREE_ENQUIRY_LIMIT,
-                           is_pro_user=is_pro(user))
+                           is_pro_user=is_pro(user),
+                           profile_completion_pct=completion,
+                           checklist=checklist,
+                           pending_tasks=pending_tasks,
+                           conversion=conversion,
+                           avg_value=avg_value,
+                           notifications=notifications)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRIES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -415,7 +456,7 @@ def settings():
         if _u: session["plan"] = _u.get("plan","free")
         flash("Profile saved!","success")
         return redirect(url_for("settings"))
-    return render_template("settings.html", user=user, platforms=PLATFORMS, budgets=BUDGETS)
+    return render_template("settings.html", user=user, platforms=PLATFORMS, budgets=BUDGETS, profile_completion_pct=profile_completion(user))
 @app.route("/settings/anonymous", methods=["POST"])
 @login_required
 def toggle_anonymous():

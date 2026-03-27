@@ -6,6 +6,12 @@
   <a href="/@{{ session.username }}" target="_blank" class="btn">Preview page ↗</a>
 </div>
 <div class="settings-grid">
+<div class="settings-progress db-card">
+  <div class="db-card-head"><h2>Profile completeness</h2><span>{{ profile_completion_pct }}%</span></div>
+  <div class="mini-progress"><i style="width: {{ profile_completion_pct }}%"></i></div>
+  <p class="hint" style="margin-top:10px">Higher profile completeness improves conversion on your public enquiry page.</p>
+</div>
+
   <div>
     <form method="POST">
       <div class="settings-card">
