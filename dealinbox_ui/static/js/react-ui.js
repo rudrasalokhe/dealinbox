@@ -40,6 +40,58 @@
           h("article", null, [h("h3", null, "Actionable analytics"), h("p", null, "See conversion, response speed, and value trend in one place.")]),
         ]),
       ]),
+      h("section", { className: "workflow-v2", key: "problem" }, [
+        h("header", null, [h("p", { className: "l-section-label" }, "Problem → Solution"), h("h2", null, "Creators lose serious deals in DMs. DealInbox turns that chaos into a conversion pipeline.")]),
+        h("div", { className: "wf-grid" }, [
+          h("article", null, [h("span", null, "01"), h("h3", null, "Capture intent"), h("p", null, "Collect budget, timeline, platform, and brief in a structured form instead of fragmented chat threads.")]),
+          h("article", null, [h("span", null, "02"), h("h3", null, "Qualify and prioritize"), h("p", null, "Use status boards, lead quality, reminders, and saved views to focus on high-probability revenue.")]),
+          h("article", null, [h("span", null, "03"), h("h3", null, "Close and compound"), h("p", null, "Track response speed, conversion, and deal value so your system improves every month.")]),
+        ]),
+      ]),
+      h("section", { className: "pricing-v2", key: "proof" }, [
+        h("header", null, [h("p", { className: "l-section-label" }, "Built for monetization"), h("h2", null, "Position yourself like a premium business, not a creator inbox.")]),
+        h("div", { className: "pv2-cards" }, [
+          h("article", { className: "pv2-card" }, [
+            h("h3", null, "Starter"),
+            h("p", { className: "pv2-price" }, ["₹0", h("span", null, "/month")]),
+            h("ul", null, [
+              h("li", null, "Professional enquiry page"),
+              h("li", null, "Pipeline + status tracking"),
+              h("li", null, "Brand tracking link"),
+              h("li", null, "Up to 20 enquiries/month"),
+            ]),
+            h("a", { href: state.urls.signup, className: "btn btn-full" }, "Start free"),
+          ]),
+          h("article", { className: "pv2-card featured" }, [
+            h("span", { className: "tag" }, "Best for growth"),
+            h("h3", null, "Pro"),
+            h("p", { className: "pv2-price" }, ["₹199", h("span", null, "/month")]),
+            h("ul", null, [
+              h("li", null, "Unlimited inbound enquiries"),
+              h("li", null, "Advanced analytics + exports"),
+              h("li", null, "Workflow reminders + insights"),
+              h("li", null, "Priority support"),
+            ]),
+            h("a", { href: state.urls.signup, className: "btn btn-primary btn-full" }, "Launch Pro workspace"),
+          ]),
+        ]),
+      ]),
+      h("section", { className: "l-faq", key: "faq" }, [
+        h("div", { className: "l-container" }, [
+          h("div", { className: "l-section-label" }, "FAQ"),
+          h("h2", { className: "l-section-h2" }, "What founders and creator operators ask before switching."),
+          h("div", { className: "l-faq-list" }, [
+            h("details", null, [h("summary", null, "Do brands need an account?"), h("p", null, "No. Brands submit once and immediately get a tracking link.")]),
+            h("details", null, [h("summary", null, "Is this just another form tool?"), h("p", null, "No. It is a full operating layer: capture, workflow, analytics, and conversion visibility.")]),
+            h("details", null, [h("summary", null, "Will this work with my current process?"), h("p", null, "Yes. Replace “DM for collabs” with your DealInbox link and keep your current channels.")]),
+          ]),
+        ]),
+      ]),
+      h("section", { className: "cta-v2", key: "cta" }, [
+        h("h2", null, "If you’re serious about building a creator business, run it like a SaaS pipeline."),
+        h("p", null, "Start free in under a minute. No setup headaches."),
+        h("a", { href: state.urls.signup, className: "btn btn-primary btn-xl" }, "Create DealInbox"),
+      ]),
     ]);
   }
 
