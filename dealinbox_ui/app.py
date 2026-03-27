@@ -11,8 +11,11 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from dotenv import load_dotenv
 import os, re, csv, io, json
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, "templates"),
+            static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
