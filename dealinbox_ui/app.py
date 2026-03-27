@@ -135,13 +135,6 @@ def profile_completion(user):
         bool((user.get("response_time") or "").strip()),
     ]
     return int(round((sum(fields) / len(fields)) * 100))
-
-
-def safe_count(collection, query=None, fallback=0):
-    try:
-        return collection.count_documents(query or {})
-    except Exception:
-        return fallback
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
@@ -166,12 +159,8 @@ def inject_globals():
         except Exception:
             return None
     def new_enquiry_count():
-        if "uid" not in session:
-            return 0
-        try:
-            return enquiries.count_documents({"user_id": session["uid"], "status": "new"})
-        except Exception:
-            return 0
+        if "uid" not in session: return 0
+        return safe_count(enquiries, {"user_id": session["uid"], "status": "new"}, fallback=0)
     return dict(
         new_enquiry_count=new_enquiry_count,
         get_user=get_user,
@@ -232,14 +221,8 @@ def instagram_sync():
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/")
 def index():
-    try:
-        total = users_col.count_documents({})
-    except Exception:
-        total = 0
-    try:
-        enq_total = enquiries.count_documents({})
-    except Exception:
-        enq_total = 0
+    total     = safe_count(users_col, {}, fallback=0)
+    enq_total = safe_count(enquiries, {}, fallback=0)
     return render_template("index.html", total=total, enq_total=enq_total)
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
