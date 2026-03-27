@@ -85,6 +85,16 @@ def to_naive(dt):
 def oid(v):
     try:    return ObjectId(v)
     except: return None
+
+def json_body():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+def require_valid_oid(raw_id):
+    object_id = oid(raw_id)
+    if not object_id:
+        return None
+    return object_id
 def fmt_dt(dt):
     if not dt: return ""
     dt = to_naive(dt)
@@ -165,15 +175,12 @@ def pro_required(f):
 @app.route("/ping")
 def ping():
     return "pong", 200
-  @app.route("/ping")
-def ping():
-    return "pong", 200
 
 @app.route("/api/instagram-sync", methods=["POST"])
 @login_required
 def instagram_sync():
     uid  = session["uid"]
-    data = request.json
+    data = json_body()
     users_col.update_one({"_id": oid(uid)}, {"$set": {
         "instagram":    data.get("username", ""),
         "followers":    data.get("followers", ""),
@@ -233,6 +240,7 @@ def signup():
         return redirect(url_for("dashboard"))
     return render_template("signup.html",
                            platforms=PLATFORMS,
+                           creator_count=users_col.count_documents({}),
                            niches=["Beauty","Fashion","Fitness","Food","Tech",
                                    "Gaming","Travel","Finance","Lifestyle","Comedy","Other"])
 @app.route("/login", methods=["GET","POST"])
@@ -337,11 +345,15 @@ def export_enquiries():
 @login_required
 def enquiry_detail(eid):
     uid = session["uid"]
-    enq = enquiries.find_one({"_id": oid(eid), "user_id": uid})
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
     if not enq:
         flash("Enquiry not found.","error"); return redirect(url_for("enquiries_page"))
     if enq["status"] == "new":
-        enquiries.update_one({"_id": oid(eid)}, {"$set": {"status": "reviewing"}})
+        enquiries.update_one({"_id": enquiry_id}, {"$set": {"status": "reviewing"}})
         enq["status"] = "reviewing"
         log(uid, "Opened enquiry", f"From {enq.get('brand_name','')}")
     return render_template("enquiry_detail.html",
@@ -351,21 +363,29 @@ def enquiry_detail(eid):
 @login_required
 def update_status(eid):
     uid    = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
     status = request.form.get("status","")
     note   = request.form.get("note","").strip()
     if status not in STATUSES:
         flash("Invalid status.","error"); return redirect(url_for("enquiry_detail", eid=eid))
     update = {"status": status, "updated_at": now()}
     if note: update["note"] = note
-    enquiries.update_one({"_id": oid(eid), "user_id": uid}, {"$set": update})
-    enq = enquiries.find_one({"_id": oid(eid)})
+    enquiries.update_one({"_id": enquiry_id, "user_id": uid}, {"$set": update})
+    enq = enquiries.find_one({"_id": enquiry_id})
     log(uid, f"Status changed to {STATUSES[status]['label']}", f"Enquiry from {enq.get('brand_name','') if enq else ''}")
     flash(f"Status updated to {STATUSES[status]['label']}.","success")
     return redirect(url_for("enquiry_detail", eid=eid))
 @app.route("/enquiries/<eid>/delete", methods=["POST"])
 @login_required
 def delete_enquiry(eid):
-    enquiries.delete_one({"_id": oid(eid), "user_id": session["uid"]})
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
+    enquiries.delete_one({"_id": enquiry_id, "user_id": session["uid"]})
     flash("Enquiry deleted.","success")
     return redirect(url_for("enquiries_page"))
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -400,8 +420,8 @@ def settings():
 @login_required
 def toggle_anonymous():
     uid  = session["uid"]
-    data = request.json
-    enabled      = data.get("enabled", False)
+    data = json_body()
+    enabled      = bool(data.get("enabled", False))
     reveal_after = data.get("reveal_after", "serious")
     users_col.update_one({"_id": oid(uid)}, {"$set": {
         "anonymous_mode":    enabled,
@@ -479,7 +499,7 @@ def submit_enquiry(username):
                            resp_time=user.get("response_time","48 hours"))
 @app.route("/@<username>/reveal", methods=["POST"])
 def reveal_identity(username):
-    token = request.json.get("token", "")
+    token = json_body().get("token", "")
     enq   = enquiries.find_one({"tracking_token": token})
     if not enq:
         return jsonify({"ok": False}), 404
@@ -589,7 +609,12 @@ def create_razorpay_order():
     if not rz:
         return jsonify({"error": "Razorpay not configured"}), 400
     uid    = session["uid"]
-    months = int(request.json.get("months", 1))
+    data = json_body()
+    try:
+        months = int(data.get("months", 1))
+    except Exception:
+        months = 1
+    months = max(1, min(months, 12))
     amount = PRO_PRICE_INR * months * 100
     try:
         order = rz.order.create({
@@ -622,9 +647,12 @@ def verify_razorpay_payment():
     if not rz:
         return jsonify({"error": "Razorpay not configured"}), 400
     uid        = session["uid"]
-    order_id   = request.json.get("razorpay_order_id","")
-    payment_id = request.json.get("razorpay_payment_id","")
-    signature  = request.json.get("razorpay_signature","")
+    data       = json_body()
+    order_id   = data.get("razorpay_order_id","")
+    payment_id = data.get("razorpay_payment_id","")
+    signature  = data.get("razorpay_signature","")
+    if not all([order_id, payment_id, signature]):
+        return jsonify({"ok": False, "error": "Missing payment fields"}), 400
     try:
         import razorpay
         rz.utility.verify_payment_signature({
@@ -711,7 +739,7 @@ def not_found(e):
 @login_required
 def add_note(eid):
     uid  = session["uid"]
-    text = request.json.get("text", "").strip()
+    text = json_body().get("text", "").strip()
     if not text:
         return jsonify({"ok": False, "error": "Empty note"}), 400
     note = {"text": text, "created_at": now().isoformat(), "author": session.get("name", "You")}
@@ -731,8 +759,9 @@ def get_notes(eid):
 @login_required
 def set_reminder(eid):
     uid      = session["uid"]
-    due_str  = request.json.get("due", "")
-    note_txt = request.json.get("note", "")
+    data     = json_body()
+    due_str  = data.get("due", "")
+    note_txt = data.get("note", "")
     try:
         due_dt = datetime.strptime(due_str, "%Y-%m-%d")
     except Exception:
@@ -772,8 +801,9 @@ def get_reminders():
 @login_required
 def bulk_action():
     uid    = session["uid"]
-    ids    = request.json.get("ids", [])
-    action = request.json.get("action", "")
+    data   = json_body()
+    ids    = data.get("ids", [])
+    action = data.get("action", "")
     if not ids or not action:
         return jsonify({"ok": False}), 400
     obj_ids = [oid(i) for i in ids if oid(i)]
@@ -851,7 +881,7 @@ def toggle_star(eid):
 @login_required
 def set_deal_value(eid):
     uid = session["uid"]
-    val = request.json.get("value", 0)
+    val = json_body().get("value", 0)
     try:
         val = int(val)
     except:
@@ -900,7 +930,12 @@ def media_kit():
 @login_required
 def snooze_enquiry(eid):
     uid          = session["uid"]
-    days         = int(request.json.get("days", 3))
+    data         = json_body()
+    try:
+        days = int(data.get("days", 3))
+    except Exception:
+        days = 3
+    days = max(1, min(days, 30))
     snooze_until = now() + timedelta(days=days)
     enquiries.update_one({"_id": oid(eid), "user_id": uid},
                          {"$set": {"snoozed_until": snooze_until}})
@@ -909,7 +944,7 @@ def snooze_enquiry(eid):
 @login_required
 def api_status(eid):
     uid    = session["uid"]
-    status = request.json.get("status","")
+    status = json_body().get("status","")
     if status not in STATUSES:
         return jsonify({"ok": False}), 400
     enquiries.update_one({"_id": oid(eid), "user_id": uid},

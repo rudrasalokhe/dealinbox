@@ -771,3 +771,22 @@ input:disabled { opacity: .3; cursor: not-allowed; }
 .ln-logo::before { display: none; }
 .auth-body .pub-nav { display: none !important; }
 .auth-body .g-footer { display: none !important; }
+
+/* Premium polish additions */
+.onboard-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:linear-gradient(120deg,var(--bg2),var(--bg1));border:1px solid var(--line2);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:18px}
+.onboard-banner h3{font-size:15px;margin-bottom:4px}
+.onboard-banner p{font-size:12px;color:var(--t3);max-width:640px}
+.onboard-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.settings-save-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.settings-save-row span{font-size:11.5px;color:var(--t3)}
+.l-trust{padding:54px 0;border-top:1px solid var(--line)}
+.l-trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.l-trust-item{background:var(--bg1);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+.l-trust-item strong{font-size:13px;color:var(--t1);display:block;margin-bottom:6px}
+.l-trust-item p{font-size:12px;color:var(--t3);line-height:1.6}
+.l-faq{padding:10px 0 64px}
+.l-faq-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.l-faq-list details{background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.l-faq-list summary{cursor:pointer;font-size:13px;color:var(--t1);font-weight:500}
+.l-faq-list p{font-size:12px;color:var(--t3);margin-top:8px}
+@media(max-width:900px){.l-trust-grid{grid-template-columns:1fr}}
