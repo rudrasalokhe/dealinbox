@@ -11,8 +11,11 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from dotenv import load_dotenv
 import os, re, csv, io, json
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, "templates"),
+            static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
@@ -85,6 +88,16 @@ def to_naive(dt):
 def oid(v):
     try:    return ObjectId(v)
     except: return None
+
+def json_body():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+def require_valid_oid(raw_id):
+    object_id = oid(raw_id)
+    if not object_id:
+        return None
+    return object_id
 def fmt_dt(dt):
     if not dt: return ""
     dt = to_naive(dt)
@@ -107,6 +120,28 @@ def is_pro(user):
         if delta.days < 60:
             return True
     return False
+
+def profile_completion(user):
+    if not user:
+        return 0
+    fields = [
+        bool((user.get("name") or "").strip()),
+        bool((user.get("bio") or "").strip()),
+        bool((user.get("platform") or "").strip()),
+        bool((user.get("niche") or "").strip()),
+        bool((user.get("followers") or "").strip()),
+        bool((user.get("collab_email") or "").strip()),
+        bool((user.get("min_budget") or "").strip()),
+        bool((user.get("response_time") or "").strip()),
+    ]
+    return int(round((sum(fields) / len(fields)) * 100))
+
+
+def safe_count(collection, query=None, fallback=0):
+    try:
+        return collection.count_documents(query or {})
+    except Exception:
+        return fallback
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
@@ -126,10 +161,17 @@ UPI_NAME = os.getenv("UPI_NAME", "DealInbox")
 def inject_globals():
     def get_user():
         if "uid" not in session: return None
-        return users_col.find_one({"_id": oid(session["uid"])})
+        try:
+            return users_col.find_one({"_id": oid(session["uid"])})
+        except Exception:
+            return None
     def new_enquiry_count():
-        if "uid" not in session: return 0
-        return enquiries.count_documents({"user_id": session["uid"], "status": "new"})
+        if "uid" not in session:
+            return 0
+        try:
+            return enquiries.count_documents({"user_id": session["uid"], "status": "new"})
+        except Exception:
+            return 0
     return dict(
         new_enquiry_count=new_enquiry_count,
         get_user=get_user,
@@ -163,9 +205,8 @@ def pro_required(f):
 # HEALTH CHECK (keeps Render from cold-starting)
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/ping")
-def ping():
-    return "pong", 200
-  @app.route("/ping")
+@app.route("/render/ping")
+@app.route("/healthz")
 def ping():
     return "pong", 200
 
@@ -173,7 +214,7 @@ def ping():
 @login_required
 def instagram_sync():
     uid  = session["uid"]
-    data = request.json
+    data = json_body()
     users_col.update_one({"_id": oid(uid)}, {"$set": {
         "instagram":    data.get("username", ""),
         "followers":    data.get("followers", ""),
@@ -193,8 +234,14 @@ def instagram_sync():
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/")
 def index():
-    total     = users_col.count_documents({})
-    enq_total = enquiries.count_documents({})
+    try:
+        total = users_col.count_documents({})
+    except Exception:
+        total = 0
+    try:
+        enq_total = enquiries.count_documents({})
+    except Exception:
+        enq_total = 0
     return render_template("index.html", total=total, enq_total=enq_total)
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
@@ -233,6 +280,7 @@ def signup():
         return redirect(url_for("dashboard"))
     return render_template("signup.html",
                            platforms=PLATFORMS,
+                           creator_count=users_col.count_documents({}),
                            niches=["Beauty","Fashion","Fitness","Food","Tech",
                                    "Gaming","Travel","Finance","Lifestyle","Comedy","Other"])
 @app.route("/login", methods=["GET","POST"])
@@ -263,19 +311,85 @@ def dashboard():
     user = users_col.find_one({"_id": oid(uid)})
     plan = user.get("plan","free") if user else "free"
     all_enq   = list(enquiries.find({"user_id": uid}).sort("created_at", DESCENDING))
-    new_count = sum(1 for e in all_enq if e["status"] == "new")
-    accepted  = sum(1 for e in all_enq if e["status"] in ["accepted","closed"])
-    total_val = sum(e.get("budget_num", 0) for e in all_enq if e["status"] in ["accepted","closed","negotiating"])
-    recent    = all_enq[:5]
-    activity  = list(activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(6))
-    pipeline  = {s: sum(1 for e in all_enq if e["status"] == s) for s in STATUSES}
-    enq_this_month = 0
-    if plan == "free" and not is_pro(user):
-        month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        enq_this_month = enquiries.count_documents({
-            "user_id": uid,
-            "created_at": {"$gte": month_start}
-        })
+    new_count = sum(1 for e in all_enq if e.get("status") == "new")
+    accepted  = sum(1 for e in all_enq if e.get("status") in ["accepted","closed"])
+    total_val = sum(e.get("budget_num", 0) for e in all_enq if e.get("status") in ["accepted","closed","negotiating"])
+    recent    = all_enq[:6]
+    activity  = list(activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(8))
+    pipeline  = {s: sum(1 for e in all_enq if e.get("status") == s) for s in STATUSES}
+
+    month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    enq_this_month = enquiries.count_documents({"user_id": uid, "created_at": {"$gte": month_start}})
+    pending_tasks = list(enquiries.find({
+        "user_id": uid,
+        "reminder_due": {"$lte": now() + timedelta(days=7)},
+        "reminder_done": {"$ne": True}
+    }).sort("reminder_due", 1).limit(5))
+
+    completion = profile_completion(user)
+    checklist = [
+        {"title": "Complete your profile", "done": completion >= 80, "link": url_for("settings")},
+        {"title": "Share your public enquiry page", "done": len(all_enq) > 0, "link": url_for("public_page", username=session.get("username", ""))},
+        {"title": "Close your first deal", "done": accepted > 0, "link": url_for("enquiries_page")},
+    ]
+
+    conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
+    avg_value = round(total_val / accepted) if accepted else 0
+
+    notifications = []
+    if new_count:
+        notifications.append({"type": "new", "text": f"{new_count} new enquiry{'ies' if new_count != 1 else ''} needs your attention."})
+    if pending_tasks:
+        notifications.append({"type": "reminder", "text": f"{len(pending_tasks)} reminder{'s are' if len(pending_tasks) != 1 else ' is'} due within 7 days."})
+    if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
+        notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
+
+    dashboard_state = {
+        "name": (session.get("name") or "Creator"),
+        "username": session.get("username", ""),
+        "stats": {
+            "total_val": total_val,
+            "conversion": conversion,
+            "new_count": new_count,
+            "profile_completion_pct": completion,
+            "accepted": accepted,
+            "total": len(all_enq),
+            "avg_value": avg_value,
+        },
+        "pipeline": [{"key": s, "label": info["label"], "color": info["color"], "count": pipeline.get(s, 0)} for s, info in STATUSES.items()],
+        "recent": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "platform": e.get("platform") or "Platform TBD",
+            "budget": e.get("budget") or "Budget TBD",
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+        } for e in recent],
+        "activity": [{
+            "action": a.get("action", ""),
+            "detail": a.get("detail", ""),
+            "created_at_fmt": fmt_dt(a.get("created_at")),
+        } for a in activity],
+        "checklist": checklist,
+        "pending_tasks": [{
+            "id": str(r.get("_id")),
+            "brand_name": r.get("brand_name", ""),
+            "reminder_due_fmt": fmt_date(r.get("reminder_due")) if r.get("reminder_due") else "Soon",
+        } for r in pending_tasks],
+        "notifications": notifications,
+        "is_pro_user": is_pro(user),
+        "FREE_ENQUIRY_LIMIT": FREE_ENQUIRY_LIMIT,
+        "enq_this_month": enq_this_month,
+        "urls": {
+            "public_page": url_for("public_page", username=session.get("username", "")),
+            "enquiries": url_for("enquiries_page"),
+            "settings": url_for("settings"),
+            "analytics_or_upgrade": url_for("analytics") if is_pro(user) else url_for("upgrade"),
+            "upgrade": url_for("upgrade"),
+            "status_base": "/enquiries/",
+        }
+    }
     return render_template("dashboard.html",
                            new_count=new_count,
                            accepted=accepted,
@@ -289,7 +403,14 @@ def dashboard():
                            plan=plan,
                            enq_this_month=enq_this_month,
                            FREE_ENQUIRY_LIMIT=FREE_ENQUIRY_LIMIT,
-                           is_pro_user=is_pro(user))
+                           is_pro_user=is_pro(user),
+                           profile_completion_pct=completion,
+                           checklist=checklist,
+                           pending_tasks=pending_tasks,
+                           conversion=conversion,
+                           avg_value=avg_value,
+                           notifications=notifications,
+                           dashboard_state=dashboard_state)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRIES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -303,10 +424,35 @@ def enquiries_page():
     enqs   = list(enquiries.find(q).sort("created_at", DESCENDING))
     counts = {s: enquiries.count_documents({"user_id": uid, "status": s}) for s in STATUSES}
     counts["all"] = enquiries.count_documents({"user_id": uid})
+    enquiries_state = {
+        "status_f": status_f,
+        "counts": counts,
+        "statuses": [{"key": s, "label": info["label"], "color": info["color"]} for s, info in STATUSES.items()],
+        "enquiries": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "contact_name": e.get("contact_name", ""),
+            "email": e.get("email", ""),
+            "platform": e.get("platform") or "—",
+            "budget": e.get("budget") or "—",
+            "budget_num": e.get("budget_num", 0) or 0,
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+            "search_blob": f"{e.get('brand_name','')} {e.get('contact_name','')} {e.get('email','')} {e.get('brief','')}".lower(),
+        } for e in enqs],
+        "urls": {
+            "base": url_for("enquiries_page"),
+            "detail_prefix": "/enquiries/",
+            "api_status_prefix": "/api/enquiry/",
+            "public_page": url_for("public_page", username=session.get("username", "")),
+        }
+    }
     return render_template("enquiries.html",
                            enqs=enqs, counts=counts,
                            status_f=status_f, STATUSES=STATUSES,
-                           fmt_dt=fmt_dt)
+                           fmt_dt=fmt_dt,
+                           enquiries_state=enquiries_state)
 @app.route("/enquiries/export")
 @login_required
 @pro_required
@@ -337,11 +483,15 @@ def export_enquiries():
 @login_required
 def enquiry_detail(eid):
     uid = session["uid"]
-    enq = enquiries.find_one({"_id": oid(eid), "user_id": uid})
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
     if not enq:
         flash("Enquiry not found.","error"); return redirect(url_for("enquiries_page"))
     if enq["status"] == "new":
-        enquiries.update_one({"_id": oid(eid)}, {"$set": {"status": "reviewing"}})
+        enquiries.update_one({"_id": enquiry_id}, {"$set": {"status": "reviewing"}})
         enq["status"] = "reviewing"
         log(uid, "Opened enquiry", f"From {enq.get('brand_name','')}")
     return render_template("enquiry_detail.html",
@@ -351,21 +501,29 @@ def enquiry_detail(eid):
 @login_required
 def update_status(eid):
     uid    = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
     status = request.form.get("status","")
     note   = request.form.get("note","").strip()
     if status not in STATUSES:
         flash("Invalid status.","error"); return redirect(url_for("enquiry_detail", eid=eid))
     update = {"status": status, "updated_at": now()}
     if note: update["note"] = note
-    enquiries.update_one({"_id": oid(eid), "user_id": uid}, {"$set": update})
-    enq = enquiries.find_one({"_id": oid(eid)})
+    enquiries.update_one({"_id": enquiry_id, "user_id": uid}, {"$set": update})
+    enq = enquiries.find_one({"_id": enquiry_id})
     log(uid, f"Status changed to {STATUSES[status]['label']}", f"Enquiry from {enq.get('brand_name','') if enq else ''}")
     flash(f"Status updated to {STATUSES[status]['label']}.","success")
     return redirect(url_for("enquiry_detail", eid=eid))
 @app.route("/enquiries/<eid>/delete", methods=["POST"])
 @login_required
 def delete_enquiry(eid):
-    enquiries.delete_one({"_id": oid(eid), "user_id": session["uid"]})
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        flash("Invalid enquiry id.","error")
+        return redirect(url_for("enquiries_page"))
+    enquiries.delete_one({"_id": enquiry_id, "user_id": session["uid"]})
     flash("Enquiry deleted.","success")
     return redirect(url_for("enquiries_page"))
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -395,13 +553,13 @@ def settings():
         if _u: session["plan"] = _u.get("plan","free")
         flash("Profile saved!","success")
         return redirect(url_for("settings"))
-    return render_template("settings.html", user=user, platforms=PLATFORMS, budgets=BUDGETS)
+    return render_template("settings.html", user=user, platforms=PLATFORMS, budgets=BUDGETS, profile_completion_pct=profile_completion(user))
 @app.route("/settings/anonymous", methods=["POST"])
 @login_required
 def toggle_anonymous():
     uid  = session["uid"]
-    data = request.json
-    enabled      = data.get("enabled", False)
+    data = json_body()
+    enabled      = bool(data.get("enabled", False))
     reveal_after = data.get("reveal_after", "serious")
     users_col.update_one({"_id": oid(uid)}, {"$set": {
         "anonymous_mode":    enabled,
@@ -479,7 +637,7 @@ def submit_enquiry(username):
                            resp_time=user.get("response_time","48 hours"))
 @app.route("/@<username>/reveal", methods=["POST"])
 def reveal_identity(username):
-    token = request.json.get("token", "")
+    token = json_body().get("token", "")
     enq   = enquiries.find_one({"tracking_token": token})
     if not enq:
         return jsonify({"ok": False}), 404
@@ -589,7 +747,12 @@ def create_razorpay_order():
     if not rz:
         return jsonify({"error": "Razorpay not configured"}), 400
     uid    = session["uid"]
-    months = int(request.json.get("months", 1))
+    data = json_body()
+    try:
+        months = int(data.get("months", 1))
+    except Exception:
+        months = 1
+    months = max(1, min(months, 12))
     amount = PRO_PRICE_INR * months * 100
     try:
         order = rz.order.create({
@@ -622,9 +785,12 @@ def verify_razorpay_payment():
     if not rz:
         return jsonify({"error": "Razorpay not configured"}), 400
     uid        = session["uid"]
-    order_id   = request.json.get("razorpay_order_id","")
-    payment_id = request.json.get("razorpay_payment_id","")
-    signature  = request.json.get("razorpay_signature","")
+    data       = json_body()
+    order_id   = data.get("razorpay_order_id","")
+    payment_id = data.get("razorpay_payment_id","")
+    signature  = data.get("razorpay_signature","")
+    if not all([order_id, payment_id, signature]):
+        return jsonify({"ok": False, "error": "Missing payment fields"}), 400
     try:
         import razorpay
         rz.utility.verify_payment_signature({
@@ -704,6 +870,13 @@ def admin_pending():
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    try:
+        return render_template("500.html"), 500
+    except Exception:
+        return "Service temporarily unavailable", 500
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENQUIRY EXTRAS — notes, reminders, bulk, search, star, snooze
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -711,7 +884,7 @@ def not_found(e):
 @login_required
 def add_note(eid):
     uid  = session["uid"]
-    text = request.json.get("text", "").strip()
+    text = json_body().get("text", "").strip()
     if not text:
         return jsonify({"ok": False, "error": "Empty note"}), 400
     note = {"text": text, "created_at": now().isoformat(), "author": session.get("name", "You")}
@@ -731,8 +904,9 @@ def get_notes(eid):
 @login_required
 def set_reminder(eid):
     uid      = session["uid"]
-    due_str  = request.json.get("due", "")
-    note_txt = request.json.get("note", "")
+    data     = json_body()
+    due_str  = data.get("due", "")
+    note_txt = data.get("note", "")
     try:
         due_dt = datetime.strptime(due_str, "%Y-%m-%d")
     except Exception:
@@ -772,8 +946,9 @@ def get_reminders():
 @login_required
 def bulk_action():
     uid    = session["uid"]
-    ids    = request.json.get("ids", [])
-    action = request.json.get("action", "")
+    data   = json_body()
+    ids    = data.get("ids", [])
+    action = data.get("action", "")
     if not ids or not action:
         return jsonify({"ok": False}), 400
     obj_ids = [oid(i) for i in ids if oid(i)]
@@ -851,7 +1026,7 @@ def toggle_star(eid):
 @login_required
 def set_deal_value(eid):
     uid = session["uid"]
-    val = request.json.get("value", 0)
+    val = json_body().get("value", 0)
     try:
         val = int(val)
     except:
@@ -900,7 +1075,12 @@ def media_kit():
 @login_required
 def snooze_enquiry(eid):
     uid          = session["uid"]
-    days         = int(request.json.get("days", 3))
+    data         = json_body()
+    try:
+        days = int(data.get("days", 3))
+    except Exception:
+        days = 3
+    days = max(1, min(days, 30))
     snooze_until = now() + timedelta(days=days)
     enquiries.update_one({"_id": oid(eid), "user_id": uid},
                          {"$set": {"snoozed_until": snooze_until}})
@@ -909,7 +1089,7 @@ def snooze_enquiry(eid):
 @login_required
 def api_status(eid):
     uid    = session["uid"]
-    status = request.json.get("status","")
+    status = json_body().get("status","")
     if status not in STATUSES:
         return jsonify({"ok": False}), 400
     enquiries.update_one({"_id": oid(eid), "user_id": uid},
