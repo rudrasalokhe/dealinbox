@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}DealInbox{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -14,61 +14,76 @@
 <body class="{% block body_class %}{% endblock %}">
 
 {% if session.uid %}
-<div class="app-wrap">
+<div class="os-shell">
   <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
-  <aside class="sidebar">
-    <div class="sb-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="24" style="border-radius:6px; object-fit:cover;"> dealinbox</div>
-    <div class="sb-user">
-      <div class="sb-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
-      <div class="sb-info">
-        <div class="sb-name">{{ session.name }}</div>
-        <div class="sb-handle">@{{ session.username }}</div>
+
+  <aside class="os-sidebar sidebar">
+    <div class="os-brand">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="logo">
+      <div>
+        <strong>DealInbox</strong>
+        <span>Creator Business OS</span>
       </div>
     </div>
-    <nav class="sb-nav">
-      <a href="{{ url_for('dashboard') }}" class="sn-item {% if request.path == '/dashboard' %}active{% endif %}">
-        <span class="sn-icon">⬡</span><span>Dashboard</span>
-      </a>
-      <a href="{{ url_for('enquiries_page') }}" class="sn-item {% if '/enquir' in request.path %}active{% endif %}">
-        <span class="sn-icon">✉</span><span>Enquiries</span>
-        {% set new_c = new_enquiry_count() %}
-        {% if new_c %}<span class="sn-badge">{{ new_c }}</span>{% endif %}
-      </a>
-      <a href="{{ url_for('heatmap_page') }}" class="sn-item {% if request.path == '/heatmap' %}active{% endif %}">
-        <span class="sn-icon">🔥</span><span>Heatmap</span>
-      </a>
-      <a href="{{ url_for('positioning') }}" class="sn-item {% if request.path == '/positioning' %}active{% endif %}">
-        <span class="sn-icon">🧬</span><span>Positioning</span>
-      </a>
-      <a href="{{ url_for('analytics') }}" class="sn-item {% if request.path == '/analytics' %}active{% endif %}">
-        <span class="sn-icon">◎</span><span>Analytics</span>
-      </a>
-      <a href="{{ url_for('settings') }}" class="sn-item {% if request.path == '/settings' %}active{% endif %}">
-        <span class="sn-icon">⚙</span><span>Settings</span>
-      </a>
-      {% if session.get('plan','free') != 'pro' %}
-      <a href="{{ url_for('upgrade') }}" class="sn-item sn-upgrade {% if request.path == '/upgrade' %}active{% endif %}">
-        <span class="sn-icon">↑</span><span>Upgrade</span>
-      </a>
-      {% endif %}
-    </nav>
-    <div class="sb-bot">
-      <a href="{{ url_for('public_page', username=session.username) }}" target="_blank" class="sn-item sn-muted">
-        <span class="sn-icon">↗</span><span>View my page</span>
-      </a>
-      <a href="{{ url_for('logout') }}" class="sn-item sn-muted">
-        <span class="sn-icon">→</span><span>Log out</span>
-      </a>
+
+    <div class="os-user">
+      <div class="os-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
+      <div>
+        <p>{{ session.name }}</p>
+        <small>@{{ session.username }}</small>
+      </div>
+    </div>
+
+    <div class="os-nav-group">
+      <p class="os-nav-label">Workspace</p>
+      <nav class="os-nav">
+        <a href="{{ url_for('dashboard') }}" class="os-link {% if request.path == '/dashboard' %}active{% endif %}">🏠 Creator HQ</a>
+        <a href="{{ url_for('enquiries_page') }}" class="os-link {% if '/enquir' in request.path %}active{% endif %}">💼 Brand Opportunities{% set new_c = new_enquiry_count() %}{% if new_c %}<span>{{ new_c }}</span>{% endif %}</a>
+        <a href="{{ url_for('heatmap_page') }}" class="os-link {% if request.path == '/heatmap' %}active{% endif %}">🔥 Priority Board</a>
+        <a href="{{ url_for('analytics') }}" class="os-link {% if request.path == '/analytics' %}active{% endif %}">📈 Creator Earnings</a>
+      </nav>
+    </div>
+
+    <div class="os-nav-group">
+      <p class="os-nav-label">Growth</p>
+      <nav class="os-nav">
+        <a href="{{ url_for('positioning') }}" class="os-link {% if request.path == '/positioning' %}active{% endif %}">🧬 Positioning</a>
+        <a href="{{ url_for('settings') }}" class="os-link {% if request.path == '/settings' %}active{% endif %}">⚙️ Profile & Settings</a>
+        {% if session.get('plan','free') != 'pro' %}
+        <a href="{{ url_for('upgrade') }}" class="os-link os-link-upgrade {% if request.path == '/upgrade' %}active{% endif %}">✨ Upgrade to Pro</a>
+        {% endif %}
+      </nav>
+    </div>
+
+    <div class="os-sidebar-foot">
+      <a href="{{ url_for('public_page', username=session.username) }}" target="_blank" class="os-link">↗ Public collab page</a>
+      <a href="{{ url_for('logout') }}" class="os-link">→ Log out</a>
     </div>
   </aside>
-  <div class="app-main">
+
+  <main class="os-main">
+    <header class="os-topbar">
+      <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search brands, deals, timelines</button>
+      <div class="os-top-actions">
+        <a class="os-pill" href="{{ url_for('settings') }}">{{ session.get("plan", "free")|upper }} PLAN</a>
+        <a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-sm">Upgrade</a>
+      </div>
+    </header>
+
+    <div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
+    <div class="command-palette" id="commandPalette">
+      <input type="search" id="globalSearch" placeholder="Search brand, campaign, budget, or note..." oninput="runGlobalSearch(this.value)">
+      <div id="globalSearchResults" class="gs-results"></div>
+    </div>
+
+    <section class="os-content">
 {% else %}
 {% block public_nav %}
-<nav class="pub-nav">
-  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> dealinbox</a>
+<nav class="pub-nav pub-nav-rebuild">
+  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> DealInbox CreatorOS</a>
   <div class="pub-nav-right">
     <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
-    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Get started</a>
+    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Start free</a>
   </div>
 </nav>
 {% endblock %}
@@ -82,27 +97,17 @@
   {% endwith %}
 </div>
 
-{% if session.uid %}
-<div class="app-topbar">
-  <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search deals</button>
-  <div class="top-actions">
-    <span class="top-plan">{{ session.get("plan", "free")|upper }}</span>
-    <a href="{{ url_for('upgrade') }}" class="btn btn-sm">Upgrade</a>
-  </div>
-</div>
-<div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
-<div class="command-palette" id="commandPalette">
-  <input type="search" id="globalSearch" placeholder="Search brand, contact, or email..." oninput="runGlobalSearch(this.value)">
-  <div id="globalSearchResults" class="gs-results"></div>
-</div>
-<div class="app-content">{% endif %}
 {% block content %}{% endblock %}
-{% if session.uid %}</div></div></div>
+
+{% if session.uid %}
+    </section>
+  </main>
+</div>
 {% else %}
 <footer class="g-footer">
   <div class="g-footer-inner">
-    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> dealinbox</span>
-    <span>Never lose a brand deal again.</span>
+    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> DealInbox CreatorOS</span>
+    <span>From collab request to signed campaign — run your creator business like a pro.</span>
     <span>© 2026</span>
   </div>
 </footer>
@@ -126,7 +131,7 @@ async function runGlobalSearch(q){
   if(!q || q.length<2){box.innerHTML='<p class="empty-small">Type at least 2 characters…</p>';return;}
   const res=await fetch('/api/search?q='+encodeURIComponent(q));
   const data=await res.json();
-  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching enquiries.</p>';return;}
+  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching opportunities.</p>';return;}
   box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
 }
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});

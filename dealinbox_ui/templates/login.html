@@ -1,29 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Log In — DealInbox{% endblock %}
-{% block body_class %}auth-body{% endblock %}
+{% block body_class %}auth-body auth-rebuild{% endblock %}
 {% block content %}
-<div class="auth-premium">
-  <div class="auth-panel">
-    <a href="{{ url_for('index') }}" class="auth-logo">dealinbox</a>
-    <h1 class="auth-h1">Welcome back to your deal command center.</h1>
-    <p class="auth-sub">Track every brand conversation, protect revenue, and close faster with one premium workflow.</p>
-    <ul class="auth-points">
-      <li>Structured enquiries instead of messy DMs</li>
-      <li>Status tracking + reminders in one dashboard</li>
-      <li>Live portal updates for brands</li>
-    </ul>
-  </div>
-  <div class="auth-card-wrap">
-    <div class="auth-card">
-      <h2 class="auth-h1" style="font-size:1.4rem">Log in</h2>
-      <p class="auth-sub">Continue to your pipeline.</p>
+<div class="auth-split">
+  <section class="auth-left">
+    <a href="{{ url_for('index') }}" class="auth-logo">DealInbox CreatorOS</a>
+    <h1>Welcome back to your Creator Deal HQ.</h1>
+    <p>Review negotiations, respond to brands faster, and keep your pipeline moving daily.</p>
+    <div class="auth-highlight-grid">
+      <article><strong>Daily pipeline</strong><span>Prioritize urgent and high-value opportunities.</span></article>
+      <article><strong>Negotiation clarity</strong><span>Keep notes, statuses, and follow-ups in one place.</span></article>
+      <article><strong>Earnings visibility</strong><span>Track deal value and close-rate momentum.</span></article>
+    </div>
+  </section>
+
+  <section class="auth-right">
+    <div class="auth-card auth-card-rebuild">
+      <h2>Log in</h2>
+      <p>Continue managing your creator business.</p>
       <form method="POST" class="auth-form">
         <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required autofocus></div>
         <div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required></div>
-        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Log in →</button>
+        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Open Creator HQ →</button>
       </form>
       <div class="auth-foot">No account? <a href="{{ url_for('signup') }}">Create one free →</a></div>
     </div>
-  </div>
+  </section>
 </div>
 {% endblock %}

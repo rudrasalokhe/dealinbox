@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Collab with {{ user.name }} — DealInbox</title>
+  <title>Partner with {{ user.name }} — DealInbox</title>
   <meta name="description" content="{{ user.bio or 'Send a brand collaboration enquiry to ' + user.name + '.' }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 <body class="pp-body">
 
 <nav class="pp-nav">
-  <a href="{{ url_for('index') }}" class="pp-nav-logo">dealinbox</a>
+  <a href="{{ url_for('index') }}" class="pp-nav-logo">DealInbox CreatorOS</a>
 </nav>
 
 <div class="pp-wrap">
@@ -43,12 +43,12 @@
   <!-- Enquiry form -->
   <div class="pp-form-card">
     <div class="pp-form-head">
-      <h2>Send a collab enquiry</h2>
-      <p>Fill in the details below and {{ user.name.split()[0] if user.name else 'the creator' }} will get back to you.</p>
+      <h2>Send a brand collaboration request</h2>
+      <p>Share your campaign goals, budget, and deliverables. {{ user.name.split()[0] if user.name else 'The creator' }} reviews serious opportunities fast.</p>
     </div>
     <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}" class="pp-form">
       <div class="form-row-2">
-        <div class="fg"><label>Brand name *</label><input type="text" name="brand_name" placeholder="Mamaearth" required></div>
+        <div class="fg"><label>Brand / Agency name *</label><input type="text" name="brand_name" placeholder="Mamaearth" required></div>
         <div class="fg"><label>Your name</label><input type="text" name="contact_name" placeholder="Rahul Sharma"></div>
       </div>
       <div class="fg"><label>Work email *</label><input type="email" name="email" placeholder="rahul@mamaearth.in" required></div>
@@ -70,20 +70,20 @@
       </div>
       <div class="fg"><label>Timeline</label><input type="text" name="timeline" placeholder="e.g. This month, Q4 2025"></div>
       <div class="fg">
-        <label>Campaign brief *</label>
+        <label>Campaign overview *</label>
         <textarea name="brief" rows="5" placeholder="Tell {{ user.name.split()[0] if user.name else 'them' }} about your brand, what you're promoting, and what you need..." required></textarea>
       </div>
       <div class="fg">
         <label>Deliverables</label>
         <textarea name="deliverables" rows="3" placeholder="e.g. 1 Instagram Reel + 3 Stories, product tagged, link in bio."></textarea>
       </div>
-      <button type="submit" class="g-btn-primary pp-submit">Send enquiry →</button>
+      <button type="submit" class="g-btn-primary pp-submit">Send collaboration request →</button>
       <p class="pp-form-note">Goes directly to {{ user.name.split()[0] if user.name else 'creator' }}'s DealInbox. No spam, ever.</p>
     </form>
   </div>
 </div>
 
-<div class="pp-footer">Powered by <a href="{{ url_for('index') }}">dealinbox</a></div>
+<div class="pp-footer">Powered by <a href="{{ url_for('index') }}">DealInbox CreatorOS</a></div>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

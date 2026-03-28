@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ enq.brand_name }} × {{ creator.name }} — DealInbox</title>
+  <title>{{ enq.brand_name }} × {{ creator.name }} — DealInbox CreatorOS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -10,7 +10,7 @@
 <body class="bp-body">
 
 <nav class="bp-nav">
-  <a href="{{ url_for('index') }}" class="bp-nav-logo">dealinbox</a>
+  <a href="{{ url_for('index') }}" class="bp-nav-logo">DealInbox CreatorOS</a>
   <a href="/@{{ creator.username }}" target="_blank" class="bp-nav-link">View creator page ↗</a>
 </nav>
 
@@ -28,7 +28,7 @@
   <!-- Status tracker -->
   <div class="bp-status-card">
     <div class="bp-status-top">
-      <div class="bp-status-label-sm">Current status</div>
+      <div class="bp-status-label-sm">Collaboration status</div>
       {% set scolor = STATUSES[current_status].color if current_status in STATUSES else '#555' %}
       {% set slabel = STATUSES[current_status].label if current_status in STATUSES else current_status %}
       <span class="bp-status-pill" style="background:{{ scolor }}18;color:{{ scolor }};border:1px solid {{ scolor }}30">{{ slabel }}</span>
@@ -85,7 +85,7 @@
   <div class="bp-cta-box">
     <div class="bp-cta-text">
       {% if current_status == 'new' %}
-        <strong>Your enquiry is in the queue.</strong> {{ creator.name.split()[0] if creator.name else 'Creator' }} typically replies within {{ creator.get('response_time','48 hours') if creator else '48 hours' }}. Bookmark this page to track progress.
+        <strong>Your collaboration request is in the queue.</strong> {{ creator.name.split()[0] if creator.name else 'Creator' }} typically replies within {{ creator.get('response_time','48 hours') if creator else '48 hours' }}. Bookmark this page to track progress.
       {% elif current_status == 'reviewing' %}
         <strong>{{ creator.name.split()[0] if creator.name else 'Creator' }} is reviewing your brief.</strong> They'll reach out to you directly. No action needed right now.
       {% elif current_status == 'negotiating' %}
@@ -101,7 +101,7 @@
   {% endif %}
 
   <!-- Enquiry summary -->
-  <div class="bp-section-label">Your enquiry</div>
+  <div class="bp-section-label">Your collaboration request</div>
   <div class="bp-details-grid">
     <div class="bp-detail">
       <div class="bp-detail-label">Platform</div>
@@ -123,7 +123,7 @@
 
   {% if enq.brief %}
   <div class="bp-brief-card">
-    <div class="bp-section-label">Brief you submitted</div>
+    <div class="bp-section-label">Campaign overview you shared</div>
     <p class="bp-brief-text">{{ enq.brief }}</p>
   </div>
   {% endif %}
@@ -154,12 +154,12 @@
       <p>Email <a href="mailto:{{ creator.get('collab_email', creator.get('email','')) }}">{{ creator.get('collab_email', creator.get('email','')) }}</a> with the subject "Re: {{ enq.brand_name }} × {{ creator.name }}" and they'll see it right away.</p>
     </details>
     <details class="bp-faq-item">
-      <summary>What is DealInbox?</summary>
-      <p>DealInbox is a professional deal management tool for creators — brands submit structured enquiries, creators track everything in one dashboard. <a href="{{ url_for('index') }}">Learn more →</a></p>
+      <summary>What is DealInbox CreatorOS?</summary>
+      <p>DealInbox CreatorOS is a professional deal management tool for creators — brands submit structured enquiries, creators track everything in one dashboard. <a href="{{ url_for('index') }}">Learn more →</a></p>
     </details>
   </div>
 
-  <div class="bp-powered">Powered by <a href="{{ url_for('index') }}">dealinbox</a></div>
+  <div class="bp-powered">Powered by <a href="{{ url_for('index') }}">DealInbox CreatorOS</a></div>
 </div>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>

@@ -1,45 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Upgrade to Pro — DealInbox{% endblock %}
+{% block title %}Upgrade to Creator Pro — DealInbox{% endblock %}
 {% block extra_head %}
 {% if use_razorpay %}<script src="https://checkout.razorpay.com/v1/checkout.js"></script>{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="billing-v2">
-  <section class="billing-hero">
+<div class="billing-shell">
+  <section class="billing-hero billing-hero-rebuild">
     <div>
-      <p class="db-eyebrow">Billing</p>
-      <h1>Unlock the full DealInbox growth stack.</h1>
-      <p>Go unlimited with advanced analytics, exports, and premium workflow capabilities for serious creator businesses.</p>
+      <p class="db-eyebrow">Creator Pro</p>
+      <h1>Scale your creator operations with premium revenue workflows.</h1>
+      <p>Unlock unlimited opportunities, advanced creator earnings analytics, and higher-performance pipeline tools.</p>
     </div>
-    <a href="{{ url_for('dashboard') }}" class="btn">Back to dashboard</a>
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Creator HQ</a>
   </section>
 
   {% if on_free_window %}
   <section class="billing-banner">
-    <strong>You are currently in your free 2-month Pro window.</strong>
-    <p>Enjoy full access now. Payment is only needed after your free access period.</p>
+    <strong>You are in your 2-month free Pro window.</strong>
+    <p>Enjoy full Pro tools now. Payment only starts after the trial period.</p>
   </section>
   {% endif %}
 
-  <div class="billing-grid">
-    <section class="billing-card">
-      <h2>Compare plans</h2>
+  <div class="billing-layout-rebuild">
+    <section class="billing-card billing-card-xl">
+      <h2>Plan comparison</h2>
       <div class="billing-table">
-        <div><span>Feature</span><span>Free</span><span>Pro</span></div>
-        <div><span>Enquiries/month</span><span>20</span><span>Unlimited</span></div>
-        <div><span>Pipeline tracking</span><span>✓</span><span>✓</span></div>
-        <div><span>Brand tracking page</span><span>✓</span><span>✓</span></div>
-        <div><span>Advanced analytics</span><span>—</span><span>✓</span></div>
-        <div><span>CSV export</span><span>—</span><span>✓</span></div>
+        <div><span>Feature</span><span>Starter</span><span>Creator Pro</span></div>
+        <div><span>Brand opportunities / month</span><span>20</span><span>Unlimited</span></div>
+        <div><span>Deal pipeline management</span><span>✓</span><span>✓</span></div>
+        <div><span>Brand status portal links</span><span>✓</span><span>✓</span></div>
+        <div><span>Creator earnings analytics</span><span>—</span><span>✓</span></div>
+        <div><span>CSV export + reporting</span><span>—</span><span>✓</span></div>
         <div><span>Priority support</span><span>—</span><span>✓</span></div>
+      </div>
+      <div class="premium-empty" style="margin-top:12px">
+        <h3>Why teams upgrade</h3>
+        <p>Creators and managers use Pro to avoid hitting limits and maintain daily visibility across negotiations and campaign value.</p>
       </div>
     </section>
 
     <section class="billing-card checkout">
-      <p class="checkout-label">Pro plan</p>
+      <p class="checkout-label">Creator Pro subscription</p>
       <h2>₹{{ pro_price }}<span>/month</span></h2>
-      <p class="checkout-sub">Choose duration and pay instantly.</p>
+      <p class="checkout-sub">Select a duration and activate instantly.</p>
 
       <div class="upi-month-opts" id="monthOpts">
         <button class="umo active" data-m="1" onclick="setMonths(this,1)">1 month<br><small>₹{{ pro_price }}</small></button>
@@ -66,10 +70,7 @@
 
       <form method="POST" action="{{ url_for('upgrade_submit') }}" class="manual-submit">
         <input type="hidden" name="months" id="monthsInput" value="1">
-        <div class="fg">
-          <label>UPI transaction ID</label>
-          <input type="text" name="txn_id" required pattern="[A-Za-z0-9]{8,30}" placeholder="e.g. 426781234567">
-        </div>
+        <div class="fg"><label>UPI transaction ID</label><input type="text" name="txn_id" required pattern="[A-Za-z0-9]{8,30}" placeholder="e.g. 426781234567"></div>
         <button type="submit" class="btn btn-full">Submit manual payment</button>
       </form>
     </section>
@@ -94,7 +95,6 @@ function setMonths(btn, m) {
   if (el) el.textContent = (PRICE * m).toLocaleString('en-IN');
   updateUPI();
 }
-
 function updateUPI() {
   const amount  = (PRICE * currentMonths).toFixed(2);
   const note    = 'DealInbox Pro ' + currentMonths + 'mo';
@@ -109,33 +109,24 @@ function updateUPI() {
   img.onerror = () => { loader.textContent = 'QR unavailable — use UPI ID directly'; };
   img.src = qrUrl;
 }
-
 {% if use_razorpay %}
 function startRazorpay() {
   const btn = document.getElementById('rzpBtn');
   const msg = document.getElementById('rzpMsg');
   btn.disabled = true; btn.textContent = 'Creating order…'; msg.style.display = 'none';
-
-  fetch('/upgrade/create-order', {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({months: currentMonths})
-  })
-  .then(r => r.json())
-  .then(data => {
+  fetch('/upgrade/create-order', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({months: currentMonths})})
+  .then(r => r.json()).then(data => {
     if (data.error) throw new Error(data.error);
     const rzp = new Razorpay({
       key: data.key, amount: data.amount, currency: data.currency, name: 'DealInbox', description: 'Pro Plan',
       order_id: data.order_id, prefill: {name: USER_NAME, email: USER_EMAIL}, theme: {color: '#6366f1'},
       handler: function(response) {
         msg.style.display = 'block'; msg.textContent = 'Verifying payment…';
-        fetch('/upgrade/verify', {
-          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(response)
-        })
-        .then(r => r.json())
-        .then(res => {
+        fetch('/upgrade/verify', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(response)})
+        .then(r => r.json()).then(res => {
           if (res.ok) { showToast('Pro activated! Redirecting…'); setTimeout(() => window.location.href = '/dashboard', 1500); }
           else { throw new Error(res.error || 'Verification failed'); }
-        })
-        .catch(err => { msg.textContent = err.message || 'Payment verification failed'; btn.disabled = false; btn.textContent = 'Retry payment'; });
+        }).catch(err => { msg.textContent = err.message || 'Payment verification failed'; btn.disabled = false; btn.textContent = 'Retry payment'; });
       }
     });
     rzp.on('payment.failed', function (r) {
@@ -144,11 +135,9 @@ function startRazorpay() {
     });
     rzp.open();
     btn.disabled = false; btn.textContent = 'Pay ₹' + (PRICE * currentMonths).toLocaleString('en-IN') + ' via Razorpay';
-  })
-  .catch(err => { msg.style.display = 'block'; msg.textContent = err.message || 'Could not start payment'; btn.disabled = false; btn.textContent = 'Retry payment'; });
+  }).catch(err => { msg.style.display = 'block'; msg.textContent = err.message || 'Could not start payment'; btn.disabled = false; btn.textContent = 'Retry payment'; });
 }
 {% endif %}
-
 window.addEventListener('load', updateUPI);
 </script>
 {% endblock %}
