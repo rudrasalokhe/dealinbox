@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Analytics — DealInbox{% endblock %}
+{% block title %}Creator Earnings — DealInbox{% endblock %}
 {% block content %}
 <div class="page-header">
-  <div><h1>Analytics</h1><p class="page-sub">Your deal pipeline performance.</p></div>
+  <div><h1>Creator Earnings</h1><p class="page-sub">Track pipeline value, close rate, and creator income momentum.</p></div>
   <button class="btn btn-sm" onclick="exportReport()">Export</button>
 </div>
 
 {% if total > 0 %}<div class="insight-banner"><p>{% if conversion >= 50 %}Your {{ conversion }}% close rate is excellent. Most creators sit around 25–30%.{% elif conversion >= 25 %}Solid {{ conversion }}% close rate. Fast replies to new enquiries are the quickest way to push this higher.{% else %}Focus on sharing your link in more places — more enquiries means more chances to close.{% endif %}</p></div>{% endif %}
 
 <div class="kpi-grid">
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✉</span></div><div class="kpi-val">{{ total }}</div><div class="kpi-label">Total enquiries</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✓</span></div><div class="kpi-val">{{ accepted }}</div><div class="kpi-label">Deals closed</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">%</span></div><div class="kpi-val">{{ conversion }}%</div><div class="kpi-label">Close rate</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">₹</span></div><div class="kpi-val">₹{{ "{:,}".format(total_value) }}</div><div class="kpi-label">Pipeline value</div></div>
+  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✉</span></div><div class="kpi-val">{{ total }}</div><div class="kpi-label">Brand opportunities</div></div>
+  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✓</span></div><div class="kpi-val">{{ accepted }}</div><div class="kpi-label">Signed collaborations</div></div>
+  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">%</span></div><div class="kpi-val">{{ conversion }}%</div><div class="kpi-label">Win rate</div></div>
+  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">₹</span></div><div class="kpi-val">₹{{ "{:,}".format(total_value) }}</div><div class="kpi-label">Estimated pipeline value</div></div>
 </div>
 
 <div class="analytics-grid">
   <div class="analytics-card analytics-card-wide">
-    <h2>Enquiries — last 6 months</h2>
+    <h2>Brand opportunities — last 6 months</h2>
     {% set mx=namespace(v=1) %}{% for m in months %}{% if m.count>mx.v %}{% set mx.v=m.count %}{% endif %}{% endfor %}
     <div class="bar-chart">
       {% for m in months %}
@@ -31,7 +31,7 @@
   </div>
 
   <div class="analytics-card">
-    <h2>By status</h2>
+    <h2>Collab stage mix</h2>
     {% if total %}
     <div class="sb-list">
       {% for s, info in STATUSES.items() %}{% set c=status_counts.get(s,0) %}
@@ -46,7 +46,7 @@
   </div>
 
   <div class="analytics-card">
-    <h2>By platform</h2>
+    <h2>Channel mix</h2>
     {% if plat_counts %}
     <div class="sb-list">
       {% for p, c in plat_counts.items() %}
@@ -61,7 +61,7 @@
   </div>
 
   <div class="analytics-card">
-    <h2>Top brands</h2>
+    <h2>Top recurring brands</h2>
     {% if top_brands %}
     <div class="top-brands">
       {% for brand, c in top_brands %}
@@ -76,7 +76,7 @@
   </div>
 
   <div class="analytics-card analytics-card-wide">
-    <h2>Monthly revenue goal</h2>
+    <h2>Monthly creator earnings goal</h2>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--t3)"><span>Progress</span><span id="goalPct" style="color:var(--green)">Set a goal →</span></div>
@@ -95,6 +95,6 @@
 const pv={{ total_value }};
 function setGoal(){const g=parseInt(document.getElementById('goalInput').value)||0;if(!g)return;const p=Math.min(100,Math.round(pv/g*100));document.getElementById('goalBar').style.width=p+'%';document.getElementById('goalPct').textContent=`₹${pv.toLocaleString('en-IN')} / ₹${g.toLocaleString('en-IN')} (${p}%)`;document.getElementById('goalHint').textContent=p>=100?'Goal reached!':p>=75?'Almost there.':p>=50?'Halfway there.':'Keep building.';localStorage.setItem('di_goal',g)}
 window.addEventListener('load',()=>{const s=localStorage.getItem('di_goal');if(s){document.getElementById('goalInput').value=s;setGoal()}});
-function exportReport(){const a=document.createElement('a');a.href='data:text/plain,'+encodeURIComponent(`DealInbox Analytics\nTotal: {{ total }}\nClosed: {{ accepted }}\nClose rate: {{ conversion }}%\nPipeline: ₹{{ "{:,}".format(total_value) }}`);a.download='analytics.txt';a.click();showToast('Exported')}
+function exportReport(){const a=document.createElement('a');a.href='data:text/plain,'+encodeURIComponent(`DealInbox Analytics\nTotal: {{ total }}\nClosed: {{ accepted }}\nWin rate: {{ conversion }}%\nPipeline: ₹{{ "{:,}".format(total_value) }}`);a.download='analytics.txt';a.click();showToast('Exported')}
 </script>
 {% endblock %}
