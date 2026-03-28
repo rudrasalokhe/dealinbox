@@ -1269,6 +1269,12 @@ input:disabled { opacity: .3; cursor: not-allowed; }
 .wsum-avatars{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .wsum-avatars span{width:32px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#dce2f2;color:#3a4f7d;font-size:12px;font-weight:700}
 .wsum-cta-row{display:flex;gap:8px;flex-wrap:wrap}
+.wsum-alerts{margin-bottom:12px;background:linear-gradient(180deg,#eef6ff,#f8fbff)}
+.wsum-alerts p{font-size:12.5px;color:#3f5e87;padding:6px 0;border-bottom:1px dashed #d3e1f4}
+.wsum-alerts p:last-child{border-bottom:none}
+.wsum-tasks{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.wsum-tasks a,.wsum-tasks p{font-size:12px;color:#596983;background:#fff;border:1px solid #dde5f0;border-radius:10px;padding:8px 10px;line-height:1.45}
+.wsum-tasks b{color:#2e3f58}
 
 @media(max-width:1200px){
   .wsum-shell{grid-template-columns:1fr}
@@ -1289,6 +1295,13 @@ input:disabled { opacity: .3; cursor: not-allowed; }
 }
 
 /* ===== landing faq + global light theme unification ===== */
+.mk-how{background:linear-gradient(180deg,#ffffff,#f7fafe);border:1px solid #dce4ef;border-radius:18px;padding:22px}
+.mk-how h2{font-size:34px;letter-spacing:-.035em;color:#1f2a3c;margin-bottom:12px}
+.mk-how-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mk-how-grid article{background:#f8fbff;border:1px solid #dbe4ef;border-radius:12px;padding:14px}
+.mk-how-grid span{display:inline-flex;background:#e5f0ff;color:#205fb9;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:700;margin-bottom:8px}
+.mk-how-grid h3{font-size:18px;letter-spacing:-.02em;margin-bottom:6px;color:#1f2f47}
+.mk-how-grid p{font-size:13px;color:#5d6c84}
 .mk-faq{background:linear-gradient(180deg,#ffffff,#f7f9fd);border:1px solid #dbe3ef;border-radius:18px;padding:22px}
 .mk-faq h2{font-size:34px;letter-spacing:-.035em;margin-bottom:12px;color:#1f2a3c}
 .mk-faq-grid{display:grid;gap:10px}
@@ -1322,5 +1335,6 @@ input:focus,textarea:focus,select:focus{background:#fff !important;border-color:
 .g-footer{background:#f7f9fc}
 
 @media(max-width:700px){
-  .mk-faq h2{font-size:26px}
+  .mk-how h2,.mk-faq h2{font-size:26px}
+  .mk-how-grid{grid-template-columns:1fr}
 }
