@@ -1429,3 +1429,92 @@ input:focus,textarea:focus,select:focus{background:#fff !important;border-color:
   .wsum-grid-top,.wsum-grid-bottom{grid-template-columns:1fr!important}
   .wsum-card h3{font-size:1.7rem!important}
 }
+
+/* ===== NeoDark final theme (startup reference inspired) ===== */
+:root{
+  --bg:#0c0f13 !important;
+  --bg1:#11151a !important;
+  --bg2:#151b22 !important;
+  --bg3:#1a212b !important;
+  --bg4:#222a35 !important;
+  --bg5:#2b3442 !important;
+  --line:rgba(184,255,62,.12) !important;
+  --line2:rgba(184,255,62,.22) !important;
+  --line3:rgba(184,255,62,.38) !important;
+  --t1:#f4f7fb !important;
+  --t2:#b3bfce !important;
+  --t3:#8d99aa !important;
+  --t4:#697587 !important;
+}
+body{background:radial-gradient(120% 120% at 50% 0%,#141b25 0%,#0b0f14 46%,#090c11 100%) !important;color:var(--t1)!important}
+
+/* top navigation */
+.pub-nav,.pub-nav-rebuild{height:66px !important;background:rgba(13,17,23,.88)!important;border-bottom:1px solid rgba(184,255,62,.14)!important;backdrop-filter:blur(12px)}
+.nav-logo{font-weight:700 !important;color:#eff5ff !important}
+.pub-nav-center{display:flex;align-items:center;gap:10px;margin:0 auto}
+.pub-nav-center a{font-size:13px;color:#93a1b4;padding:8px 14px;border-radius:10px;border:1px solid transparent;transition:.18s}
+.pub-nav-center a:hover{background:#151c24;border-color:#2b3646;color:#eff4ff}
+.pub-nav-login{color:#a9b4c5 !important}
+.pub-nav-cta,.btn-primary,.g-btn-primary{background:#b8ff3e !important;border-color:#b8ff3e !important;color:#101510 !important;font-weight:700 !important}
+.pub-nav-cta:hover,.btn-primary:hover,.g-btn-primary:hover{background:#c7ff66 !important;color:#101510 !important}
+.btn{background:#161d25 !important;border-color:#263141 !important;color:#d6dfeb !important}
+.btn:hover{background:#1f2833 !important;border-color:#334155 !important;color:#fff !important}
+
+/* general cards + forms */
+.card,.kpi-card,.kanban-col,.db2-panel,.op2-filterbar,.op2-table-wrap,.wsum-card,.mk-hero-copy,.mk-hero-preview,.mk-section-grid article,.mk-compare,.mk-pricing,.mk-how,.mk-faq,.mk-proof-grid article,.mk-cta-band{background:linear-gradient(180deg,#11161d,#0f141a)!important;border:1px solid #273240!important;box-shadow:0 14px 34px rgba(0,0,0,.36)!important}
+input,textarea,select{background:#121922 !important;border-color:#293548 !important;color:#f2f6ff !important}
+input:focus,textarea:focus,select:focus{border-color:#b8ff3e !important;box-shadow:0 0 0 3px rgba(184,255,62,.16)!important}
+
+/* landing */
+.mk-shell{max-width:1220px !important;margin:26px auto 54px !important;padding:0 20px !important}
+.mk-hero{grid-template-columns:1.15fr .85fr !important;gap:14px !important}
+.mk-hero-copy,.mk-hero-preview{border-radius:22px !important;padding:28px !important;position:relative;overflow:hidden}
+.mk-hero-copy::before,.mk-hero-preview::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(184,255,62,.08) 1px, transparent 1px);background-size:18px 18px;opacity:.2;pointer-events:none}
+.mk-chip{background:rgba(184,255,62,.08)!important;border-color:rgba(184,255,62,.3)!important;color:#ccff83!important}
+.mk-hero-copy h1{font-size:clamp(2.2rem,5.6vw,4.6rem)!important;line-height:.97!important;color:#f7fbff!important;max-width:760px!important}
+.mk-hero-copy p{color:#adbacb !important;font-size:1.07rem !important}
+.mk-trust-inline span{background:#121a24 !important;border-color:#273449 !important;color:#9cb0c8 !important}
+.mk-preview-grid article,.mk-preview-card li,.mk-compare-grid article,.mk-price-grid article,.mk-how-grid article,.mk-faq details{background:#131b24 !important;border-color:#273449 !important}
+.mk-preview-grid small,.mk-preview-card span{color:#8ea0ba !important}
+.mk-preview-grid strong,.mk-preview-card b,.mk-section-grid h3,.mk-compare h2,.mk-pricing h2,.mk-how h2,.mk-faq h2,.mk-cta-band h2{color:#f3f8ff !important}
+.mk-section-grid p,.mk-proof-grid p,.mk-how-grid p,.mk-faq p,.mk-cta-band p,.mk-compare-grid ul,.mk-price-grid li{color:#afbdcf !important}
+.mk-price-grid .featured{background:linear-gradient(180deg,#1a2432,#151f2a)!important;border-color:rgba(184,255,62,.45)!important}
+.mk-price-grid .price{color:#f7fbff !important}
+.mk-price-grid li::before{color:#b8ff3e !important}
+.mk-how-grid span{background:rgba(184,255,62,.12)!important;color:#d2ff8d!important}
+.mk-faq summary{color:#f2f7ff !important}
+.mk-cta-band{background:radial-gradient(120% 120% at 0% 0%,rgba(184,255,62,.12),transparent 46%),#10161d!important}
+
+/* app shell + dashboard */
+.os-sidebar{background:linear-gradient(180deg,#10151b,#0d1218)!important;border-right:1px solid #273241!important}
+.os-topbar{background:rgba(12,16,21,.82)!important;border-bottom:1px solid #253041!important}
+.os-brand strong,.os-user p,.os-content h1,.os-content h2,.os-content h3{color:#f3f8ff !important}
+.os-brand span,.os-user small,.os-nav-label,.os-link,.os-pill,.page-sub{color:#93a2b8 !important}
+.os-link{background:#121922 !important;border:1px solid transparent}
+.os-link.active{background:#1a2430 !important;border-color:#304055 !important;color:#f6fbff !important}
+.os-link:hover{background:#18222e !important;border-color:#2f3f54 !important;color:#eff5ff !important}
+.os-user{background:#131b24 !important;border-color:#273449 !important}
+.os-av{background:#1b2532 !important;color:#e8f0ff !important}
+.cmd-btn{background:#151d26 !important;border-color:#29374a !important;color:#adbed4 !important}
+
+.wsum-main-full{max-width:1280px !important;gap:12px !important}
+.wsum-head,.wsum-card{border-color:#2b3747 !important;background:linear-gradient(180deg,#11171f,#0f141a)!important}
+.wsum-head h1,.wsum-card h3{color:#f4f8ff !important}
+.wsum-head p,.wsum-goals p,.wsum-stats .bar-row span{color:#a9b8cb !important}
+.wsum-user{background:#16202b !important;border-color:#2f3d50 !important;color:#d9e5f5 !important}
+.wsum-credit{background:linear-gradient(135deg,#2f72df,#58ace0)!important}
+.wsum-goals article,.wsum-tasks a,.wsum-tasks p{background:#141c25 !important;border-color:#2b384b !important;color:#c4d0df !important}
+.wsum-goals strong,.wsum-table td,.wsum-stats .bar-row strong{color:#eaf2ff !important}
+.wsum-table th{color:#8ea0ba !important}
+.wsum-table tbody tr:hover{background:#1b2531 !important}
+.wsum-stats .bar-track{background:#243041 !important}
+.wsum-alerts{background:linear-gradient(180deg,#141c25,#111820)!important}
+.wsum-alerts p{color:#b9c8db !important;border-bottom-color:#2a384a !important}
+
+.g-footer{background:#0f1419 !important;border-top:1px solid #263140 !important}
+.g-footer-inner span:not(.g-footer-logo){color:#8d9db3 !important}
+
+@media(max-width:900px){
+  .pub-nav-center{display:none}
+  .mk-hero{grid-template-columns:1fr !important}
+}
