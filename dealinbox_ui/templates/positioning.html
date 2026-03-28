@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Positioning Engine — DealInbox{% endblock %}
+{% block title %}Creator Market Positioning — DealInbox{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>🧬 Positioning Engine</h1>
-    <p class="page-sub">Improve how brands see you. Get better deals.</p>
+    <h1>🧬 Creator Positioning Engine</h1>
+    <p class="page-sub">Sharpen your market narrative, rates, and premium brand fit.</p>
   </div>
   <a href="{{ url_for('settings') }}" class="btn">Edit profile →</a>
 </div>
@@ -16,7 +16,7 @@
     <div class="card pos-score-card" id="posScoreCard">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div>
-          <div class="dc-title" style="margin-bottom:4px">Market positioning score</div>
+          <div class="dc-title" style="margin-bottom:4px">Creator market positioning score</div>
           <div style="font-size:12px;color:var(--t3)">Based on your profile, deals, and response patterns.</div>
         </div>
         <div class="pos-score-ring" id="posRingWrap">
@@ -41,7 +41,7 @@
 
     <!-- Suggestions -->
     <div class="card" id="suggestionsCard">
-      <div class="dc-title">Improvement suggestions</div>
+      <div class="dc-title">Creator growth recommendations</div>
       <div id="sugLoader" style="text-align:center;padding:30px;color:var(--t3)">
         <div class="spinner"></div>
         <div style="margin-top:10px;font-size:13px">Analysing your profile and deals…</div>
@@ -51,7 +51,7 @@
 
     <!-- Profile preview -->
     <div class="card">
-      <div class="dc-title">How brands see your page now</div>
+      <div class="dc-title">How brand partners see your creator profile</div>
       <div class="profile-preview" id="profilePreview">
         <div class="pp-mock-av">{{ user.name[0].upper() if user.name else 'C' }}</div>
         <div class="pp-mock-name">{{ user.name or 'Your Name' }}</div>
