@@ -1375,3 +1375,57 @@ input:focus,textarea:focus,select:focus{background:#fff !important;border-color:
   .mk-shell{padding:0 12px}
   .mk-hero-copy h1{font-size:38px}
 }
+
+/* ===== premium v3 refinement: SaaS-grade polish ===== */
+:root{--saas-primary:#2f6fe4;--saas-primary-soft:#eaf1ff;--saas-text:#18243a;--saas-muted:#5f6e86;--saas-line:#d9e3f0}
+
+/* Landing */
+.mk-shell{max-width:1200px !important;margin:36px auto 56px !important;gap:18px !important}
+.mk-hero{gap:16px !important;align-items:stretch}
+.mk-hero-copy,.mk-hero-preview{border-radius:24px !important;padding:28px !important;background:#fff !important;border:1px solid var(--saas-line) !important;box-shadow:0 16px 40px rgba(27,56,98,.08) !important}
+.mk-hero-copy{background:radial-gradient(120% 120% at 0% 0%,#f3f7ff 0%,#ffffff 46%) !important}
+.mk-chip{background:var(--saas-primary-soft)!important;border:1px solid #cfe0ff!important;color:#295aa8!important;font-weight:600}
+.mk-hero-copy h1{font-size:clamp(2.3rem,5vw,4.2rem)!important;line-height:.98!important;letter-spacing:-.04em!important;color:var(--saas-text)!important;margin-bottom:14px!important}
+.mk-hero-copy p{font-size:1.06rem!important;line-height:1.7!important;color:var(--saas-muted)!important;max-width:58ch!important}
+.mk-trust-inline span{background:#fff !important;border:1px solid #dce6f3 !important;color:#59708f !important}
+.mk-preview-grid article,.mk-preview-card li{border-color:#dfe8f4 !important;background:#fbfdff !important}
+.mk-section-grid,.mk-how-grid,.mk-proof-grid{gap:12px !important}
+.mk-section-grid article,.mk-how-grid article,.mk-proof-grid article{padding:18px !important;border-radius:16px !important}
+.mk-section-grid h3,.mk-how-grid h3{font-size:1.35rem !important;color:var(--saas-text)!important}
+.mk-compare,.mk-pricing,.mk-how,.mk-faq,.mk-cta-band{border-radius:24px !important;padding:24px !important}
+.mk-compare h2,.mk-pricing h2,.mk-how h2,.mk-faq h2,.mk-cta-band h2{font-size:clamp(1.8rem,3.4vw,3rem)!important;line-height:1.04!important;color:var(--saas-text)!important}
+.mk-price-grid .featured{background:linear-gradient(180deg,#f2f7ff,#e8f0ff)!important;border-color:#bfd3f4!important}
+.mk-price-grid .price{font-size:3rem !important;color:var(--saas-text)!important}
+.mk-faq details{padding:14px 16px !important;border-radius:14px!important}
+.mk-faq summary{font-size:1rem!important;color:#223654!important}
+.mk-cta-band{background:radial-gradient(120% 120% at 10% 0%,#eff5ff,transparent 42%),#fff !important}
+
+/* Dashboard */
+.wsum-main-full{max-width:1200px !important;gap:14px !important}
+.wsum-head{padding:22px 24px !important;border-radius:22px !important;background:radial-gradient(120% 120% at 0% 0%,#f3f7ff,transparent 40%),#fff !important}
+.wsum-head h1{font-size:clamp(2.1rem,4.6vw,3.6rem)!important;line-height:.98!important;color:var(--saas-text)!important}
+.wsum-head p{font-size:1.02rem!important;color:var(--saas-muted)!important;max-width:62ch!important}
+.wsum-user{background:#f7faff !important;border:1px solid #d8e4f4 !important;color:#26446f !important}
+.wsum-card{border-radius:20px!important;padding:18px!important;border:1px solid var(--saas-line)!important;box-shadow:0 10px 26px rgba(21,52,94,.07)!important}
+.wsum-card h3{font-size:2rem!important;letter-spacing:-.03em!important;color:#11284a!important}
+.wsum-credit{border-radius:18px!important;background:linear-gradient(135deg,#2f72df,#68b4ea)!important}
+.wsum-balance-kpis strong{font-size:2.6rem!important;line-height:1!important}
+.wsum-goals article{border-radius:14px!important;background:#fbfdff!important}
+.wsum-goals strong{font-size:2.8rem!important;line-height:1!important;color:#243652!important}
+.wsum-goals p{font-size:1rem!important;color:#6b7b93!important}
+.wsum-table th{font-size:.75rem!important;color:#7c8ca4!important}
+.wsum-table td{font-size:1rem!important;color:#32445f!important;padding:12px 8px!important}
+.wsum-table tbody tr:hover{background:#eef5ff !important}
+.wsum-stats .bar-row span{font-size:1rem!important;color:#586b87!important}
+.wsum-stats .bar-row strong{font-size:1rem!important;color:#274066!important}
+.wsum-stats .bar-track{height:8px!important;background:#e9eef5!important}
+.wsum-tasks a,.wsum-tasks p{font-size:.95rem!important;padding:10px 12px!important;border-radius:12px!important}
+
+.btn-primary,.g-btn-primary,.pub-nav-cta{background:var(--saas-primary)!important;border-color:var(--saas-primary)!important}
+.btn-primary:hover,.g-btn-primary:hover,.pub-nav-cta:hover{background:#245fca!important}
+
+@media(max-width:900px){
+  .mk-hero{grid-template-columns:1fr!important}
+  .wsum-grid-top,.wsum-grid-bottom{grid-template-columns:1fr!important}
+  .wsum-card h3{font-size:1.7rem!important}
+}
