@@ -2,60 +2,91 @@
 {% block title %}DealInbox CreatorOS — Creator Deal CRM{% endblock %}
 {% block body_class %}landing-body{% endblock %}
 {% block content %}
-<section class="mk-hero">
-  <div class="mk-hero-copy">
-    <span class="mk-chip">{{ total }}+ creators · {{ enq_total }}+ brand opportunities</span>
-    <h1>The Creator Deal CRM for serious creator businesses.</h1>
-    <p>Capture inbound collab requests, manage negotiations, track deal stages, and monitor creator earnings from one premium workspace.</p>
-    <div class="mk-actions">
-      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Start free</a>
-      <a href="{{ url_for('login') }}" class="btn btn-lg">Log in</a>
-    </div>
-  </div>
-  <div class="mk-hero-preview">
-    <div class="mk-preview-card">
-      <h3>Creator HQ Snapshot</h3>
-      <div class="mk-preview-grid">
-        <article><small>Pipeline Value</small><strong>₹4,60,000</strong></article>
-        <article><small>Active Negotiations</small><strong>7</strong></article>
-        <article><small>Response Rate</small><strong>91%</strong></article>
+<div class="mk-shell">
+  <section class="mk-hero">
+    <div class="mk-hero-copy">
+      <span class="mk-chip">{{ total }}+ creators · {{ enq_total }}+ brand opportunities</span>
+      <h1>The Creator Deal CRM for serious creator businesses.</h1>
+      <p>Capture inbound collab requests, manage negotiations, track deal stages, and monitor creator earnings from one premium workspace.</p>
+      <div class="mk-actions">
+        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Start free</a>
+        <a href="{{ url_for('login') }}" class="btn btn-lg">Log in</a>
       </div>
-      <ul>
-        <li><b>Beauty campaign</b><span>Negotiating</span></li>
-        <li><b>Travel collaboration</b><span>Reviewing</span></li>
-        <li><b>Fintech partnership</b><span>Accepted</span></li>
-      </ul>
+      <div class="mk-trust-inline">
+        <span>No credit card required</span>
+        <span>Setup in under 10 minutes</span>
+        <span>Works on desktop + mobile</span>
+      </div>
     </div>
-  </div>
-</section>
+    <div class="mk-hero-preview">
+      <div class="mk-preview-card">
+        <h3>Creator HQ Snapshot</h3>
+        <div class="mk-preview-grid">
+          <article><small>Pipeline Value</small><strong>₹4,60,000</strong></article>
+          <article><small>Active Negotiations</small><strong>7</strong></article>
+          <article><small>Response Rate</small><strong>91%</strong></article>
+        </div>
+        <ul>
+          <li><b>Beauty campaign</b><span>Negotiating</span></li>
+          <li><b>Travel collaboration</b><span>Reviewing</span></li>
+          <li><b>Fintech partnership</b><span>Accepted</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-<section class="mk-section-grid">
-  <article><h3>Capture opportunities</h3><p>Replace messy DMs with structured collaboration intake.</p></article>
-  <article><h3>Move deals by stage</h3><p>Track every request from new to negotiating to signed.</p></article>
-  <article><h3>Run creator revenue ops</h3><p>See pipeline value, close rate, and earnings momentum.</p></article>
-</section>
+  <section class="mk-section-grid">
+    <article><h3>Capture opportunities</h3><p>Replace messy DMs with structured collaboration intake.</p></article>
+    <article><h3>Move deals by stage</h3><p>Track every request from new to negotiating to signed.</p></article>
+    <article><h3>Run creator revenue ops</h3><p>See pipeline value, close rate, and earnings momentum.</p></article>
+  </section>
 
-<section class="mk-compare">
-  <h2>From collab chaos to collaboration system</h2>
-  <div class="mk-compare-grid">
-    <article><h4>Without DealInbox</h4><ul><li>Scattered inbox threads</li><li>No clear deal status</li><li>Missed follow-ups</li></ul></article>
-    <article><h4>With DealInbox CreatorOS</h4><ul><li>Centralized opportunity pipeline</li><li>Negotiation tracking + notes</li><li>Creator earnings visibility</li></ul></article>
-  </div>
-</section>
+  <section class="mk-compare">
+    <h2>From collab chaos to collaboration system</h2>
+    <div class="mk-compare-grid">
+      <article><h4>Without DealInbox</h4><ul><li>Scattered inbox threads</li><li>No clear deal status</li><li>Missed follow-ups</li></ul></article>
+      <article><h4>With DealInbox CreatorOS</h4><ul><li>Centralized opportunity pipeline</li><li>Negotiation tracking + notes</li><li>Creator earnings visibility</li></ul></article>
+    </div>
+  </section>
 
-<section class="mk-pricing">
-  <h2>Simple creator-friendly pricing</h2>
-  <div class="mk-price-grid">
+  <section class="mk-pricing">
+    <h2>Simple creator-friendly pricing</h2>
+    <div class="mk-price-grid">
+      <article>
+        <h3>Starter</h3><p class="price">₹0<span>/month</span></p>
+        <ul><li>20 opportunities/month</li><li>Pipeline tracking</li><li>Public collab page</li></ul>
+        <a href="{{ url_for('signup') }}" class="btn btn-full">Start free</a>
+      </article>
+      <article class="featured">
+        <h3>Creator Pro</h3><p class="price">₹199<span>/month</span></p>
+        <ul><li>Unlimited opportunities</li><li>Advanced analytics</li><li>CSV exports and premium workflows</li></ul>
+        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full">Upgrade to Pro</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="mk-proof-grid" aria-label="Creator outcomes">
     <article>
-      <h3>Starter</h3><p class="price">₹0<span>/month</span></p>
-      <ul><li>20 opportunities/month</li><li>Pipeline tracking</li><li>Public collab page</li></ul>
-      <a href="{{ url_for('signup') }}" class="btn btn-full">Start free</a>
+      <strong>2.4x faster response time</strong>
+      <p>Creators reply to serious enquiries quickly with every detail in one place.</p>
     </article>
-    <article class="featured">
-      <h3>Creator Pro</h3><p class="price">₹199<span>/month</span></p>
-      <ul><li>Unlimited opportunities</li><li>Advanced analytics</li><li>CSV exports and premium workflows</li></ul>
-      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full">Upgrade to Pro</a>
+    <article>
+      <strong>Fewer missed opportunities</strong>
+      <p>Track every lead from first brief to signed campaign with clear statuses.</p>
     </article>
-  </div>
-</section>
+    <article>
+      <strong>Professional brand experience</strong>
+      <p>Give brands a polished, structured inquiry flow instead of unorganized DMs.</p>
+    </article>
+  </section>
+
+  <section class="mk-cta-band">
+    <h2>Ready to run your creator business like an operator?</h2>
+    <p>Start free, move active deals into one workspace, and turn inbound chaos into a predictable pipeline.</p>
+    <div class="mk-actions">
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Create free account</a>
+      <a href="{{ url_for('login') }}" class="btn btn-lg">I already have an account</a>
+    </div>
+  </section>
+</div>
 {% endblock %}
