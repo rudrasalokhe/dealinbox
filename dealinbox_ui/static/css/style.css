@@ -1338,3 +1338,40 @@ input:focus,textarea:focus,select:focus{background:#fff !important;border-color:
   .mk-how h2,.mk-faq h2{font-size:26px}
   .mk-how-grid{grid-template-columns:1fr}
 }
+
+/* ===== polish v2: cleaner landing + dashboard ===== */
+.wsum-main-full{display:flex;flex-direction:column;gap:12px;max-width:1280px}
+.wsum-head{background:linear-gradient(180deg,#ffffff,#f9fbff);border:1px solid #dbe4ef;border-radius:18px;padding:20px 22px;margin-bottom:0}
+.wsum-head h1{font-size:54px;letter-spacing:-.05em;line-height:1;color:#1f2d45}
+.wsum-head p{font-size:15px;color:#62738f}
+.wsum-card{background:#fff;border:1px solid #dce4ef;border-radius:18px;box-shadow:0 8px 24px rgba(32,54,89,.06)}
+.wsum-balance-wrap{grid-template-columns:1.1fr .9fr}
+.wsum-credit{background:linear-gradient(140deg,#2f7ed0,#67b0e4);min-height:184px}
+.wsum-goals article{min-height:120px}
+.wsum-table td{font-size:14px}
+.wsum-table tbody tr:hover{background:#f1f6fe}
+.wsum-stats .bar-track{background:#edf1f6}
+.wsum-transact{background:linear-gradient(180deg,#ffffff,#f8fbff)}
+
+.mk-shell{max-width:1240px;margin:28px auto 42px;gap:16px}
+.mk-hero-copy,.mk-hero-preview,.mk-section-grid article,.mk-compare,.mk-pricing,.mk-proof-grid article,.mk-how,.mk-faq,.mk-cta-band{background:linear-gradient(180deg,#ffffff,#f8fbff) !important;border:1px solid #d9e3ef !important;box-shadow:0 8px 24px rgba(30,58,95,.06)}
+.mk-chip{background:#edf4ff !important;border:1px solid #cfe0f7 !important;color:#2e5f9d !important}
+.mk-hero-copy h1{font-size:76px;line-height:.95;color:#12233e !important;max-width:760px}
+.mk-hero-copy p,.mk-section-grid p,.mk-proof-grid p,.mk-faq p,.mk-how-grid p{color:#5e6f88 !important}
+.mk-preview-grid article,.mk-preview-card li,.mk-compare-grid article,.mk-price-grid article,.mk-how-grid article,.mk-faq details{background:#fff !important;border:1px solid #dee7f2 !important}
+.mk-preview-grid small,.mk-preview-card span{color:#7084a2 !important}
+.mk-preview-grid strong,.mk-preview-card b,.mk-section-grid h3,.mk-compare h2,.mk-pricing h2,.mk-how h2,.mk-faq h2,.mk-cta-band h2{color:#173055 !important}
+.mk-cta-band p{color:#667894 !important}
+.mk-price-grid .featured{background:linear-gradient(180deg,#f6faff,#eaf4ff) !important;border-color:#bdd5f2 !important}
+.mk-price-grid li,.mk-compare-grid ul{color:#5f7089 !important}
+
+@media(max-width:980px){
+  .wsum-head h1{font-size:42px}
+  .mk-hero-copy h1{font-size:48px;line-height:1}
+}
+@media(max-width:700px){
+  .wsum-head{padding:16px}
+  .wsum-head h1{font-size:34px}
+  .mk-shell{padding:0 12px}
+  .mk-hero-copy h1{font-size:38px}
+}
