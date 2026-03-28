@@ -11,7 +11,7 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="neo-theme {% block body_class %}{% endblock %}">
 
 {% if session.uid %}
 <div class="os-shell">
@@ -81,6 +81,12 @@
 {% block public_nav %}
 <nav class="pub-nav pub-nav-rebuild">
   <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> DealInbox CreatorOS</a>
+  <div class="pub-nav-center">
+    <a href="#home">Home</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+  </div>
   <div class="pub-nav-right">
     <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
     <a href="{{ url_for('signup') }}" class="pub-nav-cta">Start free</a>
