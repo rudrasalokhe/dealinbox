@@ -226,6 +226,7 @@
     ["dashboardState", "dashboardReactRoot", DashboardApp],
     ["enquiriesState", "enquiriesReactRoot", EnquiriesApp],
   ];
+
   mounts.forEach(([stateId, rootId, Comp]) => {
     const state = parseState(stateId);
     const root = document.getElementById(rootId);
