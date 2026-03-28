@@ -1,12 +1,48 @@
 {% extends "base.html" %}
 {% block title %}Brand Opportunities — DealInbox{% endblock %}
 {% block content %}
-<div id="enquiriesReactRoot"></div>
-<script id="enquiriesState" type="application/json">{{ enquiries_state|tojson }}</script>
-<noscript>
-  <div class="premium-empty">
-    <h3>JavaScript required</h3>
-    <p>Please enable JavaScript to load the new enquiries workspace.</p>
+<div class="op2-shell">
+  <section class="op2-head">
+    <div>
+      <h1>Brand Opportunities</h1>
+      <p class="page-sub">Search, filter, and move inbound collaborations through your deal pipeline.</p>
+    </div>
+    <a href="{{ url_for('enquiries_page') }}" class="btn">Reset filters</a>
+  </section>
+
+  <section class="op2-filterbar">
+    <div class="filter-tabs">
+      <a class="ft-tab {% if not status_f %}active{% endif %}" href="{{ url_for('enquiries_page') }}">All <span class="ft-count">{{ counts.all }}</span></a>
+      {% for s, info in STATUSES.items() %}
+      <a class="ft-tab {% if status_f == s %}active{% endif %}" href="{{ url_for('enquiries_page', status=s) }}">{{ info.label }} <span class="ft-count">{{ counts[s] }}</span></a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if enqs %}
+  <div class="op2-table-wrap">
+    <table class="enq-table">
+      <thead><tr><th>Brand</th><th>Channel</th><th>Budget</th><th>Stage</th><th>Received</th><th>Open</th></tr></thead>
+      <tbody>
+      {% for e in enqs %}
+        <tr onclick="window.location='/enquiries/{{ e._id }}'">
+          <td><div class="etd-brand">{{ e.brand_name }}</div><div class="etd-contact">{{ e.contact_name or e.email }}</div></td>
+          <td class="td-muted">{{ e.platform or '—' }}</td>
+          <td>{{ e.budget or '—' }}</td>
+          <td><span class="status-pill pill-{{ e.status }}">{{ STATUSES[e.status].label if e.status in STATUSES else e.status }}</span></td>
+          <td class="td-time">{{ fmt_dt(e.created_at) }}</td>
+          <td><a href="/enquiries/{{ e._id }}" class="btn btn-sm">View</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
-</noscript>
+  {% else %}
+  <div class="premium-empty">
+    <h3>No brand opportunities yet</h3>
+    <p>Share your public collaboration page to start receiving campaign requests.</p>
+    <a href="/{{ '@' }}{{ session.username }}" target="_blank" class="btn btn-primary">Open public collab page ↗</a>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

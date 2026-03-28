@@ -1,12 +1,79 @@
 {% extends "base.html" %}
 {% block title %}Creator Business HQ — DealInbox{% endblock %}
 {% block content %}
-<div id="dashboardReactRoot"></div>
-<script id="dashboardState" type="application/json">{{ dashboard_state|tojson }}</script>
-<noscript>
-  <div class="premium-empty">
-    <h3>JavaScript required</h3>
-    <p>Please enable JavaScript to load the new dashboard workspace.</p>
+<div class="db2-shell">
+  <section class="db2-hero">
+    <div>
+      <p class="db-eyebrow">Creator Business HQ</p>
+      <h1>Welcome back, {{ dashboard_state.name.split()[0] if dashboard_state.name else 'Creator' }}.</h1>
+      <p class="page-sub">Manage every brand opportunity, negotiation, follow-up, and revenue signal from one control center.</p>
+      <div class="db2-actions">
+        <a href="{{ url_for('enquiries_page') }}" class="btn btn-primary">Open Brand Opportunities</a>
+        <a href="{{ dashboard_state.urls.public_page }}" target="_blank" class="btn">Public collab page ↗</a>
+      </div>
+    </div>
+    <div class="db2-pulse">
+      <h3>Today's pulse</h3>
+      <div><span>New opportunities</span><strong>{{ dashboard_state.stats.new_count }}</strong></div>
+      <div><span>Active negotiations</span><strong>{{ dashboard_state.pipeline|selectattr('key','equalto','negotiating')|map(attribute='count')|first or 0 }}</strong></div>
+      <div><span>Signed collaborations</span><strong>{{ dashboard_state.stats.accepted }}</strong></div>
+      <div><span>Pipeline value</span><strong>₹{{ "{:,}".format(dashboard_state.stats.total_val) }}</strong></div>
+    </div>
+  </section>
+
+  <section class="db2-metrics">
+    <article><p>Estimated Pipeline Value</p><h3>₹{{ "{:,}".format(dashboard_state.stats.total_val) }}</h3><span>Avg deal: {% if dashboard_state.stats.avg_value %}₹{{ "{:,}".format(dashboard_state.stats.avg_value) }}{% else %}—{% endif %}</span></article>
+    <article><p>Win Rate</p><h3>{{ dashboard_state.stats.conversion }}%</h3><span>{{ dashboard_state.stats.accepted }} signed collaborations</span></article>
+    <article><p>Creator Earnings (Est.)</p><h3>₹{{ "{:,}".format((dashboard_state.stats.total_val * 0.35)|int) }}</h3><span>Projected from active pipeline</span></article>
+    <article><p>Response Time</p><h3>{% if dashboard_state.avg_response_hours %}{{ dashboard_state.avg_response_hours }}h{% else %}—{% endif %}</h3><span>Average first update speed</span></article>
+  </section>
+
+  <div class="db2-grid">
+    <section class="db2-panel">
+      <h2>Deal Pipeline Board</h2>
+      <div class="db2-stage-grid">
+        {% for s in dashboard_state.pipeline %}
+        <article><div><i style="background:{{ s.color }}"></i>{{ s.label }}</div><strong>{{ s.count }}</strong></article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="db2-panel">
+      <h2>Onboarding Checklist</h2>
+      <div class="checklist">
+        {% for item in dashboard_state.checklist %}
+        <a href="{{ item.link }}" class="check-item {% if item.done %}done{% endif %}"><span>{% if item.done %}✓{% else %}○{% endif %}</span><div>{{ item.title }}</div></a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="db2-panel">
+      <h2>Recent Brand Activity</h2>
+      <div class="db2-list">
+        {% if dashboard_state.recent %}
+          {% for r in dashboard_state.recent %}
+          <a href="/enquiries/{{ r.id }}" class="db2-row"><strong>{{ r.brand_name }}</strong><span>{{ r.status_label }} · {{ r.budget }}</span></a>
+          {% endfor %}
+        {% else %}
+          <p class="empty-small">No recent opportunities yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="db2-panel">
+      <h2>Daily Actions</h2>
+      <div class="db2-actions-list">
+        <a href="{{ url_for('enquiries_page') }}">Review high-priority opportunities</a>
+        <a href="{{ url_for('settings') }}">Update rates, profile, and response settings</a>
+        <a href="{{ dashboard_state.urls.analytics_or_upgrade }}">Track creator earnings performance</a>
+      </div>
+      {% if not dashboard_state.is_pro_user %}
+      <div class="db2-upsell">
+        <p>You've used {{ dashboard_state.enq_this_month }}/{{ dashboard_state.FREE_ENQUIRY_LIMIT }} opportunities this month.</p>
+        <a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-sm">Upgrade to Pro</a>
+      </div>
+      {% endif %}
+    </section>
   </div>
-</noscript>
+</div>
 {% endblock %}

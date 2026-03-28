@@ -1,78 +1,81 @@
 {% extends "base.html" %}
 {% block title %}Creator Profile Settings — DealInbox{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Creator Profile & Business Setup</h1><p class="page-sub">Shape how brands see your creator business and inbound workflow.</p></div>
-  <a href="/@{{ session.username }}" target="_blank" class="btn">Preview page ↗</a>
-</div>
-<div class="settings-grid">
-<div class="settings-progress db-card">
-  <div class="db-card-head"><h2>Creator profile strength</h2><span>{{ profile_completion_pct }}%</span></div>
-  <div class="mini-progress"><i style="width: {{ profile_completion_pct }}%"></i></div>
-  <p class="hint" style="margin-top:10px">Higher profile completeness improves conversion on your public enquiry page.</p>
-</div>
-
-  <div>
-    <form method="POST">
-      <div class="settings-card">
-        <h2>Creator profile</h2>
-        <div class="form-row-2">
-          <div class="fg"><label>Full name</label><input type="text" name="name" value="{{ user.name or '' }}" required></div>
-          <div class="fg"><label>Username</label><div class="input-prefix"><span class="iprefix">@</span><input type="text" value="{{ user.username }}" disabled></div><div class="hint">Cannot be changed.</div></div>
-        </div>
-        <div class="fg"><label>Bio</label><textarea name="bio" rows="3" placeholder="Tell brands who you are...">{{ user.bio or '' }}</textarea></div>
-        <div class="form-row-2">
-          <div class="fg"><label>Niche</label><input type="text" name="niche" value="{{ user.niche or '' }}" placeholder="e.g. Beauty, Fitness"></div>
-          <div class="fg"><label>Primary platform</label><select name="platform"><option value="">Select</option>{% for p in platforms %}<option value="{{ p }}" {% if user.platform == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
-        </div>
-        <div class="form-row-2">
-          <div class="fg"><label>Instagram</label><input type="text" name="instagram" value="{{ user.instagram or '' }}" placeholder="@handle"></div>
-          <div class="fg"><label>YouTube</label><input type="text" name="youtube" value="{{ user.youtube or '' }}" placeholder="@channel"></div>
-        </div>
-        <div class="fg"><label>Follower count</label><input type="text" name="followers" value="{{ user.followers or '' }}" placeholder="e.g. 45,000"></div>
-      </div>
-      <div class="settings-card">
-        <h2>Deal preferences & rate guardrails</h2>
-        <div class="fg"><label>Collab email</label><input type="email" name="collab_email" value="{{ user.collab_email or user.email or '' }}" placeholder="your@email.com"></div>
-        <div class="form-row-2">
-          <div class="fg"><label>Minimum budget</label><select name="min_budget"><option value="">No minimum</option>{% for b in budgets %}<option value="{{ b }}" {% if user.min_budget == b %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
-          <div class="fg"><label>Response time</label><select name="response_time">{% for rt in ['24 hours','48 hours','3 days','1 week'] %}<option value="{{ rt }}" {% if user.response_time == rt %}selected{% endif %}>{{ rt }}</option>{% endfor %}</select></div>
-        </div>
-      </div>
-      <div class="settings-save-row"><button type="submit" class="btn btn-primary">Save creator settings</button><span>Changes sync instantly to your public collaboration page.</span></div>
-    </form>
+<div class="settings-shell">
+  <div class="settings-hero">
+    <div>
+      <h1>Creator Profile & Business Settings</h1>
+      <p class="page-sub">Control how brands perceive your positioning, rates, response speed, and collaboration readiness.</p>
+    </div>
+    <a href="/@{{ session.username }}" target="_blank" class="btn">Preview public collab page ↗</a>
   </div>
-  <div>
-    <div class="settings-card">
-      <h2>Your collaboration intake link</h2>
-      <div class="link-row" style="margin:0 0 8px"><span class="link-text">dealinbox.in/@{{ session.username }}</span><button class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText('dealinbox.in/@{{ session.username }}').then(()=>showToast('Copied!'))">Copy</button></div>
-      <a href="/@{{ session.username }}" target="_blank" class="btn btn-full" style="margin-top:8px">Preview ↗</a>
+
+  <div class="settings-layout-rebuild">
+    <aside class="settings-nav-card">
+      <h3>Workspace setup</h3>
+      <div class="settings-score">{{ profile_completion_pct }}% complete</div>
+      <div class="mini-progress"><i style="width: {{ profile_completion_pct }}%"></i></div>
+      <ul>
+        <li>Creator profile identity</li>
+        <li>Channel and audience data</li>
+        <li>Deal preferences and rate floor</li>
+        <li>Public intake readiness</li>
+      </ul>
+      <a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-full" style="margin-top:10px">Upgrade for advanced analytics</a>
+    </aside>
+
+    <div class="settings-main">
+      <form method="POST">
+        <section class="settings-card settings-card-lg">
+          <h2>Creator identity</h2>
+          <div class="form-row-2">
+            <div class="fg"><label>Full name</label><input type="text" name="name" value="{{ user.name or '' }}" required></div>
+            <div class="fg"><label>Username</label><div class="input-prefix"><span class="iprefix">@</span><input type="text" value="{{ user.username }}" disabled></div><div class="hint">Username is fixed for consistent public links.</div></div>
+          </div>
+          <div class="fg"><label>Bio</label><textarea name="bio" rows="4" placeholder="Introduce your creator niche, audience trust, and campaign strengths.">{{ user.bio or '' }}</textarea></div>
+          <div class="form-row-2">
+            <div class="fg"><label>Niche</label><input type="text" name="niche" value="{{ user.niche or '' }}" placeholder="e.g. Beauty, Finance, Gaming"></div>
+            <div class="fg"><label>Primary platform</label><select name="platform"><option value="">Select</option>{% for p in platforms %}<option value="{{ p }}" {% if user.platform == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+          </div>
+        </section>
+
+        <section class="settings-card settings-card-lg">
+          <h2>Audience and channels</h2>
+          <div class="form-row-2">
+            <div class="fg"><label>Instagram</label><input type="text" name="instagram" value="{{ user.instagram or '' }}" placeholder="@handle"></div>
+            <div class="fg"><label>YouTube</label><input type="text" name="youtube" value="{{ user.youtube or '' }}" placeholder="@channel"></div>
+          </div>
+          <div class="fg"><label>Follower count</label><input type="text" name="followers" value="{{ user.followers or '' }}" placeholder="e.g. 45,000"></div>
+        </section>
+
+        <section class="settings-card settings-card-lg">
+          <h2>Deal preferences</h2>
+          <div class="fg"><label>Collab email</label><input type="email" name="collab_email" value="{{ user.collab_email or user.email or '' }}" placeholder="your@email.com"></div>
+          <div class="form-row-2">
+            <div class="fg"><label>Minimum budget</label><select name="min_budget"><option value="">No minimum</option>{% for b in budgets %}<option value="{{ b }}" {% if user.min_budget == b %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+            <div class="fg"><label>Expected response time</label><select name="response_time">{% for rt in ['24 hours','48 hours','3 days','1 week'] %}<option value="{{ rt }}" {% if user.response_time == rt %}selected{% endif %}>{{ rt }}</option>{% endfor %}</select></div>
+          </div>
+          <div class="settings-save-row"><button type="submit" class="btn btn-primary">Save all settings</button><span>Changes publish instantly to your creator collaboration page.</span></div>
+        </section>
+      </form>
     </div>
-    <div class="settings-card">
-      <h2>Account</h2>
-      <div class="df-row" style="padding:7px 0">
-        <div class="df-label">Plan</div>
-        <div class="df-value">
-          <span class="plan-badge">{{ user.plan|upper if user.plan else 'FREE' }}</span>
-          {% if user.get('payment_pending') %}
-          <span style="font-size:10px;color:var(--amber);margin-left:6px">· Payment pending verification</span>
-          {% endif %}
-        </div>
-      </div>
-      {% if user.plan == 'pro' and user.get('pro_expires') %}
-      <div class="df-row" style="padding:7px 0">
-        <div class="df-label">Expires</div>
-        <div class="df-value" style="font-size:12px;color:var(--t2)">{{ fmt_date(user.pro_expires) }}</div>
-      </div>
-      {% endif %}
-      <div class="df-row" style="padding:7px 0"><div class="df-label">Email</div><div class="df-value" style="font-size:12px;color:var(--t2)">{{ user.email }}</div></div>
-      <div class="df-row" style="padding:7px 0;border:none"><div class="df-label">Joined</div><div class="df-value" style="font-size:12px;color:var(--t2)">{{ fmt_date(user.created_at) if user.created_at else '—' }}</div></div>
-      {% if user.plan != 'pro' %}
-      <div style="padding:10px 0 2px">
-        <a href="{{ url_for('upgrade') }}" class="g-btn-primary" style="width:100%;justify-content:center">Upgrade to Creator Pro →</a>
-      </div>
-      {% endif %}
-    </div>
+
+    <aside class="settings-side-cards">
+      <section class="settings-card">
+        <h2>Your collaboration link</h2>
+        <div class="link-row" style="margin:0 0 8px"><span class="link-text">dealinbox.in/@{{ session.username }}</span><button class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText('dealinbox.in/@{{ session.username }}').then(()=>showToast('Copied!'))">Copy</button></div>
+        <a href="/@{{ session.username }}" target="_blank" class="btn btn-full">Open public page ↗</a>
+      </section>
+
+      <section class="settings-card">
+        <h2>Account & billing</h2>
+        <div class="df-row" style="padding:7px 0"><div class="df-label">Plan</div><div class="df-value"><span class="plan-badge">{{ user.plan|upper if user.plan else 'FREE' }}</span></div></div>
+        {% if user.plan == 'pro' and user.get('pro_expires') %}<div class="df-row" style="padding:7px 0"><div class="df-label">Pro expires</div><div class="df-value">{{ fmt_date(user.pro_expires) }}</div></div>{% endif %}
+        <div class="df-row" style="padding:7px 0"><div class="df-label">Email</div><div class="df-value">{{ user.email }}</div></div>
+        <div class="df-row" style="padding:7px 0;border:none"><div class="df-label">Joined</div><div class="df-value">{{ fmt_date(user.created_at) if user.created_at else '—' }}</div></div>
+        {% if user.plan != 'pro' %}<a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-full">Upgrade to Creator Pro</a>{% endif %}
+      </section>
+    </aside>
   </div>
 </div>
 {% endblock %}
