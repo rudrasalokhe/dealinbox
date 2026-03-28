@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <a href="{{ url_for('enquiries_page') }}" class="back-link">← Enquiries</a>
+    <a href="{{ url_for('enquiries_page') }}" class="back-link">← Brand opportunities</a>
     <h1>{{ enq.brand_name }}</h1>
     <p class="page-sub">Received {{ fmt_dt(enq.created_at) }}</p>
   </div>
@@ -16,7 +16,7 @@
 
 <div class="score-card">
   <div class="score-head">
-    <span class="score-label">Collab quality score</span>
+    <span class="score-label">Opportunity quality score</span>
     <span class="score-num {{ sc }}">{{ score }}/100</span>
   </div>
   <div class="score-bar-wrap"><div class="score-bar {{ sc }}" style="width:{{ score }}%"></div></div>
@@ -24,7 +24,7 @@
     <div class="score-check"><span class="sc-dot" style="background:{% if hb %}var(--green){% else %}var(--red){% endif %}"></span>{% if hb %}Budget specified — {{ enq.budget }}{% else %}No budget mentioned{% endif %}</div>
     <div class="score-check"><span class="sc-dot" style="background:{% if hbr %}var(--green){% else %}var(--amber){% endif %}"></span>{% if hbr %}Detailed brief provided{% else %}Brief is too short{% endif %}</div>
     <div class="score-check"><span class="sc-dot" style="background:{% if hd %}var(--green){% else %}var(--amber){% endif %}"></span>{% if hd %}Deliverables specified{% else %}No deliverables listed{% endif %}</div>
-    <div class="score-check"><span class="sc-dot" style="background:{% if ht %}var(--green){% else %}var(--amber){% endif %}"></span>{% if ht %}Timeline given — {{ enq.timeline }}{% else %}No timeline mentioned{% endif %}</div>
+    <div class="score-check"><span class="sc-dot" style="background:{% if ht %}var(--green){% else %}var(--amber){% endif %}"></span>{% if ht %}Deal timeline given — {{ enq.timeline }}{% else %}No timeline mentioned{% endif %}</div>
   </div>
 </div>
 
@@ -34,7 +34,7 @@
   <div class="tb-left">
     <div class="tb-icon">🔗</div>
     <div>
-      <div class="tb-title">Brand tracking link</div>
+      <div class="tb-title">Brand collaboration status link</div>
       <div class="tb-sub">{{ enq.brand_name }} can use this link to track their enquiry status in real-time.</div>
     </div>
   </div>
@@ -49,23 +49,23 @@
 <div class="detail-grid">
   <div class="detail-main">
     <div class="card">
-      <div class="dc-title">Enquiry details</div>
+      <div class="dc-title">Opportunity details</div>
       <div class="detail-fields">
         <div class="df-row"><div class="df-label">Brand</div><div class="df-value">{{ enq.brand_name }}</div></div>
         {% if enq.contact_name %}<div class="df-row"><div class="df-label">Contact</div><div class="df-value">{{ enq.contact_name }}</div></div>{% endif %}
         <div class="df-row"><div class="df-label">Email</div><div class="df-value"><a href="mailto:{{ enq.email }}" style="color:var(--blue)">{{ enq.email }}</a></div></div>
         <div class="df-row"><div class="df-label">Platform</div><div class="df-value">{{ enq.platform or '—' }}</div></div>
         <div class="df-row"><div class="df-label">Budget</div><div class="df-value df-budget">{{ enq.budget or 'Not specified' }}</div></div>
-        {% if enq.timeline %}<div class="df-row"><div class="df-label">Timeline</div><div class="df-value">{{ enq.timeline }}</div></div>{% endif %}
+        {% if enq.timeline %}<div class="df-row"><div class="df-label">Deal timeline</div><div class="df-value">{{ enq.timeline }}</div></div>{% endif %}
       </div>
     </div>
 
-    <div class="card"><div class="dc-title">Campaign brief</div><div class="brief-text">{{ enq.brief or '—' }}</div></div>
+    <div class="card"><div class="dc-title">Campaign scope</div><div class="brief-text">{{ enq.brief or '—' }}</div></div>
     {% if enq.deliverables %}<div class="card"><div class="dc-title">Deliverables</div><div class="brief-text">{{ enq.deliverables }}</div></div>{% endif %}
     {% if enq.note %}<div class="card note-card"><div class="dc-title">Your note</div><div class="brief-text">{{ enq.note }}</div></div>{% endif %}
 
     <div class="card">
-      <div class="dc-title">AI quick reply</div>
+      <div class="dc-title">Quick reply assistant</div>
       <div class="ai-wrap">
         <div class="ai-label">Generate a reply</div>
         <div class="ai-btns">
@@ -85,7 +85,7 @@
 
   <div class="detail-sidebar">
     <div class="card">
-      <div class="dc-title">Update status</div>
+      <div class="dc-title">Update deal stage</div>
       <form method="POST" action="{{ url_for('update_status', eid=enq._id) }}" class="status-form">
         <div class="fg"><label>Status</label><select name="status">{% for s, info in STATUSES.items() %}<option value="{{ s }}" {% if enq.status == s %}selected{% endif %}>{{ info.label }}</option>{% endfor %}</select></div>
         <div class="fg"><label>Note (optional)</label><textarea name="note" rows="3" placeholder="e.g. Agreed on ₹25,000 for 1 Reel...">{{ enq.note or '' }}</textarea></div>
@@ -94,7 +94,7 @@
     </div>
 
     <div class="card">
-      <div class="dc-title">Actions</div>
+      <div class="dc-title">Deal actions</div>
       <div class="sidebar-actions">
         <a href="mailto:{{ enq.email }}?subject=Re%3A%20Collab%20with%20{{ session.name | urlencode }}&body=Hi%20{{ (enq.contact_name or enq.brand_name) | urlencode }}%2C%0A%0A" class="btn btn-full btn-primary">📧 Email brand</a>
         <button class="btn btn-full" onclick="copyBrief()">Copy brief</button>
@@ -102,14 +102,14 @@
         <button class="btn btn-full btn-green" onclick="copyTrackUrl()">🔗 Copy tracking link</button>
         <a href="/track/{{ enq.tracking_token }}" target="_blank" class="btn btn-full">👁 Preview brand view</a>
         {% endif %}
-        <form method="POST" action="{{ url_for('delete_enquiry', eid=enq._id) }}" onsubmit="return confirm('Delete this enquiry?')">
-          <button type="submit" class="btn btn-danger btn-full">Delete</button>
+        <form method="POST" action="{{ url_for('delete_enquiry', eid=enq._id) }}" onsubmit="return confirm('Delete this opportunity?')">
+          <button type="submit" class="btn btn-danger btn-full">Delete opportunity</button>
         </form>
       </div>
     </div>
 
     <div class="card">
-      <div class="dc-title">Timeline</div>
+      <div class="dc-title">Deal timeline</div>
       <div class="timeline">
         <div class="tl-item">
           <div class="tl-dot tl-dot-on"></div>

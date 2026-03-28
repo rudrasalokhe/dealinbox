@@ -336,9 +336,9 @@ def dashboard():
 
     completion = profile_completion(user)
     checklist = [
-        {"title": "Complete your profile", "done": completion >= 80, "link": url_for("settings")},
-        {"title": "Share your public enquiry page", "done": len(all_enq) > 0, "link": url_for("public_page", username=session.get("username", ""))},
-        {"title": "Close your first deal", "done": accepted > 0, "link": url_for("enquiries_page")},
+        {"title": "Build your creator profile", "done": completion >= 80, "link": url_for("settings")},
+        {"title": "Publish your collaboration intake page", "done": len(all_enq) > 0, "link": url_for("public_page", username=session.get("username", ""))},
+        {"title": "Sign your first collaboration", "done": accepted > 0, "link": url_for("enquiries_page")},
     ]
 
     conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
@@ -365,11 +365,11 @@ def dashboard():
     top_platform_rows = sorted(top_platforms.items(), key=lambda x: x[1], reverse=True)[:4]
     actionable_insights = []
     if conversion < 20 and len(all_enq) >= 5:
-        actionable_insights.append("Conversion is below 20% — tighten qualifying questions on your public page.")
+        actionable_insights.append("Win rate is below 20% — tighten intake qualification for better-fit brand opportunities.")
     if avg_response_hours and avg_response_hours > 24:
-        actionable_insights.append("Average response is above 24h — use reminders to respond faster.")
+        actionable_insights.append("Average response is above 24h — faster replies improve creator close rates.")
     if not actionable_insights:
-        actionable_insights.append("Pipeline health is stable — keep daily review rhythm for consistent closes.")
+        actionable_insights.append("Deal pipeline is stable — keep a daily review rhythm for consistent signed collaborations.")
 
     dashboard_state = {
         "name": (session.get("name") or "Creator"),

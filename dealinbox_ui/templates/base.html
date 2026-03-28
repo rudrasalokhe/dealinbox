@@ -17,7 +17,7 @@
 <div class="app-wrap">
   <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
   <aside class="sidebar">
-    <div class="sb-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="24" style="border-radius:6px; object-fit:cover;"> dealinbox</div>
+    <div class="sb-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="24" style="border-radius:6px; object-fit:cover;"> DealInbox CreatorOS</div>
     <div class="sb-user">
       <div class="sb-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
       <div class="sb-info">
@@ -30,31 +30,31 @@
         <span class="sn-icon">⬡</span><span>Dashboard</span>
       </a>
       <a href="{{ url_for('enquiries_page') }}" class="sn-item {% if '/enquir' in request.path %}active{% endif %}">
-        <span class="sn-icon">✉</span><span>Enquiries</span>
+        <span class="sn-icon">✉</span><span>Brand Opportunities</span>
         {% set new_c = new_enquiry_count() %}
         {% if new_c %}<span class="sn-badge">{{ new_c }}</span>{% endif %}
       </a>
       <a href="{{ url_for('heatmap_page') }}" class="sn-item {% if request.path == '/heatmap' %}active{% endif %}">
-        <span class="sn-icon">🔥</span><span>Heatmap</span>
+        <span class="sn-icon">🔥</span><span>Priority Board</span>
       </a>
       <a href="{{ url_for('positioning') }}" class="sn-item {% if request.path == '/positioning' %}active{% endif %}">
-        <span class="sn-icon">🧬</span><span>Positioning</span>
+        <span class="sn-icon">🧬</span><span>Creator Positioning</span>
       </a>
       <a href="{{ url_for('analytics') }}" class="sn-item {% if request.path == '/analytics' %}active{% endif %}">
-        <span class="sn-icon">◎</span><span>Analytics</span>
+        <span class="sn-icon">◎</span><span>Creator Earnings</span>
       </a>
       <a href="{{ url_for('settings') }}" class="sn-item {% if request.path == '/settings' %}active{% endif %}">
-        <span class="sn-icon">⚙</span><span>Settings</span>
+        <span class="sn-icon">⚙</span><span>Creator Profile</span>
       </a>
       {% if session.get('plan','free') != 'pro' %}
       <a href="{{ url_for('upgrade') }}" class="sn-item sn-upgrade {% if request.path == '/upgrade' %}active{% endif %}">
-        <span class="sn-icon">↑</span><span>Upgrade</span>
+        <span class="sn-icon">↑</span><span>Go Pro</span>
       </a>
       {% endif %}
     </nav>
     <div class="sb-bot">
       <a href="{{ url_for('public_page', username=session.username) }}" target="_blank" class="sn-item sn-muted">
-        <span class="sn-icon">↗</span><span>View my page</span>
+        <span class="sn-icon">↗</span><span>View collab page</span>
       </a>
       <a href="{{ url_for('logout') }}" class="sn-item sn-muted">
         <span class="sn-icon">→</span><span>Log out</span>
@@ -65,10 +65,10 @@
 {% else %}
 {% block public_nav %}
 <nav class="pub-nav">
-  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> dealinbox</a>
+  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> DealInbox CreatorOS</a>
   <div class="pub-nav-right">
     <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
-    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Get started</a>
+    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Start creator workspace</a>
   </div>
 </nav>
 {% endblock %}
@@ -84,7 +84,7 @@
 
 {% if session.uid %}
 <div class="app-topbar">
-  <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search deals</button>
+  <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search brands, deals, notes</button>
   <div class="top-actions">
     <span class="top-plan">{{ session.get("plan", "free")|upper }}</span>
     <a href="{{ url_for('upgrade') }}" class="btn btn-sm">Upgrade</a>
@@ -92,7 +92,7 @@
 </div>
 <div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
 <div class="command-palette" id="commandPalette">
-  <input type="search" id="globalSearch" placeholder="Search brand, contact, or email..." oninput="runGlobalSearch(this.value)">
+  <input type="search" id="globalSearch" placeholder="Search brand, campaign, deliverable, or email..." oninput="runGlobalSearch(this.value)">
   <div id="globalSearchResults" class="gs-results"></div>
 </div>
 <div class="app-content">{% endif %}
@@ -101,8 +101,8 @@
 {% else %}
 <footer class="g-footer">
   <div class="g-footer-inner">
-    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> dealinbox</span>
-    <span>Never lose a brand deal again.</span>
+    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> DealInbox CreatorOS</span>
+    <span>Run your creator business from first inbound to signed deal.</span>
     <span>© 2026</span>
   </div>
 </footer>
@@ -126,7 +126,7 @@ async function runGlobalSearch(q){
   if(!q || q.length<2){box.innerHTML='<p class="empty-small">Type at least 2 characters…</p>';return;}
   const res=await fetch('/api/search?q='+encodeURIComponent(q));
   const data=await res.json();
-  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching enquiries.</p>';return;}
+  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching opportunities.</p>';return;}
   box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
 }
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});

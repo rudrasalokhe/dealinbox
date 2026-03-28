@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Upgrade to Pro — DealInbox{% endblock %}
+{% block title %}Upgrade to Creator Pro — DealInbox{% endblock %}
 {% block extra_head %}
 {% if use_razorpay %}<script src="https://checkout.razorpay.com/v1/checkout.js"></script>{% endif %}
 {% endblock %}
@@ -9,8 +9,8 @@
   <section class="billing-hero">
     <div>
       <p class="db-eyebrow">Billing</p>
-      <h1>Unlock the full DealInbox growth stack.</h1>
-      <p>Go unlimited with advanced analytics, exports, and premium workflow capabilities for serious creator businesses.</p>
+      <h1>Unlock the full creator deals operating system.</h1>
+      <p>Go unlimited with premium deal operations, collaboration analytics, and agency-ready workflows.</p>
     </div>
     <a href="{{ url_for('dashboard') }}" class="btn">Back to dashboard</a>
   </section>
@@ -24,22 +24,22 @@
 
   <div class="billing-grid">
     <section class="billing-card">
-      <h2>Compare plans</h2>
+      <h2>Compare creator plans</h2>
       <div class="billing-table">
         <div><span>Feature</span><span>Free</span><span>Pro</span></div>
-        <div><span>Enquiries/month</span><span>20</span><span>Unlimited</span></div>
-        <div><span>Pipeline tracking</span><span>✓</span><span>✓</span></div>
-        <div><span>Brand tracking page</span><span>✓</span><span>✓</span></div>
-        <div><span>Advanced analytics</span><span>—</span><span>✓</span></div>
+        <div><span>Brand opportunities/month</span><span>20</span><span>Unlimited</span></div>
+        <div><span>Deal pipeline tracking</span><span>✓</span><span>✓</span></div>
+        <div><span>Brand status portal</span><span>✓</span><span>✓</span></div>
+        <div><span>Creator earnings analytics</span><span>—</span><span>✓</span></div>
         <div><span>CSV export</span><span>—</span><span>✓</span></div>
         <div><span>Priority support</span><span>—</span><span>✓</span></div>
       </div>
     </section>
 
     <section class="billing-card checkout">
-      <p class="checkout-label">Pro plan</p>
+      <p class="checkout-label">Creator Pro plan</p>
       <h2>₹{{ pro_price }}<span>/month</span></h2>
-      <p class="checkout-sub">Choose duration and pay instantly.</p>
+      <p class="checkout-sub">Choose your term and activate your premium creator workspace.</p>
 
       <div class="upi-month-opts" id="monthOpts">
         <button class="umo active" data-m="1" onclick="setMonths(this,1)">1 month<br><small>₹{{ pro_price }}</small></button>
