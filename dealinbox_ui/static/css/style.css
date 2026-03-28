@@ -1518,3 +1518,102 @@ input:focus,textarea:focus,select:focus{border-color:#b8ff3e !important;box-shad
   .pub-nav-center{display:none}
   .mk-hero{grid-template-columns:1fr !important}
 }
+
+/* ===== unified website-wide theme (single source of truth) ===== */
+body.neo-theme{
+  --bg:#0b0f14;
+  --bg1:#10161d;
+  --bg2:#141c25;
+  --bg3:#1a2430;
+  --bg4:#233140;
+  --line:rgba(166,255,72,.16);
+  --line2:rgba(166,255,72,.28);
+  --line3:rgba(166,255,72,.42);
+  --t1:#f3f8ff;
+  --t2:#acbacd;
+  --t3:#8f9eb3;
+  --t4:#6e7b8f;
+  background:radial-gradient(120% 120% at 50% 0%,#17212d 0%,#0b0f14 45%,#090c11 100%) !important;
+  color:var(--t1);
+}
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .os-topbar{background:rgba(10,14,19,.86)!important;border-color:rgba(166,255,72,.16)!important}
+body.neo-theme .pub-nav-center a{color:#9aacbf}
+body.neo-theme .pub-nav-center a:hover{background:#16202b;color:#eff6ff;border-color:#2b3b50}
+body.neo-theme .pub-nav-cta,
+body.neo-theme .btn-primary,
+body.neo-theme .g-btn-primary{background:#a6ff48!important;border-color:#a6ff48!important;color:#101610!important;font-weight:700}
+body.neo-theme .pub-nav-cta:hover,
+body.neo-theme .btn-primary:hover,
+body.neo-theme .g-btn-primary:hover{background:#b7ff67!important}
+body.neo-theme .btn{background:#151e28!important;border:1px solid #2a394d!important;color:#d9e3ef!important}
+body.neo-theme .btn:hover{background:#1d2835!important;color:#fff!important}
+body.neo-theme .os-sidebar{background:linear-gradient(180deg,#0f151c,#0c1117)!important;border-right:1px solid #273446!important}
+body.neo-theme .os-user,
+body.neo-theme .os-link,
+body.neo-theme .card,
+body.neo-theme .kpi-card,
+body.neo-theme .kanban-col,
+body.neo-theme .db2-panel,
+body.neo-theme .op2-filterbar,
+body.neo-theme .op2-table-wrap,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-how,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card,
+body.neo-theme .auth-card-rebuild,
+body.neo-theme .pp-form-card,
+body.neo-theme .bp-status-card,
+body.neo-theme .bp-message,
+body.neo-theme .bp-cta-box,
+body.neo-theme .bp-detail,
+body.neo-theme .bp-brief-card,
+body.neo-theme .bp-creator-card{
+  background:linear-gradient(180deg,#10161d,#0e131a)!important;
+  border:1px solid #273446!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.35)!important;
+}
+body.neo-theme h1,body.neo-theme h2,body.neo-theme h3,body.neo-theme strong{color:#f3f8ff!important}
+body.neo-theme p,body.neo-theme .page-sub,body.neo-theme .hint,body.neo-theme .td-muted,body.neo-theme .er-meta,body.neo-theme .etd-contact{color:#aab9ce!important}
+body.neo-theme .os-brand span,body.neo-theme .os-user small,body.neo-theme .os-nav-label,body.neo-theme .os-link,body.neo-theme .os-pill{color:#90a2ba!important}
+body.neo-theme .os-link.active{background:#1a2431!important;border-color:#30445d!important;color:#f3f8ff!important}
+body.neo-theme .os-link:hover{background:#1a2532!important;border-color:#31445e!important;color:#fff!important}
+body.neo-theme .cmd-btn{background:#151f2a!important;border-color:#2a3a4f!important;color:#aebfd4!important}
+body.neo-theme input,
+body.neo-theme textarea,
+body.neo-theme select{background:#121a24!important;border-color:#2a394d!important;color:#f5f9ff!important}
+body.neo-theme input:focus,
+body.neo-theme textarea:focus,
+body.neo-theme select:focus{border-color:#a6ff48!important;box-shadow:0 0 0 3px rgba(166,255,72,.16)!important}
+body.neo-theme .enq-table thead th,
+body.neo-theme .wsum-table th{color:#8ea0ba!important;background:#111823!important}
+body.neo-theme .enq-table tbody tr:hover,
+body.neo-theme .wsum-table tbody tr:hover{background:#18222f!important}
+body.neo-theme .mk-chip{background:rgba(166,255,72,.09)!important;border-color:rgba(166,255,72,.3)!important;color:#d2ff95!important}
+body.neo-theme .mk-trust-inline span,
+body.neo-theme .mk-preview-grid article,
+body.neo-theme .mk-preview-card li,
+body.neo-theme .mk-compare-grid article,
+body.neo-theme .mk-price-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-faq details,
+body.neo-theme .wsum-goals article,
+body.neo-theme .wsum-tasks a,
+body.neo-theme .wsum-tasks p{background:#121b25!important;border-color:#2a3a4f!important;color:#becbdd!important}
+body.neo-theme .mk-price-grid .featured{background:linear-gradient(180deg,#1a2432,#141c27)!important;border-color:rgba(166,255,72,.48)!important}
+body.neo-theme .mk-price-grid li::before{color:#a6ff48!important}
+body.neo-theme .wsum-credit{background:linear-gradient(135deg,#2e74e2,#57b0e8)!important}
+body.neo-theme .wsum-stats .bar-track{background:#253346!important}
+body.neo-theme .g-footer{background:#0d1319!important;border-top:1px solid #273446!important}
+
+@media(max-width:900px){
+  body.neo-theme .pub-nav-center{display:none}
+}
