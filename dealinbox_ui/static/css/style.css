@@ -1617,3 +1617,33 @@ body.neo-theme .g-footer{background:#0d1319!important;border-top:1px solid #2734
 @media(max-width:900px){
   body.neo-theme .pub-nav-center{display:none}
 }
+
+/* ===== dashboard quality fix pass ===== */
+body.neo-theme .wsum-grid-top{display:grid;grid-template-columns:1.22fr .78fr;gap:14px}
+body.neo-theme .wsum-grid-bottom{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+body.neo-theme .wsum-card h3{font-size:3rem!important;line-height:1.02;letter-spacing:-.035em}
+body.neo-theme .wsum-credit{padding:22px!important;min-height:220px!important}
+body.neo-theme .wsum-credit span{display:none!important}
+body.neo-theme .wsum-balance-kpis{gap:14px!important}
+body.neo-theme .wsum-balance-kpis label{font-size:11px!important;letter-spacing:.08em;text-transform:uppercase;color:#8ea0ba!important}
+body.neo-theme .wsum-balance-kpis strong{font-size:4rem!important;line-height:.95!important}
+body.neo-theme .wsum-goals{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+body.neo-theme .wsum-goals article{padding:14px!important;min-height:152px!important}
+body.neo-theme .wsum-goals strong{font-size:4.2rem!important;line-height:.9!important}
+body.neo-theme .wsum-goals p{font-size:1.05rem!important;line-height:1.35!important}
+body.neo-theme .wsum-table-wrap{border-radius:12px;overflow:hidden}
+body.neo-theme .wsum-table td{font-size:1.02rem!important}
+body.neo-theme .wsum-side-stack{display:flex;flex-direction:column;gap:14px}
+body.neo-theme .wsum-tasks{gap:10px!important}
+body.neo-theme .wsum-tasks a,body.neo-theme .wsum-tasks p{padding:12px 14px!important}
+
+@media(max-width:1150px){
+  body.neo-theme .wsum-grid-top,
+  body.neo-theme .wsum-grid-bottom{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  body.neo-theme .wsum-card h3{font-size:2.2rem!important}
+  body.neo-theme .wsum-balance-kpis strong{font-size:2.8rem!important}
+  body.neo-theme .wsum-goals strong{font-size:2.8rem!important}
+  body.neo-theme .wsum-goals{grid-template-columns:1fr!important}
+}
