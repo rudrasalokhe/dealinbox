@@ -1884,3 +1884,191 @@ body.neo-theme .mk-proof-grid article:hover{transform:translateY(-4px);transitio
 @media(max-width:900px){
   .fx-ring,.fx-cube,.mk-3d-stack{display:none}
 }
+
+/* ===== Three.js Full Website Redesign (final) ===== */
+#three-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+#three-bg canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.ui-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+.os-shell,
+.mk-shell,
+.auth-wrap,
+.flash-container,
+.g-footer,
+.public-page,
+.pp-shell,
+.bp-shell,
+.trk-wrap,
+.nrp-shell {
+  position: relative;
+  z-index: 2;
+}
+
+body.neo-theme {
+  background:
+    radial-gradient(120% 130% at 10% 0%, rgba(81, 130, 255, 0.2), transparent 52%),
+    radial-gradient(100% 120% at 90% 0%, rgba(67, 227, 205, 0.14), transparent 56%),
+    linear-gradient(180deg, #060b13 0%, #050911 60%, #04070d 100%) !important;
+  color: #e9f1ff !important;
+}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .os-topbar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .card,
+body.neo-theme .kpi-card,
+body.neo-theme .kanban-col,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card,
+body.neo-theme .auth-card-rebuild,
+body.neo-theme .pp-form-card,
+body.neo-theme .bp-status-card,
+body.neo-theme .bp-message,
+body.neo-theme .bp-cta-box,
+body.neo-theme .bp-detail,
+body.neo-theme .bp-brief-card,
+body.neo-theme .bp-creator-card,
+body.neo-theme .modal-box {
+  backdrop-filter: blur(16px);
+  background: linear-gradient(160deg, rgba(17, 27, 45, .86), rgba(9, 16, 29, .92)) !important;
+  border: 1px solid rgba(124, 157, 225, .35) !important;
+  box-shadow: 0 20px 44px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+body.neo-theme h1,
+body.neo-theme h2,
+body.neo-theme h3,
+body.neo-theme .nav-logo,
+body.neo-theme .os-brand strong,
+body.neo-theme .g-footer-logo { color: #f4f8ff !important; }
+
+body.neo-theme p,
+body.neo-theme .page-sub,
+body.neo-theme .hint,
+body.neo-theme .os-brand span,
+body.neo-theme .os-user small,
+body.neo-theme .os-nav-label,
+body.neo-theme .os-link,
+body.neo-theme .td-muted,
+body.neo-theme .etd-contact,
+body.neo-theme .er-meta { color: #a9bbd9 !important; }
+
+body.neo-theme .os-link {
+  border-radius: 12px !important;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+
+body.neo-theme .os-link.active {
+  color: #f8fbff !important;
+  background: linear-gradient(180deg, rgba(98, 145, 255, .34), rgba(82, 126, 230, .2)) !important;
+  border-color: rgba(143, 181, 255, .52) !important;
+}
+
+body.neo-theme .os-link:hover {
+  color: #eef5ff !important;
+  background: rgba(72, 104, 178, .2) !important;
+  border-color: rgba(120, 158, 242, .35) !important;
+}
+
+body.neo-theme .btn-primary,
+body.neo-theme .g-btn-primary,
+body.neo-theme .pub-nav-cta {
+  background: linear-gradient(180deg, #87b9ff 0%, #5889ea 100%) !important;
+  border: 1px solid rgba(167, 199, 255, .7) !important;
+  color: #f5f9ff !important;
+  box-shadow: 0 10px 24px rgba(64, 113, 208, .4) !important;
+}
+
+body.neo-theme .btn,
+body.neo-theme .cmd-btn,
+body.neo-theme .vt-btn {
+  background: rgba(18, 30, 49, .9) !important;
+  border-color: rgba(112, 146, 212, .35) !important;
+  color: #d4e2f9 !important;
+}
+
+body.neo-theme input,
+body.neo-theme textarea,
+body.neo-theme select {
+  background: rgba(9, 17, 30, .85) !important;
+  border-color: rgba(118, 154, 227, .4) !important;
+  color: #edf4ff !important;
+}
+
+body.neo-theme input:focus,
+body.neo-theme textarea:focus,
+body.neo-theme select:focus {
+  border-color: #84b4ff !important;
+  box-shadow: 0 0 0 3px rgba(101, 163, 255, .2) !important;
+}
+
+body.neo-theme .mk-shell { max-width: 1260px !important; }
+body.neo-theme .mk-hero { gap: 16px !important; }
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview { border-radius: 28px !important; padding: 36px !important; }
+body.neo-theme .mk-hero-copy h1 { font-size: clamp(2.6rem, 5.3vw, 5.1rem) !important; letter-spacing: -.05em !important; }
+body.neo-theme .mk-chip {
+  background: rgba(103, 152, 255, .2) !important;
+  border-color: rgba(145, 186, 255, .55) !important;
+  color: #d8e8ff !important;
+}
+
+body.neo-theme .wsum-head {
+  border-radius: 24px;
+  padding: 28px 30px !important;
+  background: linear-gradient(145deg, rgba(28, 48, 80, .92), rgba(12, 22, 35, .95)) !important;
+}
+body.neo-theme .wsum-head h1 { font-size: clamp(2.1rem, 4.3vw, 4.2rem) !important; }
+body.neo-theme .wsum-card { border-radius: 20px !important; }
+
+body.neo-theme .enq-table thead th,
+body.neo-theme .wsum-table thead th {
+  background: rgba(12, 21, 35, .85) !important;
+  color: #8fa7cf !important;
+}
+
+body.neo-theme .enq-table tbody tr:hover,
+body.neo-theme .wsum-table tbody tr:hover,
+body.neo-theme .enq-row:hover {
+  background: rgba(98, 138, 217, .16) !important;
+}
+
+body.neo-theme .auth-body {
+  background: transparent !important;
+}
+
+@media (max-width: 920px) {
+  #three-bg { opacity: .7; }
+  .ui-noise { opacity: .08; }
+}

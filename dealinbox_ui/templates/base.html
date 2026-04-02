@@ -9,15 +9,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="neo-theme {% block body_class %}{% endblock %}">
-<div class="fx-scene" aria-hidden="true">
-  <span class="fx-orb orb-a"></span>
-  <span class="fx-orb orb-b"></span>
-  <span class="fx-ring"></span>
-  <span class="fx-cube"></span>
-</div>
+<div id="three-bg" aria-hidden="true"></div>
+<div class="ui-noise" aria-hidden="true"></div>
 
 {% if session.uid %}
 <div class="os-shell">
