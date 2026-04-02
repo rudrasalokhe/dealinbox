@@ -2154,3 +2154,117 @@ input:focus,textarea:focus,select:focus{
   .detail-three-wrap{position:static;margin:0 0 12px}
   .detail-three{width:100%;height:180px}
 }
+
+/* ===== Theme lock: apply one premium theme across ALL pages ===== */
+html, body { background: #0a0a0f !important; color: #f0f0ff !important; }
+
+body, .pp-body, .bp-body, .auth-body, .neo-theme {
+  --bg:#0a0a0f;
+  --bg2:#0f0f17;
+  --card:#13131e;
+  --gold:#f0b429;
+  --gold2:#ffd166;
+  --blue:#6b8cff;
+  --green:#10e09a;
+  --red:#ff5c7a;
+  --t1:#f0f0ff;
+  --t2:#b8b8d0;
+  --t3:#6b6b88;
+}
+
+* { font-family: 'DM Sans', system-ui, sans-serif; }
+h1,h2,h3,h4,.mk-hero h1,.wsum-head h1,.auth-h1,.pp-name,.bp-collab-title { font-family: 'Syne', sans-serif !important; }
+
+/* Shared shell */
+.os-sidebar,.os-topbar,.pub-nav,.card,.kpi-card,.wsum-card,.kanban-col,
+.auth-card,.auth-card-rebuild,.op2-filterbar,.op2-table-wrap,
+.pp-creator,.pp-form-card,.bp-status-card,.bp-message,.bp-detail,.bp-brief-card,.bp-creator-card {
+  background: linear-gradient(165deg, rgba(20,20,30,.88), rgba(14,14,22,.94)) !important;
+  border: 1px solid rgba(240,180,41,.20) !important;
+  box-shadow: 0 14px 28px rgba(0,0,0,.35);
+}
+
+/* Text tones */
+p,.hint,.page-sub,.td-muted,.etd-contact,.er-meta,.os-link,.os-nav-label,.pp-handle,.bp-submitted {
+  color: #b8b8d0 !important;
+}
+h1,h2,h3,strong,.os-brand strong,.nav-logo,.pp-nav-logo,.bp-nav-logo { color: #f0f0ff !important; }
+
+/* Navigation + buttons */
+.pub-nav,.os-topbar,.pp-nav,.bp-nav {
+  background: rgba(10,10,15,.72) !important;
+  border-bottom: 1px solid rgba(240,180,41,.20) !important;
+  backdrop-filter: blur(12px);
+}
+
+.btn,.pub-nav-login,.pp-btn,.bp-nav-link {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(16,16,24,.75) !important;
+  color: #f0f0ff !important;
+  transition: all .16s ease;
+}
+
+.btn:hover,.pub-nav-login:hover,.pp-btn:hover,.bp-nav-link:hover {
+  transform: translateY(-2px);
+  border-color: rgba(240,180,41,.45) !important;
+}
+
+.btn-primary,.g-btn-primary,.pub-nav-cta,.pp-submit,.bp-btn-primary {
+  background: linear-gradient(180deg, #ffd166, #f0b429) !important;
+  color: #2d1f00 !important;
+  border: 1px solid rgba(255,220,145,.92) !important;
+  box-shadow: 0 10px 24px rgba(240,180,41,.30);
+}
+
+.btn-primary:hover,.g-btn-primary:hover,.pub-nav-cta:hover,.pp-submit:hover,.bp-btn-primary:hover {
+  box-shadow: 0 14px 32px rgba(240,180,41,.42);
+}
+
+/* Forms and tables */
+input,textarea,select {
+  background: rgba(12,12,19,.95) !important;
+  border: 1px solid rgba(107,140,255,.35) !important;
+  color: #f0f0ff !important;
+}
+
+input:focus,textarea:focus,select:focus {
+  border-color: #f0b429 !important;
+  box-shadow: 0 0 0 3px rgba(240,180,41,.15) !important;
+}
+
+.enq-table thead th,.wsum-table thead th,.bp-step-title {
+  color: #9eb0d5 !important;
+  background: rgba(13,13,22,.9) !important;
+}
+
+.enq-row:hover,.enq-table tbody tr:hover,.wsum-table tbody tr:hover {
+  background: rgba(107,140,255,.14) !important;
+}
+
+/* Pills and highlights */
+.pill-new,.pill-reviewing,.pill-accepted,.pill-negotiating,.pill-closed,.pill-declined,
+.status-pill {
+  border-width: 1px !important;
+}
+.pill-new { box-shadow: 0 0 0 0 rgba(107,140,255,.0); animation: pulseNew 1.9s ease infinite; }
+@keyframes pulseNew {
+  0%,100% { box-shadow: 0 0 0 0 rgba(107,140,255,.0); }
+  50% { box-shadow: 0 0 0 8px rgba(107,140,255,.14); }
+}
+
+/* Dashboard/analytics scene mounts */
+.three-inline,.detail-three,.analytics-three,#three-bg {
+  border-radius: 18px;
+}
+.pipeline-hero-copy p { color: #ffd166 !important; }
+.pipeline-hero-copy h2 { color: #f0f0ff !important; }
+
+/* Landing standalone page theme guard */
+#scene + #bloom-fake + .overlay .logo { color: #f0b429 !important; }
+#scene + #bloom-fake + .overlay .hero p { color: #b8b8d0 !important; }
+
+/* Mobile consistency */
+@media (max-width: 768px) {
+  .os-content,.mk-shell,.pp-wrap,.bp-wrap { padding-left: 14px !important; padding-right: 14px !important; }
+}
