@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% block scene_name %}data-universe{% endblock %}
 {% block title %}Creator Earnings — DealInbox{% endblock %}
 {% block content %}
+<div id="analytics-canvas" class="analytics-three"></div>
 <div class="page-header">
   <div><h1>Creator Earnings</h1><p class="page-sub">Track pipeline value, close rate, and creator income momentum.</p></div>
   <button class="btn btn-sm" onclick="exportReport()">Export</button>
@@ -98,3 +100,5 @@ window.addEventListener('load',()=>{const s=localStorage.getItem('di_goal');if(s
 function exportReport(){const a=document.createElement('a');a.href='data:text/plain,'+encodeURIComponent(`DealInbox Analytics\nTotal: {{ total }}\nClosed: {{ accepted }}\nWin rate: {{ conversion }}%\nPipeline: ₹{{ "{:,}".format(total_value) }}`);a.download='analytics.txt';a.click();showToast('Exported')}
 </script>
 {% endblock %}
+
+{% block threejs %}<script>const ANALYTICS_3D_DATA = {monthly: {{ months | map(attribute='count') | list | tojson }}};</script>{% endblock %}
