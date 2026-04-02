@@ -70,6 +70,17 @@ document.addEventListener('DOMContentLoaded', function () {
     cobs.observe(el);
   });
 
+  // ── Ambient 3D scene motion ───────────────────────
+  var scene = document.querySelector('.fx-scene');
+  if (scene) {
+    document.addEventListener('mousemove', function (e) {
+      var x = (e.clientX / window.innerWidth - 0.5) * 18;
+      var y = (e.clientY / window.innerHeight - 0.5) * 18;
+      scene.style.setProperty('--mx', x.toFixed(2) + 'deg');
+      scene.style.setProperty('--my', y.toFixed(2) + 'deg');
+    });
+  }
+
   // ── Sidebar mobile toggle ──────────────────────────
   var toggleBtn = document.getElementById('sidebarToggle');
   var sidebar   = document.querySelector('.sidebar');
