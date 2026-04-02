@@ -12,7 +12,7 @@
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="neo-theme {% block body_class %}{% endblock %}" data-scene="{% block scene_name %}none{% endblock %}">
+<body class="neo-theme theme-v2 {% block body_class %}{% endblock %}" data-scene="{% block scene_name %}none{% endblock %}">
 <div id="three-bg" aria-hidden="true"></div>
 <div class="ui-noise" aria-hidden="true"></div>
 
@@ -66,6 +66,7 @@
 
   <main class="os-main">
     <header class="os-topbar">
+      <span class="theme-chip">NEO LUXE UI</span>
       <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Jump to brands, deals, reminders</button>
       <div class="os-top-actions">
         <a class="os-pill" href="{{ url_for('settings') }}">{{ session.get("plan", "free")|upper }} PLAN</a>
