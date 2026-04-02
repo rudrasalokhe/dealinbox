@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}DealInbox{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="neo-theme {% block body_class %}{% endblock %}">
+<body class="neo-theme {% block body_class %}{% endblock %}" data-scene="{% block scene_name %}none{% endblock %}">
 <div id="three-bg" aria-hidden="true"></div>
 <div class="ui-noise" aria-hidden="true"></div>
 
@@ -122,9 +122,12 @@
 </footer>
 {% endif %}
 
+<script src="{{ url_for('static', filename='js/three-scenes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/react-ui.js') }}"></script>
 {% block extra_js %}{% endblock %}
+{% block threejs %}{% endblock %}
 <script>
 function toggleCommandBar(force){
   const p=document.getElementById('commandPalette');
