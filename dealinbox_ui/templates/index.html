@@ -1,129 +1,539 @@
-{% extends "base.html" %}
-{% block title %}DealInbox CreatorOS — Creator Deal CRM{% endblock %}
-{% block body_class %}landing-body{% endblock %}
-{% block content %}
-<div class="mk-shell">
-  <section id="home" class="mk-hero">
-    <div class="mk-hero-copy">
-      <span class="mk-chip">{{ total }}+ creators · {{ enq_total }}+ brand opportunities</span>
-      <h1>The Creator Deal CRM for serious creator businesses.</h1>
-      <p>Capture inbound collab requests, manage negotiations, track deal stages, and monitor creator earnings from one premium workspace.</p>
-      <div class="mk-actions">
-        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Start free</a>
-        <a href="{{ url_for('login') }}" class="btn btn-lg">Log in</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealInbox — Every brand deal, finally organised.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --gold: #f0b429;
+      --gold-glow: rgba(240,180,41,0.35);
+      --blue: #6b8cff;
+      --text: #f0f0ff;
+      --muted: #6b6b88;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    #cosmos-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      filter: contrast(1.02) saturate(1.1);
+    }
+
+    #bloom-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse 55% 55% at 50% 48%, rgba(240,180,41,0.06) 0%, transparent 65%);
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      pointer-events: auto;
+      height: 78px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(10,10,15,0.6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 26px;
+      color: var(--gold);
+      letter-spacing: 0.01em;
+      text-transform: lowercase;
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .btn-ghost {
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    .btn-ghost:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .btn-gold {
+      color: #2b1c00;
+      background: linear-gradient(180deg, #ffd166, #f0b429);
+      border-color: rgba(255,218,132,0.9);
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 28px var(--gold-glow);
+    }
+
+    #hero {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      pointer-events: none;
+      padding: 120px 20px 40px;
+    }
+
+    .hero-inner { max-width: 920px; }
+
+    .hero-badge,
+    .hero-title,
+    .hero-sub,
+    .hero-ctas,
+    .hero-stats {
+      opacity: 0;
+      animation: fade-up 0.75s cubic-bezier(0.22,1,0.36,1) forwards;
+      animation-fill-mode: forwards;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      border: 1px solid rgba(240,180,41,0.45);
+      color: var(--gold);
+      background: rgba(240,180,41,0.08);
+      animation-delay: 0.1s;
+      margin-bottom: 22px;
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(48px, 7vw, 80px);
+      line-height: 0.98;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+      animation-delay: 0.28s;
+    }
+
+    .hero-title .gold { color: var(--gold); }
+
+    .hero-sub {
+      font-size: 18px;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 440px;
+      margin: 0 auto 30px;
+      animation-delay: 0.44s;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      animation-delay: 0.58s;
+    }
+
+    .hero-ctas a { pointer-events: auto; }
+
+    .hero-stats {
+      margin-top: 56px;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      animation-delay: 0.72s;
+    }
+
+    .hero-stats .n { color: #f8d789; }
+
+    #tooltip {
+      position: fixed;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: all 0.15s ease;
+      background: rgba(10,10,15,0.92);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      backdrop-filter: blur(12px);
+      min-width: 170px;
+    }
+
+    #tooltip.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #tooltip .t-brand { font-weight: 700; color: var(--text); font-size: 14px; }
+    #tooltip .t-amount { font-weight: 700; color: var(--gold); font-size: 13px; margin-top: 2px; }
+    #tooltip .t-link { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse-dot {
+      0%,100% { box-shadow: 0 0 6px var(--gold); transform: scale(1); }
+      50%     { box-shadow: 0 0 16px var(--gold), 0 0 30px rgba(240,180,41,0.4); transform: scale(1.2); }
+    }
+
+    @media (max-width: 700px) {
+      nav { height: 70px; padding: 0 14px; }
+      .btn { padding: 10px 14px; font-size: 13px; }
+      .hero-sub { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="cosmos-canvas"></canvas>
+  <div id="bloom-overlay"></div>
+
+  <nav>
+    <div class="logo-wrap"><span class="logo-dot"></span><span>dealinbox</span></div>
+    <div class="nav-actions">
+      <a class="btn btn-ghost" href="#">Log in</a>
+      <a class="btn btn-gold" href="#">Get started</a>
+    </div>
+  </nav>
+
+  <main id="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">✦ Built for Indian creators</div>
+      <h1 class="hero-title">Every brand deal,<br>finally <span class="gold">organised.</span></h1>
+      <p class="hero-sub">One link. Brands submit proper briefs. Everything tracked.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" href="#">Create your page — free</a>
+        <a class="btn btn-ghost" href="#">See live demo ↗</a>
       </div>
-      <div class="mk-trust-inline">
-        <span>No credit card required</span>
-        <span>Setup in under 10 minutes</span>
-        <span>Works on desktop + mobile</span>
-      </div>
+      <div class="hero-stats"><span class="n">2,400+</span> creators · <span class="n">₹3.2Cr</span> tracked · Free to start</div>
     </div>
-    <div class="mk-hero-preview">
-      <div class="mk-preview-card">
-        <h3>Creator HQ Snapshot</h3>
-        <div class="mk-preview-grid">
-          <article><small>Pipeline Value</small><strong>₹4,60,000</strong></article>
-          <article><small>Active Negotiations</small><strong>7</strong></article>
-          <article><small>Response Rate</small><strong>91%</strong></article>
-        </div>
-        <ul>
-          <li><b>Beauty campaign</b><span>Negotiating</span></li>
-          <li><b>Travel collaboration</b><span>Reviewing</span></li>
-          <li><b>Fintech partnership</b><span>Accepted</span></li>
-        </ul>
-      </div>
-    </div>
-  </section>
+  </main>
 
-  <section id="features" class="mk-section-grid">
-    <article><h3>Capture opportunities</h3><p>Replace messy DMs with structured collaboration intake.</p></article>
-    <article><h3>Move deals by stage</h3><p>Track every request from new to negotiating to signed.</p></article>
-    <article><h3>Run creator revenue ops</h3><p>See pipeline value, close rate, and earnings momentum.</p></article>
-  </section>
+  <div id="tooltip">
+    <div class="t-brand"></div>
+    <div class="t-amount"></div>
+    <div class="t-link">View deal →</div>
+  </div>
 
-  <section class="mk-compare">
-    <h2>From collab chaos to collaboration system</h2>
-    <div class="mk-compare-grid">
-      <article><h4>Without DealInbox</h4><ul><li>Scattered inbox threads</li><li>No clear deal status</li><li>Missed follow-ups</li></ul></article>
-      <article><h4>With DealInbox CreatorOS</h4><ul><li>Centralized opportunity pipeline</li><li>Negotiation tracking + notes</li><li>Creator earnings visibility</li></ul></article>
-    </div>
-  </section>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ── SCENE SETUP ──────────────────────────
+    var canvas = document.getElementById('cosmos-canvas');
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x0a0a0f, 1);
 
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 22);
 
+    var clock = new THREE.Clock();
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2(0, 0);
+    var mx = 0;
+    var my = 0;
 
-  <section class="mk-how">
-    <h2>How DealInbox works</h2>
-    <div class="mk-how-grid">
-      <article><span>01</span><h3>Share one creator intake link</h3><p>Put your DealInbox page in bio so every brand submits structured briefs instead of scattered DMs.</p></article>
-      <article><span>02</span><h3>Run every deal in one pipeline</h3><p>Move opportunities by stage, set reminders, and keep negotiation history attached to each enquiry.</p></article>
-      <article><span>03</span><h3>Track outcomes and earnings</h3><p>See conversion rate, accepted deals, and projected creator earnings in one clear dashboard.</p></article>
-    </div>
-  </section>
-  <section id="pricing" class="mk-pricing">
-    <h2>Simple creator-friendly pricing</h2>
-    <div class="mk-price-grid">
-      <article>
-        <h3>Starter</h3><p class="price">₹0<span>/month</span></p>
-        <ul><li>20 opportunities/month</li><li>Pipeline tracking</li><li>Public collab page</li></ul>
-        <a href="{{ url_for('signup') }}" class="btn btn-full">Start free</a>
-      </article>
-      <article class="featured">
-        <h3>Creator Pro</h3><p class="price">₹199<span>/month</span></p>
-        <ul><li>Unlimited opportunities</li><li>Advanced analytics</li><li>CSV exports and premium workflows</li></ul>
-        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full">Upgrade to Pro</a>
-      </article>
-    </div>
-  </section>
+    var drag = { down: false, lx: 0, ly: 0, tx: 0, ty: 0 };
 
-  <section class="mk-proof-grid" aria-label="Creator outcomes">
-    <article>
-      <strong>2.4x faster response time</strong>
-      <p>Creators reply to serious enquiries quickly with every detail in one place.</p>
-    </article>
-    <article>
-      <strong>Fewer missed opportunities</strong>
-      <p>Track every lead from first brief to signed campaign with clear statuses.</p>
-    </article>
-    <article>
-      <strong>Professional brand experience</strong>
-      <p>Give brands a polished, structured inquiry flow instead of unorganized DMs.</p>
-    </article>
-  </section>
+    var camTarget = { x: 0, y: 0, z: 22 };
 
-  <section class="mk-cta-band">
-    <h2>Ready to run your creator business like an operator?</h2>
-    <p>Start free, move active deals into one workspace, and turn inbound chaos into a predictable pipeline.</p>
-    <div class="mk-actions">
-      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Create free account</a>
-      <a href="{{ url_for('login') }}" class="btn btn-lg">I already have an account</a>
-    </div>
-  </section>
+    // ── PARTICLES ────────────────────────────
+    var starCount = 2000;
+    var starRadius = 40;
+    var starPos = new Float32Array(starCount * 3);
+    var starCol = new Float32Array(starCount * 3);
+    var i;
+    for (i = 0; i < starCount; i++) {
+      var u = Math.random();
+      var v = Math.random();
+      var theta = 2 * Math.PI * u;
+      var phi = Math.acos(2 * v - 1);
+      var r = starRadius * Math.cbrt(Math.random());
+      var sx = r * Math.sin(phi) * Math.cos(theta);
+      var sy = r * Math.sin(phi) * Math.sin(theta);
+      var sz = r * Math.cos(phi);
+      starPos[i * 3] = sx;
+      starPos[i * 3 + 1] = sy;
+      starPos[i * 3 + 2] = sz;
 
+      var gold = i < 300;
+      starCol[i * 3] = gold ? 240 / 255 : 1;
+      starCol[i * 3 + 1] = gold ? 180 / 255 : 1;
+      starCol[i * 3 + 2] = gold ? 41 / 255 : 1;
+    }
+    var starGeom = new THREE.BufferGeometry();
+    starGeom.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeom.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    var starMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.06,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      vertexColors: true
+    });
+    var stars = new THREE.Points(starGeom, starMat);
+    scene.add(stars);
 
-  <section class="mk-faq" id="faq">
-    <h2>Frequently asked questions</h2>
-    <div class="mk-faq-grid">
-      <details open>
-        <summary>How quickly can I set up DealInbox?</summary>
-        <p>Most creators are live in under 10 minutes. You create your account, personalize your public page, and start receiving structured brand requests immediately.</p>
-      </details>
-      <details>
-        <summary>Can brands track their enquiry status?</summary>
-        <p>Yes. Every enquiry can generate a tracking page so brands can follow progress without chasing you on DMs.</p>
-      </details>
-      <details>
-        <summary>What happens on the free plan?</summary>
-        <p>You get 20 opportunities per month, pipeline tracking, and your public collab page. Upgrade when you need unlimited volume and advanced analytics.</p>
-      </details>
-      <details>
-        <summary>Is this mobile-friendly?</summary>
-        <p>Yes. Creator HQ, enquiries, and public pages are designed to work smoothly on mobile and desktop.</p>
-      </details>
-      <details>
-        <summary>Can I export data for my manager/accountant?</summary>
-        <p>Creator Pro includes CSV export and reporting tools so you can share deal and earnings data with your team.</p>
-      </details>
-    </div>
-  </section>
-</div>
-{% endblock %}
+    // ── CENTRAL SPHERE ───────────────────────
+    var ambient = new THREE.AmbientLight(0x1a1a2e, 0.6);
+    scene.add(ambient);
+
+    var creatorSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(2.2, 64, 64),
+      new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.9, roughness: 0.15 })
+    );
+    scene.add(creatorSphere);
+
+    var centerLight = new THREE.PointLight(0xf0b429, 2.5, 18);
+    centerLight.position.set(0, 0, 0);
+    creatorSphere.add(centerLight);
+
+    // ── DEAL CARDS ───────────────────────────
+    var DEALS = [
+      { label:"Mamaearth", amount:"₹25K", color:0x6b8cff, radius:5.5, speed:0.45, phase:0.0 },
+      { label:"boAt", amount:"₹45K", color:0xf0b429, radius:7.0, speed:0.30, phase:0.8 },
+      { label:"Nykaa", amount:"₹18K", color:0xff6b9d, radius:6.2, speed:0.55, phase:1.6 },
+      { label:"Myntra", amount:"₹60K", color:0x6b8cff, radius:8.5, speed:0.20, phase:2.4 },
+      { label:"Zepto", amount:"₹12K", color:0xf0b429, radius:5.0, speed:0.65, phase:3.2 },
+      { label:"Noise", amount:"₹30K", color:0x44ffaa, radius:9.0, speed:0.18, phase:4.0 },
+      { label:"mCaffeine", amount:"₹22K", color:0xff9f6b, radius:6.8, speed:0.40, phase:4.8 },
+      { label:"SUGAR", amount:"₹38K", color:0xf0b429, radius:7.8, speed:0.25, phase:5.6 }
+    ];
+
+    var cardMeshes = [];
+
+    function roundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function colorToRgba(hex, a) {
+      var c = new THREE.Color(hex);
+      return 'rgba(' + Math.floor(c.r * 255) + ',' + Math.floor(c.g * 255) + ',' + Math.floor(c.b * 255) + ',' + a + ')';
+    }
+
+    for (i = 0; i < DEALS.length; i++) {
+      var d = DEALS[i];
+      var cardCanvas = document.createElement('canvas');
+      cardCanvas.width = 256;
+      cardCanvas.height = 128;
+      var cctx = cardCanvas.getContext('2d');
+
+      roundedRect(cctx, 2, 2, 252, 124, 14);
+      cctx.save();
+      cctx.clip();
+      cctx.fillStyle = 'rgba(17,24,39,0.9)';
+      cctx.fillRect(0, 0, 256, 128);
+      cctx.restore();
+
+      cctx.strokeStyle = colorToRgba(d.color, 0.6);
+      cctx.lineWidth = 1;
+      roundedRect(cctx, 2.5, 2.5, 251, 123, 14);
+      cctx.stroke();
+
+      cctx.fillStyle = '#f0f0ff';
+      cctx.font = 'bold 22px Syne';
+      cctx.textAlign = 'left';
+      cctx.fillText(d.label, 16, 40);
+
+      cctx.fillStyle = colorToRgba(d.color, 1);
+      cctx.font = 'bold 28px Syne';
+      cctx.textAlign = 'right';
+      cctx.fillText(d.amount, 238, 104);
+
+      var tex = new THREE.CanvasTexture(cardCanvas);
+      var mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2.8, 1.6, 0.08),
+        new THREE.MeshStandardMaterial({ map: tex, metalness: 0.3, roughness: 0.6, transparent: true })
+      );
+
+      var edges = new THREE.EdgesGeometry(mesh.geometry);
+      var edgeMaterial = new THREE.LineBasicMaterial({ color: d.color, transparent: true, opacity: 0.7 });
+      var edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+      mesh.add(edgeLines);
+
+      mesh.userData = { deal: d, edge: edgeLines, targetScale: 1 };
+
+      scene.add(mesh);
+      cardMeshes.push(mesh);
+    }
+
+    // ── RAYCASTER / HOVER ────────────────────
+    var tooltip = document.getElementById('tooltip');
+    var tBrand = tooltip.querySelector('.t-brand');
+    var tAmount = tooltip.querySelector('.t-amount');
+    window._hoveredCard = null;
+
+    function setHover(card, clientX, clientY) {
+      window._hoveredCard = card;
+      tBrand.textContent = card.userData.deal.label;
+      tAmount.textContent = card.userData.deal.amount;
+      tooltip.style.left = (clientX + 14) + 'px';
+      tooltip.style.top = (clientY - 10) + 'px';
+      tooltip.classList.add('active');
+    }
+
+    function clearHover() {
+      window._hoveredCard = null;
+      tooltip.classList.remove('active');
+    }
+
+    // ── EVENT HANDLERS ───────────────────────
+    window.addEventListener('mousemove', function (e) {
+      mx = (e.clientX / window.innerWidth) - 0.5;
+      my = (e.clientY / window.innerHeight) - 0.5;
+
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      if (drag.down) {
+        drag.tx += (e.clientX - drag.lx) * 0.02;
+        drag.ty += (e.clientY - drag.ly) * 0.01;
+        drag.lx = e.clientX;
+        drag.ly = e.clientY;
+      }
+
+      if (window._hoveredCard) {
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+      }
+    });
+
+    window.addEventListener('pointerdown', function (e) {
+      drag.down = true;
+      drag.lx = e.clientX;
+      drag.ly = e.clientY;
+    });
+
+    window.addEventListener('pointerup', function () {
+      drag.down = false;
+    });
+
+    window.addEventListener('resize', function () {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+
+    // ── ANIMATION LOOP ───────────────────────
+    function animate() {
+      requestAnimationFrame(animate);
+
+      var delta = clock.getDelta();
+      var elapsed = clock.getElapsedTime();
+
+      creatorSphere.rotation.y += 0.003 * delta;
+      stars.rotation.y += 0.00015 * delta;
+
+      for (var j = 0; j < cardMeshes.length; j++) {
+        var card = cardMeshes[j];
+        var deal = card.userData.deal;
+
+        card.position.x = Math.cos(elapsed * deal.speed + deal.phase) * deal.radius;
+        card.position.z = Math.sin(elapsed * deal.speed + deal.phase) * deal.radius;
+        card.position.y = Math.sin(elapsed * 0.3 + deal.phase) * 0.8;
+        card.lookAt(camera.position);
+
+        var target = (window._hoveredCard === card) ? 1.25 : 1;
+        var s = card.scale.x + (target - card.scale.x) * 0.15;
+        card.scale.set(s, s, s);
+
+        var edgeTarget = (window._hoveredCard === card) ? 1 : 0.7;
+        card.userData.edge.material.opacity += (edgeTarget - card.userData.edge.material.opacity) * 0.2;
+      }
+
+      raycaster.setFromCamera(mouse, camera);
+      var intersects = raycaster.intersectObjects(cardMeshes, false);
+      if (intersects.length > 0) {
+        setHover(intersects[0].object, (mx + 0.5) * window.innerWidth, (my + 0.5) * window.innerHeight);
+      } else {
+        clearHover();
+      }
+
+      scene.rotation.y += (mx * 0.08 - scene.rotation.y) * 0.05;
+      scene.rotation.x += ((-my * 0.04) - scene.rotation.x) * 0.05;
+
+      camTarget.x += ((Math.sin(drag.tx) * 2.4) - camTarget.x) * 0.06;
+      camTarget.y += ((Math.sin(drag.ty) * 1.4) - camTarget.y) * 0.06;
+      camTarget.z += ((22 + Math.cos(drag.tx) * 0.6) - camTarget.z) * 0.06;
+      camera.position.set(camTarget.x, camTarget.y, camTarget.z);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
