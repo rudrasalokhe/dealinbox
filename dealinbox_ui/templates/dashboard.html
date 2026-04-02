@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Creator Deal Command Center — DealInbox{% endblock %}
+{% block scene_name %}pipeline-galaxy{% endblock %}
 {% block content %}
 <div class="wsum-main-full">
+  <section class="pipeline-hero reveal-up">
+    <div id="pipeline-canvas" class="three-inline"></div>
+    <div class="pipeline-hero-copy">
+      <p>Pipeline Galaxy</p>
+      <h2>Live flow of your brand deals</h2>
+    </div>
+  </section>
   <header class="wsum-head">
     <div>
+      <p class="wsum-kicker">CREATOR OPERATIONS HUB</p>
       <h1>Creator deal command center</h1>
       <p>Track every brand conversation, stage movement, and revenue signal from one clear workspace.</p>
     </div>
@@ -42,8 +51,7 @@
           </div>
         </div>
       </div>
-      <div class="wsum-user">{{ dashboard_state.name.split()[0] if dashboard_state.name else 'Creator' }}</div>
-    </header>
+    </section>
 
     <section class="wsum-card">
       <h3>Weekly focus goals</h3>
@@ -125,3 +133,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block threejs %}<script>const DASHBOARD_DATA = {new: {{ dashboard_state.pipeline[0].count if dashboard_state.pipeline|length>0 else 0 }}, reviewing: {{ dashboard_state.pipeline[1].count if dashboard_state.pipeline|length>1 else 0 }}, negotiating: {{ dashboard_state.pipeline[3].count if dashboard_state.pipeline|length>3 else 0 }}, accepted: {{ dashboard_state.pipeline[4].count if dashboard_state.pipeline|length>4 else 0 }}};</script>{% endblock %}
