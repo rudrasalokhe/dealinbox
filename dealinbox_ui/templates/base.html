@@ -22,7 +22,7 @@
       <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="logo">
       <div>
         <strong>DealInbox</strong>
-        <span>Creator Business OS</span>
+        <span>Revenue cockpit for creators</span>
       </div>
     </div>
 
@@ -63,7 +63,7 @@
 
   <main class="os-main">
     <header class="os-topbar">
-      <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Search brands, deals, timelines</button>
+      <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Jump to brands, deals, reminders</button>
       <div class="os-top-actions">
         <a class="os-pill" href="{{ url_for('settings') }}">{{ session.get("plan", "free")|upper }} PLAN</a>
         <a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-sm">Upgrade</a>
@@ -89,7 +89,7 @@
   </div>
   <div class="pub-nav-right">
     <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
-    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Start free</a>
+    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Launch workspace</a>
   </div>
 </nav>
 {% endblock %}

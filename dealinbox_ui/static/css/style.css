@@ -1647,3 +1647,120 @@ body.neo-theme .wsum-tasks a,body.neo-theme .wsum-tasks p{padding:12px 14px!impo
   body.neo-theme .wsum-goals strong{font-size:2.8rem!important}
   body.neo-theme .wsum-goals{grid-template-columns:1fr!important}
 }
+
+/* ===== Orbit redesign v2026 ===== */
+body.neo-theme {
+  background:
+    radial-gradient(1200px 620px at 10% -10%, rgba(86, 136, 255, 0.22), transparent 60%),
+    radial-gradient(900px 600px at 90% 0%, rgba(48, 214, 189, 0.16), transparent 62%),
+    linear-gradient(180deg, #0a101b 0%, #080d16 55%, #070b13 100%) !important;
+}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .os-topbar {
+  backdrop-filter: blur(14px);
+  background: rgba(11, 18, 30, 0.78) !important;
+  border-color: rgba(117, 149, 212, 0.25) !important;
+}
+
+body.neo-theme .os-brand,
+body.neo-theme .os-user,
+body.neo-theme .os-link,
+body.neo-theme .card,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card {
+  border: 1px solid rgba(120, 149, 214, 0.24) !important;
+  background: linear-gradient(170deg, rgba(23, 33, 52, 0.88), rgba(13, 21, 35, 0.9)) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+
+body.neo-theme .os-link.active {
+  background: linear-gradient(180deg, rgba(87, 126, 212, 0.33), rgba(76, 109, 186, 0.22)) !important;
+  border-color: rgba(126, 165, 255, 0.4) !important;
+}
+
+body.neo-theme .btn-primary,
+body.neo-theme .pub-nav-cta,
+body.neo-theme .g-btn-primary {
+  background: linear-gradient(180deg, #6aa0ff, #4678df) !important;
+  border: 1px solid rgba(134, 171, 255, 0.65) !important;
+  color: #f6fbff !important;
+}
+
+body.neo-theme .btn,
+body.neo-theme .cmd-btn {
+  background: rgba(17, 28, 44, 0.9) !important;
+  border-color: rgba(105, 134, 189, 0.32) !important;
+  color: #d6e4ff !important;
+}
+
+body.neo-theme input,
+body.neo-theme textarea,
+body.neo-theme select {
+  background: rgba(12, 21, 34, 0.85) !important;
+  border-color: rgba(111, 142, 200, 0.4) !important;
+}
+
+body.neo-theme input:focus,
+body.neo-theme textarea:focus,
+body.neo-theme select:focus {
+  border-color: #6da7ff !important;
+  box-shadow: 0 0 0 3px rgba(96, 159, 255, 0.2) !important;
+}
+
+body.neo-theme .wsum-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #86a8e9;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+body.neo-theme .wsum-head {
+  position: relative;
+  overflow: hidden;
+}
+
+body.neo-theme .wsum-head::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  right: -80px;
+  top: -160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(101, 171, 255, 0.35), transparent 65%);
+  pointer-events: none;
+}
+
+body.neo-theme .wsum-table tbody tr {
+  border-bottom-color: rgba(127, 155, 210, 0.2);
+}
+
+body.neo-theme .wsum-table tbody tr:hover,
+body.neo-theme .enq-table tbody tr:hover {
+  background: rgba(88, 129, 214, 0.16) !important;
+}
+
+body.neo-theme .mk-hero-copy h1 {
+  font-size: clamp(2.2rem, 5vw, 4.4rem) !important;
+  line-height: 0.98 !important;
+}
+
+body.neo-theme .mk-chip {
+  background: rgba(86, 138, 255, 0.2) !important;
+  border-color: rgba(121, 167, 255, 0.55) !important;
+  color: #ddebff !important;
+}
