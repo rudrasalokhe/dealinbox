@@ -12,6 +12,12 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="neo-theme {% block body_class %}{% endblock %}">
+<div class="fx-scene" aria-hidden="true">
+  <span class="fx-orb orb-a"></span>
+  <span class="fx-orb orb-b"></span>
+  <span class="fx-ring"></span>
+  <span class="fx-cube"></span>
+</div>
 
 {% if session.uid %}
 <div class="os-shell">

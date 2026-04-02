@@ -1764,3 +1764,123 @@ body.neo-theme .mk-chip {
   border-color: rgba(121, 167, 255, 0.55) !important;
   color: #ddebff !important;
 }
+
+/* ===== GOAT full UI overhaul ===== */
+body.neo-theme{
+  --goat-bg:#070c15;
+  --goat-surface:#121b2c;
+  --goat-surface-2:#182339;
+  --goat-line:rgba(147,180,246,.28);
+  --goat-text:#ecf3ff;
+  --goat-muted:#a5b7d7;
+  --mx:0deg;
+  --my:0deg;
+}
+
+.fx-scene{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  overflow:hidden;
+  perspective:1200px;
+}
+.fx-orb,.fx-ring,.fx-cube{position:absolute;display:block;filter:blur(.2px);}
+.fx-orb{border-radius:50%;mix-blend-mode:screen;opacity:.65;}
+.fx-orb.orb-a{
+  width:420px;height:420px;left:-120px;top:-80px;
+  background:radial-gradient(circle at 30% 30%, rgba(131,180,255,.45), rgba(45,87,185,.05) 70%);
+  animation:floatA 16s ease-in-out infinite;
+}
+.fx-orb.orb-b{
+  width:360px;height:360px;right:-80px;top:20%;
+  background:radial-gradient(circle at 40% 40%, rgba(83,230,209,.30), rgba(40,92,168,.05) 70%);
+  animation:floatB 18s ease-in-out infinite;
+}
+.fx-ring{
+  width:460px;height:460px;right:18%;bottom:-180px;border-radius:50%;
+  border:1px solid rgba(123,164,245,.28);
+  box-shadow:0 0 80px rgba(97,146,255,.2), inset 0 0 80px rgba(97,146,255,.08);
+  transform:rotateX(68deg) rotateY(15deg);
+  animation:ringSpin 24s linear infinite;
+}
+.fx-cube{
+  width:120px;height:120px;left:18%;bottom:16%;
+  background:linear-gradient(145deg, rgba(137,170,255,.2), rgba(67,102,185,.08));
+  border:1px solid rgba(125,157,234,.4);
+  border-radius:18px;
+  transform-style:preserve-3d;
+  transform:rotateX(45deg) rotateY(30deg);
+  box-shadow:0 28px 50px rgba(0,0,0,.35);
+  animation:cubeSpin 14s linear infinite;
+}
+
+.os-shell,.mk-shell,.auth-wrap,.g-footer{position:relative;z-index:1;}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .os-topbar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .card,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card{
+  border:1px solid var(--goat-line)!important;
+  background:linear-gradient(165deg, rgba(20,31,50,.88), rgba(12,20,32,.92))!important;
+}
+
+body.neo-theme h1,body.neo-theme h2,body.neo-theme h3,body.neo-theme strong{color:var(--goat-text)!important}
+body.neo-theme p,body.neo-theme .page-sub,body.neo-theme .hint{color:var(--goat-muted)!important}
+
+body.neo-theme .mk-hero{position:relative;overflow:hidden}
+body.neo-theme .mk-hero-copy{padding:34px!important}
+body.neo-theme .mk-hero-preview{padding:30px!important;transform-style:preserve-3d}
+body.neo-theme .mk-3d-stack{height:120px;position:relative;margin-bottom:12px;perspective:1000px}
+body.neo-theme .mk-3d-card{
+  position:absolute;left:0;top:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:160px;padding:10px 14px;border-radius:12px;
+  color:#e9f3ff;font-size:12px;font-weight:600;letter-spacing:.04em;
+  background:linear-gradient(145deg, rgba(113,159,255,.28), rgba(45,78,158,.35));
+  border:1px solid rgba(140,176,255,.45);
+  box-shadow:0 12px 28px rgba(0,0,0,.25);
+  transform-style:preserve-3d;
+}
+body.neo-theme .card-one{transform:translate3d(18px,12px,34px) rotateX(22deg) rotateY(-20deg);animation:stackA 8s ease-in-out infinite}
+body.neo-theme .card-two{transform:translate3d(86px,42px,14px) rotateX(16deg) rotateY(-14deg);animation:stackB 8s ease-in-out infinite}
+body.neo-theme .card-three{transform:translate3d(178px,66px,2px) rotateX(12deg) rotateY(-10deg);animation:stackC 8s ease-in-out infinite}
+
+body.neo-theme .btn-primary,
+body.neo-theme .pub-nav-cta,
+body.neo-theme .g-btn-primary{
+  background:linear-gradient(180deg,#7db4ff,#4f85ea)!important;
+  border-color:rgba(152,188,255,.76)!important;
+  box-shadow:0 8px 18px rgba(62,112,214,.35)!important;
+}
+
+body.neo-theme .os-sidebar{transform:rotateY(calc(var(--mx) * .02));transform-origin:left center}
+body.neo-theme .wsum-head{transform:rotateX(calc(var(--my) * .06));transform-style:preserve-3d}
+body.neo-theme .wsum-card:hover,
+body.neo-theme .mk-section-grid article:hover,
+body.neo-theme .mk-how-grid article:hover,
+body.neo-theme .mk-proof-grid article:hover{transform:translateY(-4px);transition:transform .25s ease}
+
+@keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(30px)}}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+@keyframes ringSpin{from{transform:rotateX(68deg) rotateY(10deg) rotateZ(0)}to{transform:rotateX(68deg) rotateY(10deg) rotateZ(360deg)}}
+@keyframes cubeSpin{0%{transform:rotateX(45deg) rotateY(20deg)}50%{transform:rotateX(55deg) rotateY(200deg)}100%{transform:rotateX(45deg) rotateY(380deg)}}
+@keyframes stackA{0%,100%{transform:translate3d(18px,12px,34px) rotateX(22deg) rotateY(-20deg)}50%{transform:translate3d(26px,6px,52px) rotateX(26deg) rotateY(-24deg)}}
+@keyframes stackB{0%,100%{transform:translate3d(86px,42px,14px) rotateX(16deg) rotateY(-14deg)}50%{transform:translate3d(96px,34px,24px) rotateX(20deg) rotateY(-18deg)}}
+@keyframes stackC{0%,100%{transform:translate3d(178px,66px,2px) rotateX(12deg) rotateY(-10deg)}50%{transform:translate3d(166px,62px,12px) rotateX(16deg) rotateY(-14deg)}}
+
+@media(max-width:900px){
+  .fx-ring,.fx-cube,.mk-3d-stack{display:none}
+}
