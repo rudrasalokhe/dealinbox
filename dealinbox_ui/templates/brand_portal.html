@@ -4,10 +4,13 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ enq.brand_name }} × {{ creator.name }} — DealInbox CreatorOS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 </head>
-<body class="bp-body">
+<body class="neo-theme theme-v2 bp-body" data-scene="signal-tracker">
+<div id="three-bg" aria-hidden="true"></div>
+<div class="ui-noise" aria-hidden="true"></div>
 
 <nav class="bp-nav">
   <a href="{{ url_for('index') }}" class="bp-nav-logo">DealInbox CreatorOS</a>
@@ -162,6 +165,8 @@
   <div class="bp-powered">Powered by <a href="{{ url_for('index') }}">DealInbox CreatorOS</a></div>
 </div>
 
+<script src="{{ url_for('static', filename='js/three-scenes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
