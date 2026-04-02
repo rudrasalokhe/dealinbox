@@ -1,129 +1,232 @@
-{% extends "base.html" %}
-{% block title %}DealInbox CreatorOS — Creator Deal CRM{% endblock %}
-{% block body_class %}landing-body{% endblock %}
-{% block content %}
-<div class="mk-shell">
-  <section id="home" class="mk-hero">
-    <div class="mk-hero-copy">
-      <span class="mk-chip">{{ total }}+ creators · {{ enq_total }}+ brand opportunities</span>
-      <h1>The Creator Deal CRM for serious creator businesses.</h1>
-      <p>Capture inbound collab requests, manage negotiations, track deal stages, and monitor creator earnings from one premium workspace.</p>
-      <div class="mk-actions">
-        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Start free</a>
-        <a href="{{ url_for('login') }}" class="btn btn-lg">Log in</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealInbox — Every brand deal, finally organised.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <style>
+    :root{
+      --bg:#0a0a0f;
+      --gold:#f0b429;
+      --blue:#6b8cff;
+      --text:#f0f0ff;
+      --muted:#6b6b88;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;scroll-behavior:smooth;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden}
+    #scene{position:fixed;inset:0;z-index:0}
+    #bloom-fake{position:fixed;inset:-20px;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(240,180,41,.16),transparent 45%),radial-gradient(circle at 30% 60%,rgba(107,140,255,.12),transparent 40%);filter:blur(16px)}
+    .overlay{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
+    .nav{height:78px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.32);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;color:var(--gold);font-size:1.6rem;letter-spacing:.02em;text-transform:lowercase}
+    .nav-right{display:flex;gap:10px;align-items:center}
+    .btn{border:1px solid rgba(255,255,255,.16);color:var(--text);padding:10px 16px;border-radius:12px;text-decoration:none;font-size:.95rem;transition:all .18s ease}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-gold{background:linear-gradient(180deg,#ffd166,#f0b429);color:#2b1c00;border-color:rgba(255,215,130,.9);box-shadow:0 10px 22px rgba(240,180,41,.25)}
+    .hero{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+    .hero-box{text-align:center;max-width:860px}
+    .hero h1{font-family:'Syne',sans-serif;font-size:clamp(2.4rem,6vw,4rem);line-height:1.02;letter-spacing:-.04em;opacity:0;animation:rise .8s ease forwards}
+    .hero p{font-size:1.1rem;color:var(--muted);margin:16px auto 28px;max-width:620px;opacity:0;animation:rise .8s .18s ease forwards}
+    .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;opacity:0;animation:rise .8s .32s ease forwards}
+    .stats{margin-top:18px;color:#b8b8d0;font-size:.95rem;opacity:0;animation:rise .8s .45s ease forwards}
+    @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .tooltip{position:fixed;z-index:4;background:rgba(15,15,24,.92);border:1px solid rgba(240,180,41,.45);padding:8px 10px;border-radius:8px;color:#fff;font-size:.85rem;pointer-events:none;opacity:0;transform:translateY(4px);transition:all .12s ease}
+    .tooltip.show{opacity:1;transform:translateY(0)}
+    @media(max-width:720px){.nav{padding:0 14px;height:68px}.hero p{font-size:1rem}}
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  <div id="bloom-fake"></div>
+  <div class="overlay">
+    <nav class="nav">
+      <div class="logo">dealinbox</div>
+      <div class="nav-right">
+        <a class="btn" href="{{ url_for('login') }}">Log in</a>
+        <a class="btn btn-gold" href="{{ url_for('signup') }}">Get started →</a>
       </div>
-      <div class="mk-trust-inline">
-        <span>No credit card required</span>
-        <span>Setup in under 10 minutes</span>
-        <span>Works on desktop + mobile</span>
-      </div>
-    </div>
-    <div class="mk-hero-preview">
-      <div class="mk-preview-card">
-        <h3>Creator HQ Snapshot</h3>
-        <div class="mk-preview-grid">
-          <article><small>Pipeline Value</small><strong>₹4,60,000</strong></article>
-          <article><small>Active Negotiations</small><strong>7</strong></article>
-          <article><small>Response Rate</small><strong>91%</strong></article>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-box">
+        <h1>Every brand deal,<br>finally organised.</h1>
+        <p>One link. Brands submit proper briefs. Everything tracked.</p>
+        <div class="actions">
+          <a class="btn btn-gold" href="{{ url_for('signup') }}">Create your page — free</a>
+          <a class="btn" href="{{ url_for('login') }}">See live demo ↗</a>
         </div>
-        <ul>
-          <li><b>Beauty campaign</b><span>Negotiating</span></li>
-          <li><b>Travel collaboration</b><span>Reviewing</span></li>
-          <li><b>Fintech partnership</b><span>Accepted</span></li>
-        </ul>
+        <div class="stats">2,400+ creators · ₹3.2Cr tracked · Free to start</div>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <section id="features" class="mk-section-grid">
-    <article><h3>Capture opportunities</h3><p>Replace messy DMs with structured collaboration intake.</p></article>
-    <article><h3>Move deals by stage</h3><p>Track every request from new to negotiating to signed.</p></article>
-    <article><h3>Run creator revenue ops</h3><p>See pipeline value, close rate, and earnings momentum.</p></article>
-  </section>
+  <div id="tooltip" class="tooltip"></div>
 
-  <section class="mk-compare">
-    <h2>From collab chaos to collaboration system</h2>
-    <div class="mk-compare-grid">
-      <article><h4>Without DealInbox</h4><ul><li>Scattered inbox threads</li><li>No clear deal status</li><li>Missed follow-ups</li></ul></article>
-      <article><h4>With DealInbox CreatorOS</h4><ul><li>Centralized opportunity pipeline</li><li>Negotiation tracking + notes</li><li>Creator earnings visibility</li></ul></article>
-    </div>
-  </section>
+  <script>
+    // ===== SCENE SETUP =====
+    const container = document.getElementById('scene');
+    const tooltip = document.getElementById('tooltip');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0.6, 8);
 
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
 
+    const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hovered = null;
 
-  <section class="mk-how">
-    <h2>How DealInbox works</h2>
-    <div class="mk-how-grid">
-      <article><span>01</span><h3>Share one creator intake link</h3><p>Put your DealInbox page in bio so every brand submits structured briefs instead of scattered DMs.</p></article>
-      <article><span>02</span><h3>Run every deal in one pipeline</h3><p>Move opportunities by stage, set reminders, and keep negotiation history attached to each enquiry.</p></article>
-      <article><span>03</span><h3>Track outcomes and earnings</h3><p>See conversion rate, accepted deals, and projected creator earnings in one clear dashboard.</p></article>
-    </div>
-  </section>
-  <section id="pricing" class="mk-pricing">
-    <h2>Simple creator-friendly pricing</h2>
-    <div class="mk-price-grid">
-      <article>
-        <h3>Starter</h3><p class="price">₹0<span>/month</span></p>
-        <ul><li>20 opportunities/month</li><li>Pipeline tracking</li><li>Public collab page</li></ul>
-        <a href="{{ url_for('signup') }}" class="btn btn-full">Start free</a>
-      </article>
-      <article class="featured">
-        <h3>Creator Pro</h3><p class="price">₹199<span>/month</span></p>
-        <ul><li>Unlimited opportunities</li><li>Advanced analytics</li><li>CSV exports and premium workflows</li></ul>
-        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full">Upgrade to Pro</a>
-      </article>
-    </div>
-  </section>
+    const ambient = new THREE.AmbientLight(0x6b8cff, 0.35);
+    scene.add(ambient);
 
-  <section class="mk-proof-grid" aria-label="Creator outcomes">
-    <article>
-      <strong>2.4x faster response time</strong>
-      <p>Creators reply to serious enquiries quickly with every detail in one place.</p>
-    </article>
-    <article>
-      <strong>Fewer missed opportunities</strong>
-      <p>Track every lead from first brief to signed campaign with clear statuses.</p>
-    </article>
-    <article>
-      <strong>Professional brand experience</strong>
-      <p>Give brands a polished, structured inquiry flow instead of unorganized DMs.</p>
-    </article>
-  </section>
+    const goldLight = new THREE.PointLight(0xf0b429, 1.8, 55, 2);
+    goldLight.position.set(0, 0, 3.5);
+    scene.add(goldLight);
 
-  <section class="mk-cta-band">
-    <h2>Ready to run your creator business like an operator?</h2>
-    <p>Start free, move active deals into one workspace, and turn inbound chaos into a predictable pipeline.</p>
-    <div class="mk-actions">
-      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Create free account</a>
-      <a href="{{ url_for('login') }}" class="btn btn-lg">I already have an account</a>
-    </div>
-  </section>
+    const creator = new THREE.Mesh(
+      new THREE.SphereGeometry(1.05, 48, 48),
+      new THREE.MeshStandardMaterial({ color: 0xd89e24, metalness: 0.88, roughness: 0.22 })
+    );
+    scene.add(creator);
 
+    const deals = [
+      'Mamaearth ₹25K · Negotiating',
+      'boAt ₹45K · New',
+      'Nykaa ₹18K · Closed',
+      'Myntra ₹32K · Reviewing',
+      'CRED ₹55K · New',
+      'Sugar ₹22K · Accepted',
+      'Ather ₹30K · Negotiating',
+      'Noise ₹40K · Reviewing'
+    ];
 
-  <section class="mk-faq" id="faq">
-    <h2>Frequently asked questions</h2>
-    <div class="mk-faq-grid">
-      <details open>
-        <summary>How quickly can I set up DealInbox?</summary>
-        <p>Most creators are live in under 10 minutes. You create your account, personalize your public page, and start receiving structured brand requests immediately.</p>
-      </details>
-      <details>
-        <summary>Can brands track their enquiry status?</summary>
-        <p>Yes. Every enquiry can generate a tracking page so brands can follow progress without chasing you on DMs.</p>
-      </details>
-      <details>
-        <summary>What happens on the free plan?</summary>
-        <p>You get 20 opportunities per month, pipeline tracking, and your public collab page. Upgrade when you need unlimited volume and advanced analytics.</p>
-      </details>
-      <details>
-        <summary>Is this mobile-friendly?</summary>
-        <p>Yes. Creator HQ, enquiries, and public pages are designed to work smoothly on mobile and desktop.</p>
-      </details>
-      <details>
-        <summary>Can I export data for my manager/accountant?</summary>
-        <p>Creator Pro includes CSV export and reporting tools so you can share deal and earnings data with your team.</p>
-      </details>
-    </div>
-  </section>
-</div>
-{% endblock %}
+    const cards = [];
+    deals.forEach((txt, i) => {
+      const cvs = document.createElement('canvas');
+      cvs.width = 680; cvs.height = 180;
+      const ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#111522'; ctx.fillRect(0,0,cvs.width,cvs.height);
+      ctx.strokeStyle = i % 2 ? '#f0b429' : '#6b8cff';
+      ctx.lineWidth = 6; ctx.strokeRect(8,8,cvs.width-16,cvs.height-16);
+      ctx.fillStyle = '#f0f0ff'; ctx.font = '700 46px DM Sans';
+      ctx.fillText(txt, 26, 108);
+
+      const texture = new THREE.CanvasTexture(cvs);
+      const material = new THREE.MeshStandardMaterial({
+        map: texture,
+        emissive: 0x1a223a,
+        emissiveIntensity: 0.48,
+        metalness: 0.12,
+        roughness: 0.68
+      });
+      const card = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.58, 0.05), material);
+
+      const edges = new THREE.EdgesGeometry(card.geometry);
+      const glow = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: i % 2 ? 0xf0b429 : 0x6b8cff }));
+      card.add(glow);
+
+      card.userData = {
+        label: txt,
+        angle: (i / deals.length) * Math.PI * 2,
+        radius: 2.9 + (i % 3) * 0.7,
+        speed: 0.28 + i * 0.03,
+        baseScale: 1
+      };
+
+      scene.add(card);
+      cards.push(card);
+    });
+
+    const particleCount = window.innerWidth < 768 ? 650 : 2000;
+    const starGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const r = 40 * Math.pow(Math.random(), 0.6);
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.06,
+      transparent: true,
+      opacity: 0.72
+    }));
+    scene.add(stars);
+
+    // ===== EVENT HANDLERS =====
+    let drag = false;
+    let prevX = 0;
+    renderer.domElement.addEventListener('pointerdown', (e) => { drag = true; prevX = e.clientX; });
+    window.addEventListener('pointerup', () => drag = false);
+    window.addEventListener('pointermove', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      if (drag) {
+        const dx = e.clientX - prevX;
+        prevX = e.clientX;
+        camera.rotation.y -= dx * 0.002;
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ===== ANIMATION LOOP =====
+    function animate() {
+      const dt = clock.getDelta();
+      const t = clock.elapsedTime;
+
+      creator.rotation.y += dt * 0.34;
+      creator.rotation.x += dt * 0.04;
+      stars.rotation.y += dt * 0.012;
+
+      cards.forEach(card => {
+        card.userData.angle += dt * card.userData.speed;
+        card.position.x = Math.cos(card.userData.angle) * card.userData.radius;
+        card.position.z = Math.sin(card.userData.angle) * card.userData.radius;
+        card.position.y = Math.sin(t * 1.35 + card.userData.angle) * 0.42;
+        card.lookAt(creator.position);
+        const target = card === hovered ? 1.3 : 1;
+        card.scale.lerp(new THREE.Vector3(target, target, target), 0.12);
+        card.material.emissiveIntensity = card === hovered ? 0.92 : 0.48;
+      });
+
+      camera.position.x += (mouse.x * 0.45 - camera.position.x) * 0.04;
+      camera.position.y += ((mouse.y * 0.25) + 0.6 - camera.position.y) * 0.04;
+      camera.lookAt(0, 0, 0);
+
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(cards);
+      if (hits.length) {
+        hovered = hits[0].object;
+        tooltip.textContent = hovered.userData.label;
+        tooltip.style.left = ((mouse.x * 0.5 + 0.5) * window.innerWidth + 14) + 'px';
+        tooltip.style.top = ((-mouse.y * 0.5 + 0.5) * window.innerHeight - 12) + 'px';
+        tooltip.classList.add('show');
+      } else {
+        hovered = null;
+        tooltip.classList.remove('show');
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
