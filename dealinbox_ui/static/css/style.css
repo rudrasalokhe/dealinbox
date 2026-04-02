@@ -1647,3 +1647,428 @@ body.neo-theme .wsum-tasks a,body.neo-theme .wsum-tasks p{padding:12px 14px!impo
   body.neo-theme .wsum-goals strong{font-size:2.8rem!important}
   body.neo-theme .wsum-goals{grid-template-columns:1fr!important}
 }
+
+/* ===== Orbit redesign v2026 ===== */
+body.neo-theme {
+  background:
+    radial-gradient(1200px 620px at 10% -10%, rgba(86, 136, 255, 0.22), transparent 60%),
+    radial-gradient(900px 600px at 90% 0%, rgba(48, 214, 189, 0.16), transparent 62%),
+    linear-gradient(180deg, #0a101b 0%, #080d16 55%, #070b13 100%) !important;
+}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .os-topbar {
+  backdrop-filter: blur(14px);
+  background: rgba(11, 18, 30, 0.78) !important;
+  border-color: rgba(117, 149, 212, 0.25) !important;
+}
+
+body.neo-theme .os-brand,
+body.neo-theme .os-user,
+body.neo-theme .os-link,
+body.neo-theme .card,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card {
+  border: 1px solid rgba(120, 149, 214, 0.24) !important;
+  background: linear-gradient(170deg, rgba(23, 33, 52, 0.88), rgba(13, 21, 35, 0.9)) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+
+body.neo-theme .os-link.active {
+  background: linear-gradient(180deg, rgba(87, 126, 212, 0.33), rgba(76, 109, 186, 0.22)) !important;
+  border-color: rgba(126, 165, 255, 0.4) !important;
+}
+
+body.neo-theme .btn-primary,
+body.neo-theme .pub-nav-cta,
+body.neo-theme .g-btn-primary {
+  background: linear-gradient(180deg, #6aa0ff, #4678df) !important;
+  border: 1px solid rgba(134, 171, 255, 0.65) !important;
+  color: #f6fbff !important;
+}
+
+body.neo-theme .btn,
+body.neo-theme .cmd-btn {
+  background: rgba(17, 28, 44, 0.9) !important;
+  border-color: rgba(105, 134, 189, 0.32) !important;
+  color: #d6e4ff !important;
+}
+
+body.neo-theme input,
+body.neo-theme textarea,
+body.neo-theme select {
+  background: rgba(12, 21, 34, 0.85) !important;
+  border-color: rgba(111, 142, 200, 0.4) !important;
+}
+
+body.neo-theme input:focus,
+body.neo-theme textarea:focus,
+body.neo-theme select:focus {
+  border-color: #6da7ff !important;
+  box-shadow: 0 0 0 3px rgba(96, 159, 255, 0.2) !important;
+}
+
+body.neo-theme .wsum-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #86a8e9;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+body.neo-theme .wsum-head {
+  position: relative;
+  overflow: hidden;
+}
+
+body.neo-theme .wsum-head::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  right: -80px;
+  top: -160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(101, 171, 255, 0.35), transparent 65%);
+  pointer-events: none;
+}
+
+body.neo-theme .wsum-table tbody tr {
+  border-bottom-color: rgba(127, 155, 210, 0.2);
+}
+
+body.neo-theme .wsum-table tbody tr:hover,
+body.neo-theme .enq-table tbody tr:hover {
+  background: rgba(88, 129, 214, 0.16) !important;
+}
+
+body.neo-theme .mk-hero-copy h1 {
+  font-size: clamp(2.2rem, 5vw, 4.4rem) !important;
+  line-height: 0.98 !important;
+}
+
+body.neo-theme .mk-chip {
+  background: rgba(86, 138, 255, 0.2) !important;
+  border-color: rgba(121, 167, 255, 0.55) !important;
+  color: #ddebff !important;
+}
+
+/* ===== GOAT full UI overhaul ===== */
+body.neo-theme{
+  --goat-bg:#070c15;
+  --goat-surface:#121b2c;
+  --goat-surface-2:#182339;
+  --goat-line:rgba(147,180,246,.28);
+  --goat-text:#ecf3ff;
+  --goat-muted:#a5b7d7;
+  --mx:0deg;
+  --my:0deg;
+}
+
+.fx-scene{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  overflow:hidden;
+  perspective:1200px;
+}
+.fx-orb,.fx-ring,.fx-cube{position:absolute;display:block;filter:blur(.2px);}
+.fx-orb{border-radius:50%;mix-blend-mode:screen;opacity:.65;}
+.fx-orb.orb-a{
+  width:420px;height:420px;left:-120px;top:-80px;
+  background:radial-gradient(circle at 30% 30%, rgba(131,180,255,.45), rgba(45,87,185,.05) 70%);
+  animation:floatA 16s ease-in-out infinite;
+}
+.fx-orb.orb-b{
+  width:360px;height:360px;right:-80px;top:20%;
+  background:radial-gradient(circle at 40% 40%, rgba(83,230,209,.30), rgba(40,92,168,.05) 70%);
+  animation:floatB 18s ease-in-out infinite;
+}
+.fx-ring{
+  width:460px;height:460px;right:18%;bottom:-180px;border-radius:50%;
+  border:1px solid rgba(123,164,245,.28);
+  box-shadow:0 0 80px rgba(97,146,255,.2), inset 0 0 80px rgba(97,146,255,.08);
+  transform:rotateX(68deg) rotateY(15deg);
+  animation:ringSpin 24s linear infinite;
+}
+.fx-cube{
+  width:120px;height:120px;left:18%;bottom:16%;
+  background:linear-gradient(145deg, rgba(137,170,255,.2), rgba(67,102,185,.08));
+  border:1px solid rgba(125,157,234,.4);
+  border-radius:18px;
+  transform-style:preserve-3d;
+  transform:rotateX(45deg) rotateY(30deg);
+  box-shadow:0 28px 50px rgba(0,0,0,.35);
+  animation:cubeSpin 14s linear infinite;
+}
+
+.os-shell,.mk-shell,.auth-wrap,.g-footer{position:relative;z-index:1;}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .os-topbar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .card,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card{
+  border:1px solid var(--goat-line)!important;
+  background:linear-gradient(165deg, rgba(20,31,50,.88), rgba(12,20,32,.92))!important;
+}
+
+body.neo-theme h1,body.neo-theme h2,body.neo-theme h3,body.neo-theme strong{color:var(--goat-text)!important}
+body.neo-theme p,body.neo-theme .page-sub,body.neo-theme .hint{color:var(--goat-muted)!important}
+
+body.neo-theme .mk-hero{position:relative;overflow:hidden}
+body.neo-theme .mk-hero-copy{padding:34px!important}
+body.neo-theme .mk-hero-preview{padding:30px!important;transform-style:preserve-3d}
+body.neo-theme .mk-3d-stack{height:120px;position:relative;margin-bottom:12px;perspective:1000px}
+body.neo-theme .mk-3d-card{
+  position:absolute;left:0;top:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:160px;padding:10px 14px;border-radius:12px;
+  color:#e9f3ff;font-size:12px;font-weight:600;letter-spacing:.04em;
+  background:linear-gradient(145deg, rgba(113,159,255,.28), rgba(45,78,158,.35));
+  border:1px solid rgba(140,176,255,.45);
+  box-shadow:0 12px 28px rgba(0,0,0,.25);
+  transform-style:preserve-3d;
+}
+body.neo-theme .card-one{transform:translate3d(18px,12px,34px) rotateX(22deg) rotateY(-20deg);animation:stackA 8s ease-in-out infinite}
+body.neo-theme .card-two{transform:translate3d(86px,42px,14px) rotateX(16deg) rotateY(-14deg);animation:stackB 8s ease-in-out infinite}
+body.neo-theme .card-three{transform:translate3d(178px,66px,2px) rotateX(12deg) rotateY(-10deg);animation:stackC 8s ease-in-out infinite}
+
+body.neo-theme .btn-primary,
+body.neo-theme .pub-nav-cta,
+body.neo-theme .g-btn-primary{
+  background:linear-gradient(180deg,#7db4ff,#4f85ea)!important;
+  border-color:rgba(152,188,255,.76)!important;
+  box-shadow:0 8px 18px rgba(62,112,214,.35)!important;
+}
+
+body.neo-theme .os-sidebar{transform:rotateY(calc(var(--mx) * .02));transform-origin:left center}
+body.neo-theme .wsum-head{transform:rotateX(calc(var(--my) * .06));transform-style:preserve-3d}
+body.neo-theme .wsum-card:hover,
+body.neo-theme .mk-section-grid article:hover,
+body.neo-theme .mk-how-grid article:hover,
+body.neo-theme .mk-proof-grid article:hover{transform:translateY(-4px);transition:transform .25s ease}
+
+@keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(30px)}}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+@keyframes ringSpin{from{transform:rotateX(68deg) rotateY(10deg) rotateZ(0)}to{transform:rotateX(68deg) rotateY(10deg) rotateZ(360deg)}}
+@keyframes cubeSpin{0%{transform:rotateX(45deg) rotateY(20deg)}50%{transform:rotateX(55deg) rotateY(200deg)}100%{transform:rotateX(45deg) rotateY(380deg)}}
+@keyframes stackA{0%,100%{transform:translate3d(18px,12px,34px) rotateX(22deg) rotateY(-20deg)}50%{transform:translate3d(26px,6px,52px) rotateX(26deg) rotateY(-24deg)}}
+@keyframes stackB{0%,100%{transform:translate3d(86px,42px,14px) rotateX(16deg) rotateY(-14deg)}50%{transform:translate3d(96px,34px,24px) rotateX(20deg) rotateY(-18deg)}}
+@keyframes stackC{0%,100%{transform:translate3d(178px,66px,2px) rotateX(12deg) rotateY(-10deg)}50%{transform:translate3d(166px,62px,12px) rotateX(16deg) rotateY(-14deg)}}
+
+@media(max-width:900px){
+  .fx-ring,.fx-cube,.mk-3d-stack{display:none}
+}
+
+/* ===== Three.js Full Website Redesign (final) ===== */
+#three-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+#three-bg canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.ui-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+.os-shell,
+.mk-shell,
+.auth-wrap,
+.flash-container,
+.g-footer,
+.public-page,
+.pp-shell,
+.bp-shell,
+.trk-wrap,
+.nrp-shell {
+  position: relative;
+  z-index: 2;
+}
+
+body.neo-theme {
+  background:
+    radial-gradient(120% 130% at 10% 0%, rgba(81, 130, 255, 0.2), transparent 52%),
+    radial-gradient(100% 120% at 90% 0%, rgba(67, 227, 205, 0.14), transparent 56%),
+    linear-gradient(180deg, #060b13 0%, #050911 60%, #04070d 100%) !important;
+  color: #e9f1ff !important;
+}
+
+body.neo-theme .os-sidebar,
+body.neo-theme .os-topbar,
+body.neo-theme .pub-nav,
+body.neo-theme .pub-nav-rebuild,
+body.neo-theme .card,
+body.neo-theme .kpi-card,
+body.neo-theme .kanban-col,
+body.neo-theme .wsum-card,
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview,
+body.neo-theme .mk-section-grid article,
+body.neo-theme .mk-how-grid article,
+body.neo-theme .mk-proof-grid article,
+body.neo-theme .mk-compare,
+body.neo-theme .mk-pricing,
+body.neo-theme .mk-faq,
+body.neo-theme .mk-cta-band,
+body.neo-theme .auth-card,
+body.neo-theme .auth-card-rebuild,
+body.neo-theme .pp-form-card,
+body.neo-theme .bp-status-card,
+body.neo-theme .bp-message,
+body.neo-theme .bp-cta-box,
+body.neo-theme .bp-detail,
+body.neo-theme .bp-brief-card,
+body.neo-theme .bp-creator-card,
+body.neo-theme .modal-box {
+  backdrop-filter: blur(16px);
+  background: linear-gradient(160deg, rgba(17, 27, 45, .86), rgba(9, 16, 29, .92)) !important;
+  border: 1px solid rgba(124, 157, 225, .35) !important;
+  box-shadow: 0 20px 44px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+body.neo-theme h1,
+body.neo-theme h2,
+body.neo-theme h3,
+body.neo-theme .nav-logo,
+body.neo-theme .os-brand strong,
+body.neo-theme .g-footer-logo { color: #f4f8ff !important; }
+
+body.neo-theme p,
+body.neo-theme .page-sub,
+body.neo-theme .hint,
+body.neo-theme .os-brand span,
+body.neo-theme .os-user small,
+body.neo-theme .os-nav-label,
+body.neo-theme .os-link,
+body.neo-theme .td-muted,
+body.neo-theme .etd-contact,
+body.neo-theme .er-meta { color: #a9bbd9 !important; }
+
+body.neo-theme .os-link {
+  border-radius: 12px !important;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+
+body.neo-theme .os-link.active {
+  color: #f8fbff !important;
+  background: linear-gradient(180deg, rgba(98, 145, 255, .34), rgba(82, 126, 230, .2)) !important;
+  border-color: rgba(143, 181, 255, .52) !important;
+}
+
+body.neo-theme .os-link:hover {
+  color: #eef5ff !important;
+  background: rgba(72, 104, 178, .2) !important;
+  border-color: rgba(120, 158, 242, .35) !important;
+}
+
+body.neo-theme .btn-primary,
+body.neo-theme .g-btn-primary,
+body.neo-theme .pub-nav-cta {
+  background: linear-gradient(180deg, #87b9ff 0%, #5889ea 100%) !important;
+  border: 1px solid rgba(167, 199, 255, .7) !important;
+  color: #f5f9ff !important;
+  box-shadow: 0 10px 24px rgba(64, 113, 208, .4) !important;
+}
+
+body.neo-theme .btn,
+body.neo-theme .cmd-btn,
+body.neo-theme .vt-btn {
+  background: rgba(18, 30, 49, .9) !important;
+  border-color: rgba(112, 146, 212, .35) !important;
+  color: #d4e2f9 !important;
+}
+
+body.neo-theme input,
+body.neo-theme textarea,
+body.neo-theme select {
+  background: rgba(9, 17, 30, .85) !important;
+  border-color: rgba(118, 154, 227, .4) !important;
+  color: #edf4ff !important;
+}
+
+body.neo-theme input:focus,
+body.neo-theme textarea:focus,
+body.neo-theme select:focus {
+  border-color: #84b4ff !important;
+  box-shadow: 0 0 0 3px rgba(101, 163, 255, .2) !important;
+}
+
+body.neo-theme .mk-shell { max-width: 1260px !important; }
+body.neo-theme .mk-hero { gap: 16px !important; }
+body.neo-theme .mk-hero-copy,
+body.neo-theme .mk-hero-preview { border-radius: 28px !important; padding: 36px !important; }
+body.neo-theme .mk-hero-copy h1 { font-size: clamp(2.6rem, 5.3vw, 5.1rem) !important; letter-spacing: -.05em !important; }
+body.neo-theme .mk-chip {
+  background: rgba(103, 152, 255, .2) !important;
+  border-color: rgba(145, 186, 255, .55) !important;
+  color: #d8e8ff !important;
+}
+
+body.neo-theme .wsum-head {
+  border-radius: 24px;
+  padding: 28px 30px !important;
+  background: linear-gradient(145deg, rgba(28, 48, 80, .92), rgba(12, 22, 35, .95)) !important;
+}
+body.neo-theme .wsum-head h1 { font-size: clamp(2.1rem, 4.3vw, 4.2rem) !important; }
+body.neo-theme .wsum-card { border-radius: 20px !important; }
+
+body.neo-theme .enq-table thead th,
+body.neo-theme .wsum-table thead th {
+  background: rgba(12, 21, 35, .85) !important;
+  color: #8fa7cf !important;
+}
+
+body.neo-theme .enq-table tbody tr:hover,
+body.neo-theme .wsum-table tbody tr:hover,
+body.neo-theme .enq-row:hover {
+  background: rgba(98, 138, 217, .16) !important;
+}
+
+body.neo-theme .auth-body {
+  background: transparent !important;
+}
+
+@media (max-width: 920px) {
+  #three-bg { opacity: .7; }
+  .ui-noise { opacity: .08; }
+}
