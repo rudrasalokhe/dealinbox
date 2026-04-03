@@ -24,7 +24,11 @@
         {% if connected %}
           <button class="btn btn-sm" onclick="disconnectIntegration('{{ p.key }}')">Disconnect</button>
         {% else %}
-          <button class="btn btn-gold btn-sm" onclick="connectIntegration('{{ p.key }}')">Connect</button>
+          {% if p.key in ['gmail', 'sheets'] %}
+            <button class="btn btn-gold btn-sm" onclick="startGoogleOAuth('{{ p.key }}')">Continue with Google</button>
+          {% else %}
+            <button class="btn btn-gold btn-sm" onclick="connectIntegration('{{ p.key }}')">Connect</button>
+          {% endif %}
         {% endif %}
       </div>
     </article>
@@ -48,8 +52,11 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+function startGoogleOAuth(provider){
+  window.location.href = `/integrations/google/start?provider=${encodeURIComponent(provider)}`;
+}
 async function connectIntegration(provider){
-  const token = prompt(`Paste a token/key for ${provider} (placeholder until OAuth is wired):`);
+  const token = prompt(`Paste a token/key for ${provider} integration:`);
   if(token === null) return;
   const res = await fetch('/api/integrations/connect', {
     method:'POST', headers:{'Content-Type':'application/json'},

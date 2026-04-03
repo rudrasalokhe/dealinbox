@@ -25,6 +25,9 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "alerts@dealsinbox.in")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "")
 # ── Razorpay config ───────────────────────────────────────────────────────────
 RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
@@ -158,6 +161,22 @@ def mask_secret(value):
     if len(raw) <= 6:
         return "*" * len(raw)
     return f"{raw[:2]}{'*' * (len(raw) - 4)}{raw[-2:]}"
+
+def google_oauth_scopes(provider):
+    base = [
+        "openid",
+        "email",
+        "profile",
+    ]
+    if provider == "gmail":
+        return base + [
+            "https://www.googleapis.com/auth/gmail.readonly",
+        ]
+    if provider == "sheets":
+        return base + [
+            "https://www.googleapis.com/auth/spreadsheets",
+        ]
+    return base
 def is_pro(user):
     if not user: return False
     if user.get("plan") == "pro": return True
@@ -1011,6 +1030,8 @@ def integrations_connect():
     provider = (data.get("provider") or "").strip().lower()
     if provider not in {"gmail", "sheets", "notion", "whatsapp"}:
         return api_error("invalid_provider", 400)
+    if provider in {"gmail", "sheets"}:
+        return api_error("use_google_oauth_start", 400)
     token = (data.get("token") or "").strip()
     config = data.get("config") if isinstance(data.get("config"), dict) else {}
     now_ts = now()
@@ -1031,6 +1052,105 @@ def integrations_connect():
     )
     log_integration(uid, provider, "connected", f"{provider} integration connected")
     return api_ok({"provider": provider, "status": "connected"})
+
+@app.route("/integrations/google/start")
+@login_required
+def integrations_google_start():
+    uid = session["uid"]
+    provider = (request.args.get("provider") or "").strip().lower()
+    if provider not in {"gmail", "sheets"}:
+        flash("Invalid Google integration provider.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not GOOGLE_CLIENT_ID:
+        flash("Google OAuth is not configured yet (missing GOOGLE_CLIENT_ID).", "error")
+        return redirect(url_for("integrations_hub"))
+    state = str(uuid.uuid4())
+    session[f"google_oauth_state_{provider}"] = state
+    redirect_uri = GOOGLE_OAUTH_REDIRECT_URI or url_for("integrations_google_callback", _external=True)
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(google_oauth_scopes(provider)),
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+        "state": f"{provider}:{state}",
+    }
+    query = "&".join([f"{k}={requests.utils.quote(str(v), safe='')}" for k, v in params.items()])
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{query}")
+
+@app.route("/integrations/google/callback")
+@login_required
+def integrations_google_callback():
+    uid = session["uid"]
+    code = (request.args.get("code") or "").strip()
+    state_raw = (request.args.get("state") or "").strip()
+    if ":" not in state_raw:
+        flash("Invalid OAuth state.", "error")
+        return redirect(url_for("integrations_hub"))
+    provider, state = state_raw.split(":", 1)
+    provider = provider.strip().lower()
+    if provider not in {"gmail", "sheets"}:
+        flash("Invalid OAuth provider.", "error")
+        return redirect(url_for("integrations_hub"))
+    expected = session.pop(f"google_oauth_state_{provider}", "")
+    if not expected or expected != state:
+        flash("OAuth state mismatch. Please try connecting again.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not code:
+        flash("Missing OAuth authorization code.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        flash("Google OAuth credentials are incomplete on the server.", "error")
+        return redirect(url_for("integrations_hub"))
+    redirect_uri = GOOGLE_OAUTH_REDIRECT_URI or url_for("integrations_google_callback", _external=True)
+    token_res = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        },
+        timeout=30,
+    )
+    if token_res.status_code >= 300:
+        app.logger.error("Google token exchange failed: %s", token_res.text[:500])
+        flash("Google OAuth exchange failed. Please try again.", "error")
+        log_integration(uid, provider, "oauth_failed", "token_exchange_failed")
+        return redirect(url_for("integrations_hub"))
+    payload = token_res.json()
+    access_token = (payload.get("access_token") or "").strip()
+    refresh_token = (payload.get("refresh_token") or "").strip()
+    if not access_token:
+        flash("Google OAuth did not return an access token.", "error")
+        log_integration(uid, provider, "oauth_failed", "missing_access_token")
+        return redirect(url_for("integrations_hub"))
+    now_ts = now()
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": {
+            "user_id": uid,
+            "provider": provider,
+            "status": "connected",
+            "oauth_provider": "google",
+            "token": access_token,
+            "token_masked": mask_secret(access_token),
+            "refresh_token": refresh_token,
+            "refresh_token_masked": mask_secret(refresh_token),
+            "scope": payload.get("scope", ""),
+            "token_type": payload.get("token_type", ""),
+            "expires_in": payload.get("expires_in", 0),
+            "connected_at": now_ts,
+            "updated_at": now_ts,
+        }, "$setOnInsert": {"created_at": now_ts}},
+        upsert=True
+    )
+    log_integration(uid, provider, "connected", f"{provider} connected via Google OAuth")
+    flash(f"{provider.title()} connected successfully via Google.", "success")
+    return redirect(url_for("integrations_hub"))
 
 @app.route("/api/integrations/<provider>/disconnect", methods=["POST"])
 @login_required
