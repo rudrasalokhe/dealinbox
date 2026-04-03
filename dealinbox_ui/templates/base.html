@@ -5,150 +5,144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}DealInbox{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="neo-theme theme-v2 {% block body_class %}{% endblock %}" data-scene="{% block scene_name %}none{% endblock %}">
-<div id="three-bg" aria-hidden="true"></div>
-<div class="ui-noise" aria-hidden="true"></div>
-
+<body class="{% block body_class %}{% endblock %}">
+{% set _content %}{% block content %}{% endblock %}{% endset %}
 {% if session.uid %}
-<div class="os-shell">
-  <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
+<div class="shell">
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <a href="{{ url_for('dashboard') }}" class="sb-logo-link">
+        <span class="sb-mark">D</span>
+        <span>
+          <strong>DealInbox</strong>
+          <small>Creator OS</small>
+        </span>
+      </a>
+    </div>
 
-  <aside class="os-sidebar sidebar">
-    <div class="os-brand">
-      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="logo">
+    <div class="sb-user">
+      <div class="sb-avatar">{{ session.name[0].upper() if session.name else 'U' }}</div>
       <div>
-        <strong>DealInbox</strong>
-        <span>Revenue cockpit for creators</span>
+        <b>{{ session.name or 'Creator' }}</b>
+        <span>@{{ session.username }}</span>
       </div>
     </div>
 
-    <div class="os-user">
-      <div class="os-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
-      <div>
-        <p>{{ session.name }}</p>
-        <small>@{{ session.username }}</small>
-      </div>
+    <div class="sb-section">
+      <p>Workspace</p>
+      <a class="sb-item {% if request.path == '/dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a class="sb-item {% if '/enquir' in request.path %}active{% endif %}" href="{{ url_for('enquiries_page') }}">Brand Deals {% set nc = new_enquiry_count() %}{% if nc %}<em>{{ nc }}</em>{% endif %}</a>
+      <a class="sb-item {% if request.path == '/analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">Analytics</a>
+      <a class="sb-item {% if request.path == '/marketplace' %}active{% endif %}" href="{{ url_for('marketplace_page') }}">Marketplace</a>
+      <a class="sb-item {% if request.path == '/heatmap' %}active{% endif %}" href="{{ url_for('heatmap_page') }}">Heatmap</a>
+      <a class="sb-item {% if request.path == '/community' %}active{% endif %}" href="{{ url_for('community_feed_page') }}">Community</a>
+      <a class="sb-item {% if request.path == '/intel' %}active{% endif %}" href="{{ url_for('deal_intel_page') }}">Deal Intel</a>
     </div>
 
-    <div class="os-nav-group">
-      <p class="os-nav-label">Workspace</p>
-      <nav class="os-nav">
-        <a href="{{ url_for('dashboard') }}" class="os-link {% if request.path == '/dashboard' %}active{% endif %}">🏠 Creator HQ</a>
-        <a href="{{ url_for('enquiries_page') }}" class="os-link {% if '/enquir' in request.path %}active{% endif %}">💼 Brand Opportunities{% set new_c = new_enquiry_count() %}{% if new_c %}<span>{{ new_c }}</span>{% endif %}</a>
-        <a href="{{ url_for('heatmap_page') }}" class="os-link {% if request.path == '/heatmap' %}active{% endif %}">🔥 Priority Board</a>
-        <a href="{{ url_for('analytics') }}" class="os-link {% if request.path == '/analytics' %}active{% endif %}">📈 Creator Earnings</a>
-      </nav>
+    <div class="sb-section">
+      <p>Growth</p>
+      <a class="sb-item {% if request.path == '/positioning' %}active{% endif %}" href="{{ url_for('positioning') }}">Positioning</a>
+      <a class="sb-item {% if request.path == '/rate-card' %}active{% endif %}" href="{{ url_for('rate_card_page') }}">Rate Card</a>
+      <a class="sb-item {% if request.path == '/marketplace/manage' %}active{% endif %}" href="{{ url_for('marketplace_manage_page') }}">Manage Slots</a>
+      <a class="sb-item {% if request.path == '/dashboard/integrations' %}active{% endif %}" href="{{ url_for('integrations_hub') }}">Integrations</a>
+      <a class="sb-item {% if request.path == '/settings' %}active{% endif %}" href="{{ url_for('settings') }}">Settings</a>
+      <a class="sb-item" target="_blank" href="{{ url_for('public_page', username=session.username) }}">Public page ↗</a>
+      <a class="sb-item" href="{{ url_for('logout') }}">Log out</a>
     </div>
 
-    <div class="os-nav-group">
-      <p class="os-nav-label">Growth</p>
-      <nav class="os-nav">
-        <a href="{{ url_for('positioning') }}" class="os-link {% if request.path == '/positioning' %}active{% endif %}">🧬 Positioning</a>
-        <a href="{{ url_for('settings') }}" class="os-link {% if request.path == '/settings' %}active{% endif %}">⚙️ Profile & Settings</a>
-        {% if session.get('plan','free') != 'pro' %}
-        <a href="{{ url_for('upgrade') }}" class="os-link os-link-upgrade {% if request.path == '/upgrade' %}active{% endif %}">✨ Upgrade to Pro</a>
-        {% endif %}
-      </nav>
+    {% if session.get('plan') != 'pro' %}
+    <div class="sb-upgrade">
+      <h4>Upgrade to Pro</h4>
+      <p>Unlock analytics, exports, and unlimited pipeline workflows.</p>
+      <a href="{{ url_for('upgrade') }}" class="btn btn-gold btn-full">Upgrade</a>
     </div>
-
-    <div class="os-sidebar-foot">
-      <a href="{{ url_for('public_page', username=session.username) }}" target="_blank" class="os-link">↗ Public collab page</a>
-      <a href="{{ url_for('logout') }}" class="os-link">→ Log out</a>
-    </div>
+    {% endif %}
   </aside>
 
-  <main class="os-main">
-    <header class="os-topbar">
-      <span class="theme-chip">NEO LUXE UI</span>
-      <button class="cmd-btn" onclick="toggleCommandBar()">⌘K Jump to brands, deals, reminders</button>
-      <div class="os-top-actions">
-        <a class="os-pill" href="{{ url_for('settings') }}">{{ session.get("plan", "free")|upper }} PLAN</a>
-        <a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-sm">Upgrade</a>
-      </div>
+  <main class="main">
+    <header class="topbar">
+      <button id="menu-btn" class="btn btn-ghost btn-sm menu-btn">☰</button>
+      <h1>{% block topbar_title %}DealInbox{% endblock %}</h1>
+      <button class="cmd-trigger" onclick="toggleCommandPalette(true)">Search <kbd>⌘K</kbd></button>
+      <span class="plan-pill">{{ session.get('plan','free')|upper }}</span>
+      {% if session.get('plan') != 'pro' %}<a href="{{ url_for('upgrade') }}" class="btn btn-gold btn-sm">Upgrade</a>{% endif %}
     </header>
 
-    <div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
-    <div class="command-palette" id="commandPalette">
-      <input type="search" id="globalSearch" placeholder="Search brand, campaign, budget, or note..." oninput="runGlobalSearch(this.value)">
-      <div id="globalSearchResults" class="gs-results"></div>
+    <div class="command-palette" id="command-palette">
+      <input type="search" id="globalSearch" placeholder="Search brand, budget, notes..." oninput="runGlobalSearch(this.value)">
+      <div id="globalSearchResults"></div>
     </div>
 
-    <section class="os-content">
+    <section class="content">
+      {{ _content|safe }}
+    </section>
+  </main>
+</div>
 {% else %}
-{% block public_nav %}
-<nav class="pub-nav pub-nav-rebuild">
-  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px; object-fit:cover; vertical-align:middle; margin-right:6px;"> DealInbox CreatorOS</a>
-  <div class="pub-nav-center">
-    <a href="#home">Home</a>
-    <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#faq">FAQ</a>
-  </div>
-  <div class="pub-nav-right">
-    <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
-    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Launch workspace</a>
-  </div>
-</nav>
-{% endblock %}
+  {% block public_nav %}
+  <nav class="pub-nav">
+    <a class="pub-logo" href="{{ url_for('index') }}">DealInbox</a>
+    <div class="pub-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#brands">For Brands</a>
+    </div>
+    <div class="pub-actions">
+      <a class="pub-login" href="{{ url_for('login') }}">Log in</a>
+      <a class="pub-cta" href="{{ url_for('signup') }}">Get started</a>
+    </div>
+  </nav>
+  {% endblock %}
+
+  {{ _content|safe }}
+
+  <footer class="g-footer">
+    <div class="g-foot-grid">
+      <div><h4>DealInbox</h4><p>Creator revenue OS for inbound brand deals.</p></div>
+      <div><h4>Product</h4><a href="#features">Features</a><a href="#pricing">Pricing</a></div>
+      <div><h4>Company</h4><a href="{{ url_for('login') }}">Login</a><a href="{{ url_for('signup') }}">Signup</a></div>
+      <div><h4>Legal</h4><a href="#">Privacy</a><a href="#">Terms</a></div>
+    </div>
+    <div class="g-copy">© 2026 DealInbox</div>
+  </footer>
 {% endif %}
 
 <div class="flash-container">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
-      <div class="flash flash-{{ cat }}">{{ msg }}<button class="flash-close" onclick="this.parentElement.remove()">×</button></div>
+      <div class="flash flash-{{ 'error' if cat == 'error' else 'success' }}">{{ msg }}<button onclick="this.parentElement.remove()">×</button></div>
     {% endfor %}
   {% endwith %}
 </div>
 
-{% block content %}{% endblock %}
 
-{% if session.uid %}
-    </section>
-  </main>
-</div>
-{% else %}
-<footer class="g-footer">
-  <div class="g-footer-inner">
-    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px; object-fit:cover; vertical-align:middle; margin-right:5px;"> DealInbox CreatorOS</span>
-    <span>From collab request to signed campaign — run your creator business like a pro.</span>
-    <span>© 2026</span>
-  </div>
-</footer>
-{% endif %}
-
-<script src="{{ url_for('static', filename='js/three-scenes.js') }}"></script>
-<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script src="{{ url_for('static', filename='js/react-ui.js') }}"></script>
 {% block extra_js %}{% endblock %}
-{% block threejs %}{% endblock %}
 <script>
-function toggleCommandBar(force){
-  const p=document.getElementById('commandPalette');
-  const o=document.getElementById('commandOverlay');
-  if(!p||!o)return;
-  const open = typeof force === 'boolean' ? force : !p.classList.contains('open');
-  p.classList.toggle('open', open); o.classList.toggle('open', open);
-  if(open){setTimeout(()=>document.getElementById('globalSearch')?.focus(),50);}
+function toggleCommandPalette(force){
+  const p = document.getElementById('command-palette');
+  if(!p) return;
+  p.classList.toggle('open', typeof force === 'boolean' ? force : !p.classList.contains('open'));
+  if (p.classList.contains('open')) document.getElementById('globalSearch')?.focus();
 }
 async function runGlobalSearch(q){
-  const box=document.getElementById('globalSearchResults');
-  if(!box)return;
-  if(!q || q.length<2){box.innerHTML='<p class="empty-small">Type at least 2 characters…</p>';return;}
-  const res=await fetch('/api/search?q='+encodeURIComponent(q));
-  const data=await res.json();
-  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching opportunities.</p>';return;}
-  box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
+  const box = document.getElementById('globalSearchResults');
+  if(!box) return;
+  if(!q || q.length < 2){ box.innerHTML = '<div class="gs-item"><strong>Type 2+ characters</strong><span>Search your enquiries</span></div>'; return; }
+  const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+  const d = await r.json();
+  box.innerHTML = (d.results || []).map(x => `<a class="gs-item" href="/enquiries/${x.id}"><strong>${x.brand}</strong><span>${x.status} · ${x.budget || 'Budget TBD'} · ${x.date}</span></a>`).join('') || '<div class="gs-item"><strong>No results</strong></div>';
 }
-document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});
+document.addEventListener('keydown', (e) => {
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); toggleCommandPalette(true); }
+  if(e.key === 'Escape') toggleCommandPalette(false);
+});
 </script>
-
 </body>
 </html>

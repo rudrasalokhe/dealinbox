@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Integrations — DealInbox{% endblock %}
+{% block topbar_title %}Integrations{% endblock %}
+{% block content %}
+<div class="card fade-in" style="padding:18px">
+  <h3>Integrations Hub</h3>
+  <p style="color:var(--t2);margin-top:6px">Connect tools like Gmail, Google Sheets, Notion, and WhatsApp to sync inbound activity into your deal workflow.</p>
+</div>
+
+<div style="display:grid;gap:12px;margin-top:12px">
+  {% for p in providers %}
+    {% set st = statuses.get(p.key) %}
+    {% set connected = st and st.get('status') == 'connected' %}
+    <article class="card fade-in" style="padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <h4 style="margin:0">{{ p.label }}</h4>
+        <p style="margin:4px 0 0;color:var(--t2)">{{ p.desc }}</p>
+        <small style="color:var(--t2)">
+          Status: <b style="color:{{ '#22c55e' if connected else '#f59e0b' }}">{{ 'Connected' if connected else 'Disconnected' }}</b>
+          {% if st and st.get('updated_at') %} · Updated {{ fmt_dt(st.get('updated_at')) }}{% endif %}
+        </small>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        {% if connected %}
+          <button class="btn btn-sm" onclick="disconnectIntegration('{{ p.key }}')">Disconnect</button>
+        {% else %}
+          {% if p.key in ['gmail', 'sheets'] %}
+            <button class="btn btn-gold btn-sm" onclick="startGoogleOAuth('{{ p.key }}')">Continue with Google</button>
+          {% else %}
+            <button class="btn btn-gold btn-sm" onclick="connectIntegration('{{ p.key }}')">Connect</button>
+          {% endif %}
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
+</div>
+
+<section class="card fade-in" style="padding:16px;margin-top:12px">
+  <h4 style="margin:0 0 8px">Recent integration activity</h4>
+  <div style="display:grid;gap:8px">
+    {% for row in recent_logs %}
+      <div class="card" style="padding:10px">
+        <b>{{ row.provider|upper }}</b> · {{ row.event }}
+        {% if row.detail %}<div style="color:var(--t2);margin-top:3px">{{ row.detail }}</div>{% endif %}
+        <small style="color:var(--t2)">{{ fmt_dt(row.created_at) }}</small>
+      </div>
+    {% else %}
+      <div style="color:var(--t2)">No activity yet.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+function startGoogleOAuth(provider){
+  window.location.href = `/integrations/google/start?provider=${encodeURIComponent(provider)}`;
+}
+async function connectIntegration(provider){
+  const token = prompt(`Paste a token/key for ${provider} integration:`);
+  if(token === null) return;
+  const res = await fetch('/api/integrations/connect', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({provider, token, config:{source:'manual_placeholder'}})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success){ alert('Unable to connect integration.'); return; }
+  location.reload();
+}
+async function disconnectIntegration(provider){
+  const res = await fetch(`/api/integrations/${provider}/disconnect`, {method:'POST'});
+  const data = await res.json();
+  if(!res.ok || !data.success){ alert('Unable to disconnect integration.'); return; }
+  location.reload();
+}
+</script>
+{% endblock %}
