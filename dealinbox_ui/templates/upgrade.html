@@ -1,144 +1,21 @@
 {% extends "base.html" %}
-{% block scene_name %}gold-rush{% endblock %}
-{% block title %}Upgrade to Creator Pro — DealInbox{% endblock %}
-{% block extra_head %}
-{% if use_razorpay %}<script src="https://checkout.razorpay.com/v1/checkout.js"></script>{% endif %}
-{% endblock %}
-
+{% block title %}Upgrade — DealInbox{% endblock %}
+{% block topbar_title %}Upgrade{% endblock %}
+{% block extra_head %}{% if use_razorpay %}<script src="https://checkout.razorpay.com/v1/checkout.js"></script>{% endif %}{% endblock %}
 {% block content %}
-<div class="billing-shell">
-  <section class="billing-hero billing-hero-rebuild">
-    <div>
-      <p class="db-eyebrow">Creator Pro</p>
-      <h1>Scale your creator operations with premium revenue workflows.</h1>
-      <p>Unlock unlimited opportunities, advanced creator earnings analytics, and higher-performance pipeline tools.</p>
-    </div>
-    <a href="{{ url_for('dashboard') }}" class="btn">Back to Creator HQ</a>
-  </section>
-
-  {% if on_free_window %}
-  <section class="billing-banner">
-    <strong>You are in your 2-month free Pro window.</strong>
-    <p>Enjoy full Pro tools now. Payment only starts after the trial period.</p>
-  </section>
-  {% endif %}
-
-  <div class="billing-layout-rebuild">
-    <section class="billing-card billing-card-xl">
-      <h2>Plan comparison</h2>
-      <div class="billing-table">
-        <div><span>Feature</span><span>Starter</span><span>Creator Pro</span></div>
-        <div><span>Brand opportunities / month</span><span>20</span><span>Unlimited</span></div>
-        <div><span>Deal pipeline management</span><span>✓</span><span>✓</span></div>
-        <div><span>Brand status portal links</span><span>✓</span><span>✓</span></div>
-        <div><span>Creator earnings analytics</span><span>—</span><span>✓</span></div>
-        <div><span>CSV export + reporting</span><span>—</span><span>✓</span></div>
-        <div><span>Priority support</span><span>—</span><span>✓</span></div>
-      </div>
-      <div class="premium-empty" style="margin-top:12px">
-        <h3>Why teams upgrade</h3>
-        <p>Creators and managers use Pro to avoid hitting limits and maintain daily visibility across negotiations and campaign value.</p>
-      </div>
-    </section>
-
-    <section class="billing-card checkout">
-      <p class="checkout-label">Creator Pro subscription</p>
-      <h2>₹{{ pro_price }}<span>/month</span></h2>
-      <p class="checkout-sub">Select a duration and activate instantly.</p>
-
-      <div class="upi-month-opts" id="monthOpts">
-        <button class="umo active" data-m="1" onclick="setMonths(this,1)">1 month<br><small>₹{{ pro_price }}</small></button>
-        <button class="umo" data-m="3" onclick="setMonths(this,3)">3 months<br><small>₹{{ pro_price * 3 }}</small></button>
-        <button class="umo" data-m="6" onclick="setMonths(this,6)">6 months<br><small>₹{{ pro_price * 6 }}</small></button>
-      </div>
-
-      {% if use_razorpay %}
-      <button id="rzpBtn" class="btn btn-primary btn-full" onclick="startRazorpay()">Pay ₹<span id="rzpAmount">{{ pro_price }}</span> via Razorpay</button>
-      <div id="rzpMsg" class="empty-small" style="display:none"></div>
-      <div class="bill-sep"><span>or pay manually with UPI</span></div>
-      {% endif %}
-
-      <div class="upi-pay-section">
-        <div class="upi-qr-wrap">
-          <img id="upiQr" src="" alt="UPI QR" class="upi-qr-img" style="display:none">
-          <div class="upi-qr-loader" id="upiQrLoader">Generating QR…</div>
-        </div>
-        <a id="upiDeepLink" href="#" class="btn btn-full" target="_blank">Open in UPI app →</a>
-        <div class="upi-id-row">UPI ID: <strong id="upiIdDisplay">{{ upi_id }}</strong>
-          <button class="upi-copy-btn" onclick="navigator.clipboard.writeText('{{ upi_id }}').then(()=>showToast('Copied!'))">Copy</button>
-        </div>
-      </div>
-
-      <form method="POST" action="{{ url_for('upgrade_submit') }}" class="manual-submit">
-        <input type="hidden" name="months" id="monthsInput" value="1">
-        <div class="fg"><label>UPI transaction ID</label><input type="text" name="txn_id" required pattern="[A-Za-z0-9]{8,30}" placeholder="e.g. 426781234567"></div>
-        <button type="submit" class="btn btn-full">Submit manual payment</button>
-      </form>
-    </section>
-  </div>
+<div class="page-head"><div><h1>Upgrade to Pro</h1><p class="page-sub">Unlock advanced creator workflows.</p></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="up-grid">
+  <div class="card" style="padding:24px"><h3>Free</h3><div class="kpi-val">₹0</div><p style="color:var(--t2)">Core tools with monthly limits.</p></div>
+  <div class="card" style="padding:24px;border-color:rgba(255,255,255,.16)"><h3>Pro</h3><div class="kpi-val">₹{{ pro_price }}</div><p style="color:var(--t2)">Unlimited deals, analytics, exports.</p><div style="margin:12px 0"><button class="btn btn-gold" onclick="setMonths(this,1)">1 mo</button><button class="btn" onclick="setMonths(this,3)">3 mo</button><button class="btn" onclick="setMonths(this,6)">6 mo</button></div>{% if use_razorpay %}<button id="rzpBtn" class="btn btn-primary btn-full" onclick="startRazorpay()">Pay via Razorpay</button>{% endif %}<a id="upiDeepLink" class="btn btn-full" target="_blank" href="#" style="margin-top:8px">Open in UPI app →</a><form method="POST" action="{{ url_for('upgrade_submit') }}" style="margin-top:10px"><input type="hidden" name="months" id="monthsInput" value="1"><div class="fg"><label>UPI transaction ID</label><input name="txn_id" required></div><button class="btn btn-full" type="submit">Submit manual payment</button></form></div>
 </div>
-
 <script>
-const UPI_ID     = "{{ upi_id }}";
-const UPI_NAME   = "{{ upi_name }}";
-const PRICE      = {{ pro_price }};
-const USE_RZP    = {{ 'true' if use_razorpay else 'false' }};
-const USER_EMAIL = "{{ session.email }}";
-const USER_NAME  = "{{ session.name }}";
-let currentMonths = 1;
-
-function setMonths(btn, m) {
-  document.querySelectorAll('.umo').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentMonths = m;
-  document.getElementById('monthsInput').value = m;
-  const el = document.getElementById('rzpAmount');
-  if (el) el.textContent = (PRICE * m).toLocaleString('en-IN');
-  updateUPI();
-}
-function updateUPI() {
-  const amount  = (PRICE * currentMonths).toFixed(2);
-  const note    = 'DealInbox Pro ' + currentMonths + 'mo';
-  const deepUrl = 'upi://pay?pa=' + encodeURIComponent(UPI_ID) + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + amount + '&cu=INR&tn=' + encodeURIComponent(note);
-  document.getElementById('upiDeepLink').href = deepUrl;
-  const qrData = encodeURIComponent(deepUrl);
-  const qrUrl  = 'https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=' + qrData + '&choe=UTF-8';
-  const img    = document.getElementById('upiQr');
-  const loader = document.getElementById('upiQrLoader');
-  img.style.display = 'none'; loader.style.display = 'flex';
-  img.onload  = () => { loader.style.display = 'none'; img.style.display = 'block'; };
-  img.onerror = () => { loader.textContent = 'QR unavailable — use UPI ID directly'; };
-  img.src = qrUrl;
-}
+const UPI_ID="{{ upi_id }}",UPI_NAME="{{ upi_name }}",PRICE={{ pro_price }},USER_EMAIL="{{ session.email }}",USER_NAME="{{ session.name }}";let currentMonths=1;
+function setMonths(_,m){currentMonths=m;document.getElementById('monthsInput').value=m;updateUPI();}
+function updateUPI(){const amount=(PRICE*currentMonths).toFixed(2);document.getElementById('upiDeepLink').href='upi://pay?pa='+encodeURIComponent(UPI_ID)+'&pn='+encodeURIComponent(UPI_NAME)+'&am='+amount+'&cu=INR';}
 {% if use_razorpay %}
-function startRazorpay() {
-  const btn = document.getElementById('rzpBtn');
-  const msg = document.getElementById('rzpMsg');
-  btn.disabled = true; btn.textContent = 'Creating order…'; msg.style.display = 'none';
-  fetch('/upgrade/create-order', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({months: currentMonths})})
-  .then(r => r.json()).then(data => {
-    if (data.error) throw new Error(data.error);
-    const rzp = new Razorpay({
-      key: data.key, amount: data.amount, currency: data.currency, name: 'DealInbox', description: 'Pro Plan',
-      order_id: data.order_id, prefill: {name: USER_NAME, email: USER_EMAIL}, theme: {color: '#6366f1'},
-      handler: function(response) {
-        msg.style.display = 'block'; msg.textContent = 'Verifying payment…';
-        fetch('/upgrade/verify', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(response)})
-        .then(r => r.json()).then(res => {
-          if (res.ok) { showToast('Pro activated! Redirecting…'); setTimeout(() => window.location.href = '/dashboard', 1500); }
-          else { throw new Error(res.error || 'Verification failed'); }
-        }).catch(err => { msg.textContent = err.message || 'Payment verification failed'; btn.disabled = false; btn.textContent = 'Retry payment'; });
-      }
-    });
-    rzp.on('payment.failed', function (r) {
-      msg.style.display = 'block'; msg.textContent = 'Payment failed: ' + (r.error && r.error.description ? r.error.description : 'Try again');
-      btn.disabled = false; btn.textContent = 'Retry payment';
-    });
-    rzp.open();
-    btn.disabled = false; btn.textContent = 'Pay ₹' + (PRICE * currentMonths).toLocaleString('en-IN') + ' via Razorpay';
-  }).catch(err => { msg.style.display = 'block'; msg.textContent = err.message || 'Could not start payment'; btn.disabled = false; btn.textContent = 'Retry payment'; });
-}
+function startRazorpay(){fetch('/upgrade/create-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({months:currentMonths})}).then(r=>r.json()).then(data=>{if(data.error) throw new Error(data.error);const rzp=new Razorpay({key:data.key,amount:data.amount,currency:data.currency,name:'DealInbox',order_id:data.order_id,prefill:{name:USER_NAME,email:USER_EMAIL},handler:(resp)=>fetch('/upgrade/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(resp)}).then(x=>x.json()).then(v=>{if(v.ok)window.location='/dashboard';})});rzp.open();});}
 {% endif %}
-window.addEventListener('load', updateUPI);
+window.addEventListener('load',updateUPI);
 </script>
+<style>@media(max-width:900px){.up-grid{grid-template-columns:1fr!important}}</style>
 {% endblock %}
