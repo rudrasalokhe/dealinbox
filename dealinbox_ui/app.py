@@ -92,6 +92,14 @@ gmail_threads_col = db["gmail_threads"]
 whatsapp_messages_col = db["whatsapp_messages"]
 notion_pages_col = db["notion_pages"]
 sheets_config_col = db["sheets_config"]
+rate_cards_col = db["rate_cards"]
+retainers_col = db["retainers"]
+squads_col = db["squads"]
+marketplace_slots_col = db["marketplace_slots"]
+content_drafts_col = db["content_drafts"]
+disputes_col = db["disputes"]
+achievements_col = db["achievements"]
+referrals_col = db["referrals"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -103,8 +111,13 @@ def setup_db():
         users_col.create_index("email", unique=True, sparse=True)
         users_col.create_index("username", unique=True, sparse=True)
         enquiries.create_index([("user_id", 1), ("created_at", -1)])
+        enquiries.create_index([("tracking_token", 1)])
         activity_col.create_index([("user_id", 1), ("created_at", -1)])
         payments_col.create_index([("user_id", 1), ("created_at", -1)])
+        rate_cards_col.create_index([("creator_id", 1), ("format", 1)], unique=True)
+        content_drafts_col.create_index([("deal_id", 1), ("version", -1)])
+        marketplace_slots_col.create_index([("creator_id", 1), ("status", 1)])
+        referrals_col.create_index([("referrer_id", 1), ("created_at", -1)])
         print(f"DB ready ({DB_NAME})")
     except Exception as e:
         print(f"DB setup failed: {e}")
@@ -402,6 +415,7 @@ STATUSES = {
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
     "accepted":   {"label": "Accepted",   "color": "#10b981"},
     "negotiating":{"label": "Negotiating","color": "#3b82f6"},
+    "content_approved":{"label": "Content Approved","color": "#14b8a6"},
     "closed":     {"label": "Closed",     "color": "#22c55e"},
     "declined":   {"label": "Declined",   "color": "#ef4444"},
 }
@@ -410,6 +424,15 @@ BUDGETS   = ["Under Rs.5,000","Rs.5,000-Rs.10,000","Rs.10,000-Rs.25,000",
              "Rs.25,000-Rs.50,000","Rs.50,000-Rs.1,00,000","Rs.1,00,000+","Open to discuss"]
 FREE_ENQUIRY_LIMIT = 20
 PRO_PRICE_INR      = 199
+CONTENT_FORMATS = [
+    "YouTube Integration",
+    "Reel",
+    "Story",
+    "LinkedIn Post",
+    "Podcast Mention",
+    "Newsletter",
+    "Live Stream",
+]
 UPI_ID   = os.getenv("UPI_ID",   "dealinbox@upi")
 UPI_NAME = os.getenv("UPI_NAME", "DealInbox")
 @app.context_processor
@@ -960,6 +983,85 @@ def toggle_anonymous():
     log(uid, "Anonymous mode " + ("enabled" if enabled else "disabled"))
     return jsonify({"ok": True, "enabled": enabled})
 
+def suggested_rate_for_creator(user, content_format):
+    followers_raw = (user or {}).get("followers", "")
+    followers = parse_budget_num(str(followers_raw))
+    if followers <= 0:
+        digits = re.sub(r"[^0-9]", "", str(followers_raw or ""))
+        followers = int(digits or 0)
+    niche = ((user or {}).get("niche") or "").strip().lower()
+    niche_multiplier = {
+        "finance": 1.25,
+        "tech": 1.2,
+        "business": 1.2,
+        "beauty": 1.05,
+        "fashion": 1.05,
+        "gaming": 1.15,
+    }.get(niche, 1.0)
+    base_per_10k = {
+        "YouTube Integration": 7000,
+        "Reel": 3500,
+        "Story": 1800,
+        "LinkedIn Post": 2800,
+        "Podcast Mention": 4500,
+        "Newsletter": 3000,
+        "Live Stream": 8500,
+    }.get(content_format, 3000)
+    followers_units = max(1, followers / 10000)
+    suggestion = int(base_per_10k * followers_units * niche_multiplier)
+    return max(2500, suggestion)
+
+@app.route("/rate-card")
+@login_required
+def rate_card_page():
+    uid = session["uid"]
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    rates = list(rate_cards_col.find({"creator_id": uid}))
+    by_format = {r.get("format"): r for r in rates}
+    return render_template("rate_card.html", content_formats=CONTENT_FORMATS, by_format=by_format, user=user)
+
+@app.route("/api/rate-card/suggested")
+@login_required
+def rate_card_suggested():
+    uid = session["uid"]
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    out = {}
+    for content_format in CONTENT_FORMATS:
+        out[content_format] = suggested_rate_for_creator(user, content_format)
+    return jsonify({"ok": True, "suggested": out})
+
+@app.route("/api/rate-card", methods=["POST"])
+@login_required
+def save_rate_card():
+    uid = session["uid"]
+    data = json_body()
+    content_format = (data.get("format") or "").strip()
+    if content_format not in CONTENT_FORMATS:
+        return jsonify({"ok": False, "error": "invalid_format"}), 400
+    try:
+        base_rate = int(data.get("base_rate", 0))
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_base_rate"}), 400
+    variables = data.get("variables_json") if isinstance(data.get("variables_json"), dict) else {}
+    defaults = {"usage_rights_pct": 20, "exclusivity_pct": 30, "rush_fee_pct": 15, "raw_footage_pct": 10}
+    for key, val in defaults.items():
+        try:
+            defaults[key] = int(variables.get(key, val))
+        except Exception:
+            pass
+    rate_cards_col.update_one(
+        {"creator_id": uid, "format": content_format},
+        {"$set": {
+            "creator_id": uid,
+            "format": content_format,
+            "base_rate": max(0, base_rate),
+            "variables_json": defaults,
+            "updated_at": now(),
+        }, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True})
+
 @app.route("/dashboard/integrations")
 @login_required
 def integrations_hub():
@@ -1176,6 +1278,29 @@ def public_page(username):
         return render_template("404.html"), 404
     return render_template("public_page.html",
                            user=user, platforms=PLATFORMS, budgets=BUDGETS)
+
+@app.route("/u/<username>")
+def creator_portfolio_page(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return render_template("404.html"), 404
+    uid = str(user.get("_id"))
+    rates = list(rate_cards_col.find({"creator_id": uid}).sort("format", 1))
+    wins = enquiries.count_documents({"user_id": uid, "status": {"$in": ["accepted", "closed", "content_approved"]}})
+    total = enquiries.count_documents({"user_id": uid})
+    badges = list(achievements_col.find({"creator_id": uid}).sort("unlocked_at", DESCENDING).limit(6))
+    meta_title = f"{user.get('name') or username} | {user.get('niche') or 'Creator'} Creator Portfolio"
+    meta_desc = f"Book {user.get('name') or username} for brand collaborations. Platform: {user.get('platform') or 'Creator'}."
+    return render_template(
+        "portfolio.html",
+        user=user,
+        rates=rates,
+        wins=wins,
+        total=total,
+        badges=badges,
+        meta_title=meta_title,
+        meta_desc=meta_desc,
+    )
 @app.route("/@<username>/submit", methods=["POST"])
 def submit_enquiry(username):
     user = users_col.find_one({"username": username})
@@ -1306,18 +1431,22 @@ def brand_portal(token):
         return render_template("404.html"), 404
     BRAND_STEPS = [
         {"key":"submitted","title":"Enquiry submitted","sub":"Your enquiry is in their inbox.",
-         "statuses":["new","reviewing","negotiating","accepted","closed","declined"]},
+         "statuses":["new","reviewing","negotiating","accepted","content_approved","closed","declined"]},
         {"key":"reviewing","title":"Under review","sub":f"{(creator.get('name') or 'Creator').split()[0]} is looking at your brief.",
-         "statuses":["reviewing","negotiating","accepted","closed","declined"]},
+         "statuses":["reviewing","negotiating","accepted","content_approved","closed","declined"]},
         {"key":"negotiating","title":"In discussion","sub":"Details are being worked out.",
-         "statuses":["negotiating","accepted","closed"]},
+         "statuses":["negotiating","accepted","content_approved","closed"]},
         {"key":"accepted","title":"Deal accepted","sub":"The collaboration is confirmed.",
-         "statuses":["accepted","closed"]},
+         "statuses":["accepted","content_approved","closed"]},
+        {"key":"content_approved","title":"Content approved","sub":"Draft approved by brand.",
+         "statuses":["content_approved","closed"]},
         {"key":"closed","title":"Deal closed","sub":"All done - great collaboration!",
          "statuses":["closed"]},
     ]
+    drafts = list(content_drafts_col.find({"deal_id": str(enq.get("_id"))}).sort("version", DESCENDING))
     return render_template("brand_portal.html",
                            enq=enq, creator=creator,
+                           drafts=drafts,
                            brand_steps=BRAND_STEPS,
                            current_status=enq.get("status","new"),
                            STATUSES=STATUSES, fmt_dt=fmt_dt)
@@ -1757,6 +1886,144 @@ def save_reply_draft(eid):
         upsert=True
     )
     return jsonify({"ok": True})
+
+@app.route("/api/enquiry/<eid>/content-drafts", methods=["GET", "POST"])
+@login_required
+def content_drafts_api(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if request.method == "GET":
+        rows = list(content_drafts_col.find({"deal_id": str(enquiry_id), "creator_id": uid}).sort("version", DESCENDING))
+        clean = []
+        for r in rows:
+            clean.append({
+                "id": str(r.get("_id")),
+                "version": r.get("version", 1),
+                "file_url": r.get("file_url", ""),
+                "status": r.get("status", "submitted"),
+                "feedback": r.get("feedback", []),
+                "submitted_at": fmt_dt(r.get("submitted_at")),
+            })
+        return jsonify({"ok": True, "drafts": clean})
+    data = json_body()
+    file_url = (data.get("file_url") or "").strip()
+    if not file_url:
+        return jsonify({"ok": False, "error": "file_url_required"}), 400
+    latest = content_drafts_col.find_one({"deal_id": str(enquiry_id), "creator_id": uid}, sort=[("version", -1)])
+    next_ver = int((latest or {}).get("version", 0)) + 1
+    doc = {
+        "deal_id": str(enquiry_id),
+        "creator_id": uid,
+        "brand_token": enq.get("tracking_token", ""),
+        "version": next_ver,
+        "file_url": file_url,
+        "status": "submitted",
+        "feedback": [],
+        "submitted_at": now(),
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = content_drafts_col.insert_one(doc)
+    enquiries.update_one({"_id": enquiry_id}, {"$set": {"updated_at": now(), "status": "negotiating"}})
+    return jsonify({"ok": True, "id": str(inserted.inserted_id), "version": next_ver})
+
+@app.route("/api/brand/content-drafts/<draft_id>/review", methods=["POST"])
+def review_content_draft(draft_id):
+    draft_oid = require_valid_oid(draft_id)
+    if not draft_oid:
+        return jsonify({"ok": False, "error": "invalid_draft_id"}), 400
+    data = json_body()
+    token = (data.get("token") or "").strip()
+    action = (data.get("action") or "").strip().lower()
+    comment = (data.get("comment") or "").strip()[:500]
+    if action not in {"approve", "changes_requested", "reject"}:
+        return jsonify({"ok": False, "error": "invalid_action"}), 400
+    draft = content_drafts_col.find_one({"_id": draft_oid})
+    if not draft:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if not token or token != (draft.get("brand_token") or ""):
+        return jsonify({"ok": False, "error": "invalid_token"}), 403
+    feedback_item = {"action": action, "comment": comment, "at": now()}
+    content_drafts_col.update_one(
+        {"_id": draft_oid},
+        {"$set": {"status": action, "updated_at": now()}, "$push": {"feedback": feedback_item}}
+    )
+    if action == "approve":
+        enquiries.update_one({"_id": oid(draft.get("deal_id"))}, {"$set": {"status": "content_approved", "updated_at": now()}})
+    return jsonify({"ok": True, "status": action})
+
+def next_invoice_number():
+    y = datetime.utcnow().year
+    prefix = f"INV-{y}-"
+    latest = invoices_col.find_one({"invoice_number": {"$regex": f"^{prefix}"}}, sort=[("invoice_number", -1)])
+    if not latest:
+        return f"{prefix}001"
+    tail = str(latest.get("invoice_number", "")).replace(prefix, "")
+    try:
+        seq = int(tail) + 1
+    except Exception:
+        seq = 1
+    return f"{prefix}{seq:03d}"
+
+@app.route("/api/enquiry/<eid>/gst-invoice", methods=["POST"])
+@login_required
+def create_gst_invoice(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    data = json_body()
+    try:
+        base_amount = int(data.get("amount") or enq.get("budget_num") or 0)
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_amount"}), 400
+    gst_rate = 18
+    gst = int(round(base_amount * gst_rate / 100))
+    total = base_amount + gst
+    doc = {
+        "creator_id": uid,
+        "deal_id": str(enquiry_id),
+        "invoice_number": next_invoice_number(),
+        "gstin": (data.get("gstin") or "").strip(),
+        "hsn": (data.get("hsn") or "998361").strip(),
+        "service_description": (data.get("service_description") or f"Creator collaboration for {enq.get('brand_name', 'brand')}").strip(),
+        "amount": base_amount,
+        "gst": gst,
+        "gst_rate": gst_rate,
+        "total": total,
+        "status": "generated",
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = invoices_col.insert_one(doc)
+    return jsonify({"ok": True, "invoice_id": str(inserted.inserted_id), "invoice_number": doc["invoice_number"], "total": total})
+
+@app.route("/api/invoices")
+@login_required
+def list_invoices():
+    uid = session["uid"]
+    rows = list(invoices_col.find({"creator_id": uid}).sort("created_at", DESCENDING).limit(200))
+    clean = []
+    for r in rows:
+        clean.append({
+            "id": str(r.get("_id")),
+            "invoice_number": r.get("invoice_number", ""),
+            "deal_id": r.get("deal_id", ""),
+            "amount": int(r.get("amount", 0) or 0),
+            "gst": int(r.get("gst", 0) or 0),
+            "total": int(r.get("total", 0) or 0),
+            "status": r.get("status", ""),
+            "created_at": fmt_dt(r.get("created_at")),
+        })
+    return jsonify({"ok": True, "invoices": clean})
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEGOTIATION REPLAY
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -47,6 +47,7 @@
     <div class="sb-section">
       <p>Growth</p>
       <a class="sb-item {% if request.path == '/positioning' %}active{% endif %}" href="{{ url_for('positioning') }}">Positioning</a>
+      <a class="sb-item {% if request.path == '/rate-card' %}active{% endif %}" href="{{ url_for('rate_card_page') }}">Rate Card</a>
       <a class="sb-item {% if request.path == '/dashboard/integrations' %}active{% endif %}" href="{{ url_for('integrations_hub') }}">Integrations</a>
       <a class="sb-item {% if request.path == '/settings' %}active{% endif %}" href="{{ url_for('settings') }}">Settings</a>
       <a class="sb-item" target="_blank" href="{{ url_for('public_page', username=session.username) }}">Public page ↗</a>
