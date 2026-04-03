@@ -83,6 +83,12 @@ brand_profiles_col = db["brand_profiles"]
 relationships_col = db["relationships"]
 campaigns_col = db["campaigns"]
 creator_scores_col = db["creator_scores"]
+integrations_col = db["integrations"]
+integration_logs_col = db["integration_logs"]
+gmail_threads_col = db["gmail_threads"]
+whatsapp_messages_col = db["whatsapp_messages"]
+notion_pages_col = db["notion_pages"]
+sheets_config_col = db["sheets_config"]
 def setup_db():
     try:
         client.admin.command("ping")
