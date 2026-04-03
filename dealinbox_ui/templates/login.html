@@ -1,29 +1,178 @@
 {% extends "base.html" %}
 {% block title %}Log In — DealInbox{% endblock %}
-{% block body_class %}auth-body auth-rebuild{% endblock %}
+{% block body_class %}auth-body auth-unified{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base:#07070f; --bg-surface:#0e0e1a; --bg-elevated:#141424; --bg-overlay:#1c1c30;
+    --gold:#f0b429; --gold-hover:#fbbf24; --gold-subtle:rgba(240,180,41,.08); --gold-border:rgba(240,180,41,.2); --gold-glow:rgba(240,180,41,.25);
+    --blue:#4f6ef7; --blue-subtle:rgba(79,110,247,.1); --green:#10b981; --green-subtle:rgba(16,185,129,.1);
+    --red:#ef4444; --red-subtle:rgba(239,68,68,.1); --amber:#f59e0b; --amber-subtle:rgba(245,158,11,.1);
+    --text-primary:#f1f1f6; --text-secondary:#9898b0; --text-tertiary:#54546a; --text-disabled:#32324a;
+    --border-subtle:rgba(255,255,255,.05); --border-default:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.14);
+    --font-ui:'Inter',-apple-system,sans-serif; --font-display:'Syne',sans-serif;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px; --sp-16:64px;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    --shadow-md:0 4px 16px rgba(0,0,0,.5); --shadow-gold:0 0 20px rgba(240,180,41,.2),0 4px 16px rgba(0,0,0,.4);
+    --t-fast:.12s ease; --t-base:.2s ease;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  body.auth-unified{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);font-size:14px;line-height:1.5;overflow-x:hidden;animation:page-in .3s ease forwards}
+  @keyframes page-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  a{text-decoration:none;color:inherit}
+  button{cursor:pointer;font-family:var(--font-ui)}
+  input{font-family:var(--font-ui)}
+  ::selection{background:var(--gold-subtle);color:var(--gold)}
+
+  .pub-nav{height:64px;padding:0 var(--sp-6);background:rgba(7,7,15,.86)!important;border-bottom:1px solid var(--border-subtle)!important;backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+  .pub-nav-center{display:none!important}
+  .pub-nav-right{display:flex;gap:var(--sp-2)}
+
+  .logo-mark{display:flex;align-items:center;gap:var(--sp-2);font-family:var(--font-ui);font-weight:700;font-size:15px;color:var(--text-primary);letter-spacing:-.3px}
+  .logo-accent{color:var(--gold)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);padding:8px 16px;border-radius:var(--r-md);font-size:13px;font-weight:500;line-height:1;border:1px solid transparent;transition:all var(--t-base);white-space:nowrap;user-select:none}
+  .btn:active{transform:scale(.97);transition:.08s}
+  .btn-primary{background:var(--gold);color:#07070f;border-color:var(--gold)}
+  .btn-primary:hover{background:var(--gold-hover);box-shadow:var(--shadow-gold);transform:translateY(-1px)}
+  .btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border-color:var(--border-default)}
+  .btn-secondary:hover{background:var(--bg-overlay);border-color:var(--border-strong);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--text-secondary)}
+  .btn-ghost:hover{background:var(--bg-elevated);color:var(--text-primary)}
+  .btn-lg{padding:11px 22px;font-size:15px;font-weight:600}
+  .btn-full{width:100%}
+
+  .input{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--r-md);padding:9px 13px;font-size:14px;color:var(--text-primary);outline:none;transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+  .input::placeholder{color:var(--text-tertiary)}
+  .input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,180,41,.08)}
+  .field{display:flex;flex-direction:column;gap:var(--sp-2)}
+  .field-label{font-size:12px;font-weight:500;color:var(--text-secondary);letter-spacing:.02em}
+
+  .auth-layout{min-height:calc(100vh - 64px);display:grid;grid-template-columns:1fr 1fr}
+  .auth-left{background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--sp-16) var(--sp-12);display:flex;flex-direction:column}
+  .auth-main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:380px}
+  .auth-main h1{font-family:var(--font-display);font-size:32px;font-weight:800;letter-spacing:-1px}
+  .auth-main .sub{margin-top:var(--sp-2);font-size:15px;color:var(--text-secondary);font-weight:300}
+  .auth-form{margin-top:var(--sp-8);display:flex;flex-direction:column;gap:var(--sp-4)}
+  .forgot-row{display:flex;justify-content:flex-end;margin-top:6px}
+  .forgot-row a{font-size:12px;color:var(--gold)}
+  .forgot-row a:hover{text-decoration:underline}
+  .or-row{display:flex;align-items:center;gap:var(--sp-3);color:var(--text-tertiary);font-size:12px;margin-top:var(--sp-1)}
+  .or-row::before,.or-row::after{content:'';flex:1;height:1px;background:var(--border-default)}
+  .auth-foot{margin-top:var(--sp-3);font-size:13px;color:var(--text-secondary)}
+  .auth-foot a{color:var(--gold)}
+  .auth-foot a:hover{text-decoration:underline}
+  .auth-copy{font-size:12px;color:var(--text-tertiary)}
+
+  .auth-right{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:var(--sp-12)}
+  .auth-glow{position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(240,180,41,.06),transparent 70%);filter:blur(60px);pointer-events:none}
+  .auth-right-inner{position:relative;z-index:1;max-width:400px;width:100%}
+  .card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:var(--sp-4) var(--sp-5);display:flex;gap:var(--sp-3);align-items:flex-start;margin-bottom:var(--sp-3);transition:all var(--t-base)}
+  .card:hover{border-color:var(--border-default);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .icon-dot{width:36px;height:36px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;background:var(--gold-subtle);border:1px solid var(--gold-border);color:var(--gold);flex:none}
+  .icon-dot svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none}
+  .card h4{font-size:14px;font-weight:600}
+  .card p{font-size:13px;color:var(--text-secondary);margin-top:2px}
+
+  .stats{margin-top:var(--sp-6);display:flex;gap:var(--sp-8)}
+  .stat-value{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--gold);line-height:1.1}
+  .stat-label{font-size:12px;color:var(--text-tertiary);margin-top:3px}
+
+  .g-footer{display:none!important}
+
+  @media (max-width: 960px){
+    .auth-layout{grid-template-columns:1fr}
+    .auth-left{border-right:0;border-bottom:1px solid var(--border-subtle);padding:var(--sp-10) var(--sp-6)}
+    .auth-right{padding:var(--sp-8) var(--sp-6)}
+    .auth-main{max-width:100%}
+  }
+</style>
+{% endblock %}
+
+{% block public_nav %}
+<nav class="pub-nav">
+  <a href="{{ url_for('index') }}" class="logo-mark">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect width="20" height="20" rx="5" fill="#f0b429"/>
+      <path d="M4 7h12M4 10h8M4 13h10" stroke="#07070f" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <span class="logo-text">deals<span class="logo-accent">inbox</span></span>
+  </a>
+  <div class="pub-nav-right">
+    <a href="{{ url_for('login') }}" class="btn btn-ghost">Log in</a>
+    <a href="{{ url_for('signup') }}" class="btn btn-primary">Sign up</a>
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="auth-split">
+<div class="auth-layout">
   <section class="auth-left">
-    <a href="{{ url_for('index') }}" class="auth-logo">DealInbox CreatorOS</a>
-    <h1>Welcome back to your Creator Deal HQ.</h1>
-    <p>Review negotiations, respond to brands faster, and keep your pipeline moving daily.</p>
-    <div class="auth-highlight-grid">
-      <article><strong>Daily pipeline</strong><span>Prioritize urgent and high-value opportunities.</span></article>
-      <article><strong>Negotiation clarity</strong><span>Keep notes, statuses, and follow-ups in one place.</span></article>
-      <article><strong>Earnings visibility</strong><span>Track deal value and close-rate momentum.</span></article>
+    <a href="{{ url_for('index') }}" class="logo-mark">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect width="20" height="20" rx="5" fill="#f0b429"/>
+        <path d="M4 7h12M4 10h8M4 13h10" stroke="#07070f" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">deals<span class="logo-accent">inbox</span></span>
+    </a>
+
+    <div class="auth-main">
+      <h1>Welcome back.</h1>
+      <p class="sub">Pick up where you left off.</p>
+
+      <form method="POST" class="auth-form">
+        <div class="field">
+          <label class="field-label">Email</label>
+          <input type="email" name="email" class="input" placeholder="you@email.com" required autofocus>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Password</label>
+          <input type="password" name="password" class="input" placeholder="••••••••" required>
+          <div class="forgot-row"><a href="#">Forgot password?</a></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full">Continue →</button>
+
+        <div class="or-row">or</div>
+
+        <div class="auth-foot">No account? <a href="{{ url_for('signup') }}">Create one free →</a></div>
+      </form>
     </div>
+
+    <p class="auth-copy">© 2026 DealInbox</p>
   </section>
 
   <section class="auth-right">
-    <div class="auth-card auth-card-rebuild">
-      <h2>Log in</h2>
-      <p>Continue managing your creator business.</p>
-      <form method="POST" class="auth-form">
-        <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required autofocus></div>
-        <div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required></div>
-        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Open Creator HQ →</button>
-      </form>
-      <div class="auth-foot">No account? <a href="{{ url_for('signup') }}">Create one free →</a></div>
+    <div class="auth-glow"></div>
+    <div class="auth-right-inner">
+      <article class="card">
+        <div class="icon-dot"><svg viewBox="0 0 24 24"><path d="M3 11h18v8H3z"/><path d="M7 11l2-4h6l2 4"/></svg></div>
+        <div><h4>Deal Pipeline</h4><p>See every brand opportunity at a glance</p></div>
+      </article>
+      <article class="card">
+        <div class="icon-dot"><svg viewBox="0 0 24 24"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg></div>
+        <div><h4>Earnings Tracker</h4><p>Know exactly what you've made and what's pending</p></div>
+      </article>
+      <article class="card">
+        <div class="icon-dot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 12h5M9 16h6"/></svg></div>
+        <div><h4>Brand Submissions</h4><p>Brands fill structured briefs. No more DM chaos.</p></div>
+      </article>
+
+      <div class="stats">
+        <div>
+          <div class="stat-value">2,400+</div>
+          <div class="stat-label">creators</div>
+        </div>
+        <div>
+          <div class="stat-value">₹3.2Cr</div>
+          <div class="stat-label">tracked</div>
+        </div>
+      </div>
     </div>
   </section>
 </div>
