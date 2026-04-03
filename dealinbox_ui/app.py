@@ -24,6 +24,7 @@ DB_NAME   = os.getenv("DB_NAME", "dealinbox")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "alerts@dealsinbox.in")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 # ── Razorpay config ───────────────────────────────────────────────────────────
 RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
@@ -68,6 +69,14 @@ enquiries    = db["enquiries"]
 activity_col = db["activity"]
 payments_col = db["payments"]
 rate_limits_col = db["rate_limits"]
+reply_drafts_col = db["reply_drafts"]
+brands_col = db["brands"]
+contracts_col = db["contracts"]
+invoices_col = db["invoices"]
+media_kits_col = db["media_kits"]
+notifications_col = db["notifications"]
+automation_rules_col = db["automation_rules"]
+reviews_col = db["reviews"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -251,6 +260,60 @@ def sendgrid_send(to_email, subject, body):
     except Exception as exc:
         app.logger.exception("SendGrid error: %s", exc)
         return False
+
+def openai_generate_reply_variants(deal_type="", budget="", deliverables="", niche="", brand_name="", brief=""):
+    fallback = {
+        "accepting": (
+            f"Hi {brand_name or 'team'},\\n\\nThanks for sharing the brief."
+            f" This looks aligned with my {niche or 'content'} audience. "
+            "Happy to move forward — please share final deliverables, usage rights, and payment terms.\\n\\nBest regards"
+        ),
+        "countering": (
+            f"Hi {brand_name or 'team'},\\n\\nThanks for the opportunity."
+            f" Based on scope ({deliverables or 'deliverables'}) and market rates in {niche or 'my niche'}, "
+            f"I'd be comfortable proceeding at a revised budget above {budget or 'the shared range'}. "
+            "If that works, I can share timelines immediately.\\n\\nBest regards"
+        ),
+        "declining": (
+            f"Hi {brand_name or 'team'},\\n\\nThank you for reaching out."
+            " I’ll have to pass on this collaboration for now, but I appreciate the interest and would be glad to explore future campaigns.\\n\\nBest regards"
+        ),
+    }
+    if not OPENAI_API_KEY:
+        return fallback
+    prompt = (
+        "You are writing professional creator-brand negotiation emails.\n"
+        "Return strict JSON with keys: accepting, countering, declining.\n"
+        "Each reply should be polished, concise, and ready to send.\n"
+        f"Deal type: {deal_type}\nBudget: {budget}\nDeliverables: {deliverables}\n"
+        f"Creator niche: {niche}\nBrand: {brand_name}\nBrief: {brief[:1200]}"
+    )
+    try:
+        res = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o",
+                "temperature": 0.5,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": "Return only valid JSON."},
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=30
+        )
+        if res.status_code >= 300:
+            return fallback
+        content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
+        parsed = json.loads(content)
+        return {
+            "accepting": parsed.get("accepting") or fallback["accepting"],
+            "countering": parsed.get("countering") or fallback["countering"],
+            "declining": parsed.get("declining") or fallback["declining"],
+        }
+    except Exception:
+        return fallback
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
@@ -1340,6 +1403,66 @@ def api_status(eid):
     log(uid, f"Quick status changed to {STATUSES[status]['label']}")
     return jsonify({"ok": True, "label": STATUSES[status]["label"],
                     "color": STATUSES[status]["color"]})
+
+@app.route("/api/enquiry/<eid>/ai-replies", methods=["POST"])
+@login_required
+def ai_reply_variants(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    payload = json_body()
+    variants = openai_generate_reply_variants(
+        deal_type=payload.get("deal_type", "") or enq.get("platform", ""),
+        budget=payload.get("budget", "") or enq.get("budget", ""),
+        deliverables=payload.get("deliverables", "") or enq.get("deliverables", ""),
+        niche=payload.get("niche", "") or user.get("niche", ""),
+        brand_name=enq.get("brand_name", ""),
+        brief=enq.get("brief", ""),
+    )
+    doc = {
+        "user_id": uid,
+        "enquiry_id": str(enquiry_id),
+        "accepting": variants["accepting"],
+        "countering": variants["countering"],
+        "declining": variants["declining"],
+        "updated_at": now(),
+        "created_at": now(),
+    }
+    reply_drafts_col.update_one(
+        {"user_id": uid, "enquiry_id": str(enquiry_id)},
+        {"$set": doc, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True, "variants": variants})
+
+@app.route("/api/enquiry/<eid>/reply-draft", methods=["POST"])
+@login_required
+def save_reply_draft(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    data = json_body()
+    key = (data.get("key") or "").strip().lower()
+    text = (data.get("text") or "").strip()
+    if key not in {"accepting", "countering", "declining"}:
+        return jsonify({"ok": False, "error": "invalid_variant_key"}), 400
+    if not text:
+        return jsonify({"ok": False, "error": "empty_text"}), 400
+    reply_drafts_col.update_one(
+        {"user_id": uid, "enquiry_id": str(enquiry_id)},
+        {"$set": {key: text, "updated_at": now()}, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True})
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEGOTIATION REPLAY
 # ═══════════════════════════════════════════════════════════════════════════════

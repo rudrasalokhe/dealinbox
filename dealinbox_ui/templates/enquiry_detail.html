@@ -19,7 +19,14 @@
 <div style="display:grid;grid-template-columns:1fr 288px;gap:14px;margin-top:14px" class="detail-grid">
   <main style="display:grid;gap:14px">
     <section class="card fade-in" style="padding:18px"><h3>Campaign brief</h3><p style="color:var(--t2);margin-top:8px">{{ enq.brief or 'No brief provided.' }}</p></section>
-    <section class="card fade-in" style="padding:18px"><h3>AI Reply Generator</h3><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0"><button class="btn reply-btn" onclick="genReply('interested')">Interested</button><button class="btn reply-btn" onclick="genReply('negotiate')">Counter</button><button class="btn reply-btn" onclick="genReply('more_info')">More info</button><button class="btn reply-btn" onclick="genReply('decline')">Decline</button></div><div id="aiOut" style="min-height:80px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px;color:var(--t2);font-style:italic"></div><div style="margin-top:8px"><button class="btn btn-sm" onclick="copyReply()">Copy</button></div></section>
+    <section class="card fade-in" style="padding:18px">
+      <h3>AI Reply Generator</h3>
+      <div style="display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap">
+        <button class="btn" onclick="generateReplies()">Generate reply variants</button>
+        <span id="aiStatus" style="font-size:12px;color:var(--t3)"></span>
+      </div>
+      <div id="aiVariants" style="display:grid;gap:10px"></div>
+    </section>
     <section class="card fade-in" style="padding:18px"><h3>Notes</h3><p style="color:var(--t2);margin-top:8px">{{ enq.note or 'No internal notes yet.' }}</p></section>
   </main>
   <aside style="display:grid;gap:14px">
@@ -28,9 +35,54 @@
   </aside>
 </div>
 <script>
-const replies={interested:`Hi {{ enq.contact_name or enq.brand_name }},\n\nThanks for reaching out — happy to explore this campaign.`,negotiate:`Hi {{ enq.contact_name or enq.brand_name }},\n\nInterested, but would like to discuss budget and deliverables.`,more_info:`Hi {{ enq.contact_name or enq.brand_name }},\n\nCould you share exact deliverables and timeline?`,decline:`Hi {{ enq.contact_name or enq.brand_name }},\n\nThanks for the opportunity. I’ll pass for now.`};
-function genReply(t){document.getElementById('aiOut').textContent=replies[t]||'';}
-function copyReply(){navigator.clipboard.writeText(document.getElementById('aiOut').textContent||'');showToast('Copied');}
+function renderVariants(variants){
+  const wrap = document.getElementById('aiVariants');
+  const labels = {accepting:'Accepting', countering:'Countering price', declining:'Declining politely'};
+  wrap.innerHTML = Object.entries(variants).map(([key,val]) => `
+    <div class="card" style="padding:12px;background:var(--surface-2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <b>${labels[key] || key}</b>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="copyVariant('${key}')">Copy</button>
+          <button class="btn btn-sm" onclick="saveVariant('${key}')">Save</button>
+        </div>
+      </div>
+      <textarea id="reply_${key}" style="min-height:120px">${val || ''}</textarea>
+    </div>
+  `).join('');
+}
+async function generateReplies(){
+  const status = document.getElementById('aiStatus');
+  status.textContent = 'Generating...';
+  const res = await fetch('/api/enquiry/{{ enq._id }}/ai-replies', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      deal_type: '{{ enq.platform or "" }}',
+      budget: '{{ enq.budget or "" }}',
+      deliverables: '{{ enq.deliverables or "" }}'
+    })
+  });
+  const data = await res.json();
+  if(!data.ok){ status.textContent = 'Failed to generate variants.'; return; }
+  renderVariants(data.variants || {});
+  status.textContent = 'Drafts ready.';
+}
+function copyVariant(key){
+  const text = document.getElementById(`reply_${key}`)?.value || '';
+  navigator.clipboard.writeText(text);
+  showToast('Copied');
+}
+async function saveVariant(key){
+  const text = document.getElementById(`reply_${key}`)?.value || '';
+  const res = await fetch('/api/enquiry/{{ enq._id }}/reply-draft', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ key, text })
+  });
+  const data = await res.json();
+  if(data.ok) showToast('Draft saved');
+}
 function copyBrief(){navigator.clipboard.writeText(`{{ enq.brief or '' }}`);showToast('Brief copied');}
 function copyTrackUrl(){navigator.clipboard.writeText(`{{ request.host_url }}track/{{ enq.tracking_token or '' }}`);showToast('Tracking link copied');}
 </script>
