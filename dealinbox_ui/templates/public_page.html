@@ -2,93 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Partner with {{ user.name }} — DealInbox</title>
-  <meta name="description" content="{{ user.bio or 'Send a brand collaboration enquiry to ' + user.name + '.' }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>{{ user.name }} — DealInbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 </head>
-<body class="neo-theme theme-v2 pp-body" data-scene="creator-aura">
-<div id="three-bg" aria-hidden="true"></div>
-<div class="ui-noise" aria-hidden="true"></div>
-
-<nav class="pp-nav">
-  <a href="{{ url_for('index') }}" class="pp-nav-logo">DealInbox CreatorOS</a>
-</nav>
-
-<div class="pp-wrap">
-  <!-- Creator card -->
-  <div class="pp-creator">
-    <div class="pp-av">{{ user.name[0].upper() if user.name else 'C' }}</div>
-    <div class="pp-creator-info">
-      <h1 class="pp-name">{{ user.name }}</h1>
-      <div class="pp-handle">@{{ user.username }}</div>
-      {% if user.niche or user.platform or user.followers %}
-      <div class="pp-tags">
-        {% if user.niche %}<span class="pp-tag">{{ user.niche }}</span>{% endif %}
-        {% if user.platform %}<span class="pp-tag">{{ user.platform }}</span>{% endif %}
-        {% if user.followers %}<span class="pp-tag">{{ user.followers }} followers</span>{% endif %}
-      </div>
-      {% endif %}
-    </div>
+<body>
+<div class="wrap" style="max-width:600px;padding:48px 24px">
+  <div style="text-align:center">
+    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#5B8EF5,#9B72F5);margin:0 auto"></div>
+    <h1 style="font-size:24px;font-weight:900;margin-top:12px">{{ user.name }}</h1>
+    <p style="color:var(--t2)">{{ user.bio or 'Creator' }}</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><span class="pill" style="background:transparent;border-color:var(--border);color:var(--t2)">{{ user.platform or 'Platform' }}</span><span class="pill" style="background:transparent;border-color:var(--border);color:var(--t2)">{{ user.followers or 'Audience' }}</span></div>
   </div>
-
-  {% if user.bio %}
-  <p class="pp-bio">{{ user.bio }}</p>
-  {% endif %}
-
-  <div class="pp-meta-row">
-    {% if user.response_time %}<span class="pp-meta-item">⏱ Responds within {{ user.response_time }}</span>{% endif %}
-    {% if user.min_budget %}<span class="pp-meta-item">₹ Min. budget {{ user.min_budget }}</span>{% endif %}
-  </div>
-
-  <!-- Enquiry form -->
-  <div class="pp-form-card">
-    <div class="pp-form-head">
-      <h2>Send a brand collaboration request</h2>
-      <p>Share your campaign goals, budget, and deliverables. {{ user.name.split()[0] if user.name else 'The creator' }} reviews serious opportunities fast.</p>
-    </div>
-    <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}" class="pp-form">
-      <div class="form-row-2">
-        <div class="fg"><label>Brand / Agency name *</label><input type="text" name="brand_name" placeholder="Mamaearth" required></div>
-        <div class="fg"><label>Your name</label><input type="text" name="contact_name" placeholder="Rahul Sharma"></div>
-      </div>
-      <div class="fg"><label>Work email *</label><input type="email" name="email" placeholder="rahul@mamaearth.in" required></div>
-      <div class="form-row-2">
-        <div class="fg">
-          <label>Platform</label>
-          <select name="platform">
-            <option value="">Select platform</option>
-            {% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="fg">
-          <label>Budget range</label>
-          <select name="budget">
-            <option value="">Select budget</option>
-            {% for b in budgets %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="fg"><label>Timeline</label><input type="text" name="timeline" placeholder="e.g. This month, Q4 2025"></div>
-      <div class="fg">
-        <label>Campaign overview *</label>
-        <textarea name="brief" rows="5" placeholder="Tell {{ user.name.split()[0] if user.name else 'them' }} about your brand, what you're promoting, and what you need..." required></textarea>
-      </div>
-      <div class="fg">
-        <label>Deliverables</label>
-        <textarea name="deliverables" rows="3" placeholder="e.g. 1 Instagram Reel + 3 Stories, product tagged, link in bio."></textarea>
-      </div>
-      <button type="submit" class="g-btn-primary pp-submit">Send collaboration request →</button>
-      <p class="pp-form-note">Goes directly to {{ user.name.split()[0] if user.name else 'creator' }}'s DealInbox. No spam, ever.</p>
+  {% if inbox_full %}<div class="flash flash-error" style="position:static;margin:14px 0">This creator's free inbox limit is reached this month.</div>{% endif %}
+  <div class="card" style="margin-top:18px;padding:18px">
+    <h2 style="font-size:18px">Send a collaboration request</h2>
+    <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}" style="margin-top:10px">
+      <div class="fg"><label>Brand / Agency name *</label><input type="text" name="brand_name" required></div>
+      <div class="fg"><label>Your name</label><input type="text" name="contact_name"></div>
+      <div class="fg"><label>Work email *</label><input type="email" name="email" required></div>
+      <div class="fg"><label>Platform</label><select name="platform"><option value="">Select platform</option>{% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select></div>
+      <div class="fg"><label>Budget range</label><select name="budget"><option value="">Select budget</option>{% for b in budgets %}<option value="{{ b }}">{{ b }}</option>{% endfor %}</select></div>
+      <div class="fg"><label>Timeline</label><input type="text" name="timeline"></div>
+      <div class="fg"><label>Campaign overview *</label><textarea name="brief" rows="5" required></textarea></div>
+      <div class="fg"><label>Deliverables</label><textarea name="deliverables" rows="3"></textarea></div>
+      <button class="btn btn-gold btn-full" type="submit">Send collaboration request →</button>
     </form>
   </div>
 </div>
-
-<div class="pp-footer">Powered by <a href="{{ url_for('index') }}">DealInbox CreatorOS</a></div>
-<script src="{{ url_for('static', filename='js/three-scenes.js') }}"></script>
-<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
