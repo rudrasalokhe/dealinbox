@@ -25,6 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     document.querySelectorAll('.flash').forEach(f => f.remove());
   }, 4000);
+
+  // Keep Render instance warm while app is open.
+  const ping = () => fetch('/ping', { method: 'GET', cache: 'no-store' }).catch(() => {});
+  ping();
+  setInterval(ping, 120000);
 });
 
 function showToast(msg) {
