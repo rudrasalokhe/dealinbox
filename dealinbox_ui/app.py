@@ -77,6 +77,12 @@ media_kits_col = db["media_kits"]
 notifications_col = db["notifications"]
 automation_rules_col = db["automation_rules"]
 reviews_col = db["reviews"]
+community_posts_col = db["community_posts"]
+brand_intel_col = db["brand_intel"]
+brand_profiles_col = db["brand_profiles"]
+relationships_col = db["relationships"]
+campaigns_col = db["campaigns"]
+creator_scores_col = db["creator_scores"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -180,6 +186,38 @@ def parse_budget_num(text):
     elif suffix in {"cr", "crore"}:
         val *= 10000000
     return int(val)
+
+def slugify(text):
+    text = (text or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-") or "brand"
+
+def ensure_brand_profile(brand_name, category="", source="enquiry"):
+    slug = slugify(brand_name)
+    profile = brand_profiles_col.find_one({"slug": slug})
+    if profile:
+        update = {"updated_at": now()}
+        if category and not profile.get("industry"):
+            update["industry"] = category
+        brand_profiles_col.update_one({"_id": profile["_id"]}, {"$set": update})
+        return profile
+    doc = {
+        "name": brand_name or "Unknown Brand",
+        "slug": slug,
+        "industry": category or "General",
+        "logo": "",
+        "bio": "",
+        "claimed": False,
+        "avg_deal_size": 0,
+        "avg_response_days": 0,
+        "rating": 0,
+        "source": source,
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = brand_profiles_col.insert_one(doc)
+    doc["_id"] = inserted.inserted_id
+    return doc
 
 def claude_parse_email(raw_text, subject="", from_email=""):
     """
@@ -426,9 +464,11 @@ def inbound_email():
         budget_label = parsed.get("budget", "")
         budget_num = parse_budget_num(budget_label)
 
+        profile = ensure_brand_profile(parsed.get("brand_name") or "Unknown Brand", source="inbound_email")
         enq_doc = {
             "user_id": str(creator["_id"]),
             "brand_name": parsed.get("brand_name") or "Unknown Brand",
+            "brand_profile_id": str(profile.get("_id")) if profile else None,
             "contact_name": parsed.get("contact_name", ""),
             "email": parsed.get("contact_email") or from_email,
             "platform": parsed.get("platform", ""),
@@ -916,9 +956,11 @@ def submit_enquiry(username):
     budget_num = budget_map.get(budget, 0)
     import secrets
     tracking_token = secrets.token_urlsafe(24)
+    profile = ensure_brand_profile(brand_name, source="public_submit")
     enquiries.insert_one({
         "user_id":        str(user["_id"]),
         "brand_name":     brand_name,
+        "brand_profile_id": str(profile.get("_id")) if profile else None,
         "contact_name":   contact_name,
         "email":          email,
         "platform":       platform,
@@ -1731,6 +1773,157 @@ def heatmap_page():
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
     return render_template("heatmap.html", is_pro_user=is_pro(user))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMUNITY + BRAND RELATIONSHIP LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+@app.route("/community")
+@login_required
+def community_feed_page():
+    uid = session["uid"]
+    niche = (request.args.get("niche") or "").strip()
+    platform = (request.args.get("platform") or "").strip()
+    tier = (request.args.get("tier") or "").strip()
+    q = {}
+    if niche: q["niche"] = niche
+    if platform: q["platform"] = platform
+    if tier: q["follower_tier"] = tier
+    posts = list(community_posts_col.find(q).sort("created_at", DESCENDING).limit(60))
+    trending = list(community_posts_col.find({}).sort("upvotes", DESCENDING).limit(6))
+    return render_template("community.html", posts=posts, trending=trending, niche=niche, platform=platform, tier=tier, fmt_dt=fmt_dt)
+
+@app.route("/api/community/posts", methods=["GET", "POST"])
+@login_required
+def community_posts_api():
+    uid = session["uid"]
+    if request.method == "GET":
+        posts = list(community_posts_col.find({}).sort("created_at", DESCENDING).limit(100))
+        cleaned = []
+        for p in posts:
+            p["_id"] = str(p.get("_id"))
+            cleaned.append(p)
+        return jsonify({"ok": True, "posts": cleaned})
+    data = json_body()
+    post_type = (data.get("type") or "advice").strip().lower()
+    if post_type not in {"deal_win", "rate_card", "advice", "collab_request", "red_flag"}:
+        return jsonify({"ok": False, "error": "invalid_type"}), 400
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"ok": False, "error": "content_required"}), 400
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    doc = {
+        "creator_id": uid,
+        "type": post_type,
+        "content": content[:2000],
+        "anonymous": bool(data.get("anonymous", False)),
+        "niche": (data.get("niche") or user.get("niche") or "").strip(),
+        "platform": (data.get("platform") or user.get("platform") or "").strip(),
+        "follower_tier": (data.get("follower_tier") or "").strip(),
+        "upvotes": 0,
+        "saves": 0,
+        "comments": [],
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = community_posts_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/api/community/posts/<pid>/upvote", methods=["POST"])
+@login_required
+def upvote_community_post(pid):
+    post_id = require_valid_oid(pid)
+    if not post_id:
+        return jsonify({"ok": False}), 400
+    community_posts_col.update_one({"_id": post_id}, {"$inc": {"upvotes": 1}, "$set": {"updated_at": now()}})
+    p = community_posts_col.find_one({"_id": post_id}, {"upvotes": 1})
+    return jsonify({"ok": True, "upvotes": int((p or {}).get("upvotes", 0))})
+
+@app.route("/intel")
+@login_required
+def deal_intel_page():
+    rows = list(brand_intel_col.find({}).sort("upvotes", DESCENDING).limit(120))
+    return render_template("deal_intel.html", intel=rows, fmt_dt=fmt_dt)
+
+@app.route("/api/brand-intel", methods=["POST"])
+@login_required
+def add_brand_intel():
+    uid = session["uid"]
+    data = json_body()
+    brand_name = (data.get("brand_name") or "").strip()
+    if not brand_name:
+        return jsonify({"ok": False, "error": "brand_name_required"}), 400
+    experience = (data.get("experience") or "good").strip().lower()
+    if experience not in {"good", "bad", "ugly"}:
+        return jsonify({"ok": False, "error": "invalid_experience"}), 400
+    profile = ensure_brand_profile(brand_name, category=(data.get("category") or "").strip(), source="intel")
+    hashed_creator = generate_password_hash(uid)[:32]
+    doc = {
+        "brand_name": brand_name,
+        "brand_profile_id": str(profile.get("_id")) if profile else None,
+        "category": (data.get("category") or "").strip(),
+        "deal_type": (data.get("deal_type") or "").strip(),
+        "amount_range": (data.get("amount_range") or "").strip(),
+        "experience": experience,
+        "notes": (data.get("notes") or "").strip()[:1500],
+        "creator_id_hash": hashed_creator,
+        "upvotes": 0,
+        "verified": False,
+        "created_at": now(),
+    }
+    inserted = brand_intel_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/brand/<slug>")
+def brand_profile_page(slug):
+    profile = brand_profiles_col.find_one({"slug": slug})
+    if not profile:
+        return render_template("404.html"), 404
+    intel_rows = list(brand_intel_col.find({"brand_name": profile.get("name")}).sort("created_at", DESCENDING).limit(50))
+    good = sum(1 for r in intel_rows if r.get("experience") == "good")
+    bad = sum(1 for r in intel_rows if r.get("experience") == "bad")
+    ugly = sum(1 for r in intel_rows if r.get("experience") == "ugly")
+    total = max(1, good + bad + ugly)
+    reputation_score = round(((good * 1.0) + (bad * 0.4) + (ugly * 0.1)) / total * 100)
+    badge = "✅ Fast Payer" if reputation_score >= 70 else "⚠️ Slow Payer" if reputation_score >= 40 else "🚩 Ghosted Creators"
+    return render_template("brand_profile.html", profile=profile, intel_rows=intel_rows, reputation_score=reputation_score, badge=badge, fmt_dt=fmt_dt)
+
+@app.route("/api/relationships/recompute", methods=["POST"])
+@login_required
+def recompute_relationship_scores():
+    uid = session["uid"]
+    user_enqs = list(enquiries.find({"user_id": uid}))
+    grouped = {}
+    for e in user_enqs:
+        brand = (e.get("brand_name") or "").strip()
+        if not brand:
+            continue
+        grouped.setdefault(brand, []).append(e)
+    updated = 0
+    for brand, items in grouped.items():
+        deal_count = len(items)
+        total_earned = sum((i.get("budget_num") or 0) for i in items if i.get("status") in {"accepted", "closed", "paid"})
+        closed = sum(1 for i in items if i.get("status") in {"accepted", "closed", "paid"})
+        paid = sum(1 for i in items if i.get("payment_status") == "paid" or i.get("status") == "paid")
+        repeat_bonus = min(20, max(0, (deal_count - 1) * 5))
+        close_rate = (closed / deal_count) * 35
+        payment_rate = (paid / max(1, closed)) * 30
+        score = int(min(100, repeat_bonus + close_rate + payment_rate + 15))
+        relationships_col.update_one(
+            {"creator_id": uid, "brand_name": brand},
+            {"$set": {
+                "creator_id": uid,
+                "brand_name": brand,
+                "score": score,
+                "deal_count": deal_count,
+                "total_earned": total_earned,
+                "status": "ongoing" if deal_count > 1 else "one_off",
+                "last_deal_at": max((to_naive(i.get("created_at")) for i in items if i.get("created_at")), default=now()),
+                "updated_at": now(),
+            }},
+            upsert=True
+        )
+        updated += 1
+    return jsonify({"ok": True, "updated": updated})
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════

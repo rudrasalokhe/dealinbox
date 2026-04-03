@@ -40,6 +40,8 @@
       <a class="sb-item {% if '/enquir' in request.path %}active{% endif %}" href="{{ url_for('enquiries_page') }}">Brand Deals {% set nc = new_enquiry_count() %}{% if nc %}<em>{{ nc }}</em>{% endif %}</a>
       <a class="sb-item {% if request.path == '/analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">Analytics</a>
       <a class="sb-item {% if request.path == '/heatmap' %}active{% endif %}" href="{{ url_for('heatmap_page') }}">Heatmap</a>
+      <a class="sb-item {% if request.path == '/community' %}active{% endif %}" href="{{ url_for('community_feed_page') }}">Community</a>
+      <a class="sb-item {% if request.path == '/intel' %}active{% endif %}" href="{{ url_for('deal_intel_page') }}">Deal Intel</a>
     </div>
 
     <div class="sb-section">
