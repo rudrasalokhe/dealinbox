@@ -11,6 +11,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+{% set _content %}{% block content %}{% endblock %}{% endset %}
 {% if session.uid %}
 <div class="shell">
   <div class="sb-overlay" id="sb-overlay"></div>
@@ -73,7 +74,7 @@
     </div>
 
     <section class="content">
-      {{ self.content() }}
+      {{ _content|safe }}
     </section>
   </main>
 </div>
@@ -93,7 +94,7 @@
   </nav>
   {% endblock %}
 
-  {{ self.content() }}
+  {{ _content|safe }}
 
   <footer class="g-footer">
     <div class="g-foot-grid">
@@ -115,7 +116,6 @@
 </div>
 
 
-{% block content %}{% endblock %}
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block extra_js %}{% endblock %}
 <script>
