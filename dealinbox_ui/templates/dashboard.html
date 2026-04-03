@@ -1,103 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — DealInbox{% endblock %}
-{% block scene_name %}pipeline-galaxy{% endblock %}
-
-{% block extra_head %}
-<style>
-.dbx-wrap{padding:30px;max-width:1300px;margin:0 auto}.dbx-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.dbx-top h1{font-size:30px}.dbx-top p{color:var(--text-2,#a0a0b8)}
-.dbx-add{padding:9px 18px;border-radius:12px;background:var(--gold,#f0b429);color:#0a0a0f;font-weight:700}
-.dbx-hero{position:relative;border:1px solid rgba(240,180,41,.2);border-radius:20px;overflow:hidden;margin-bottom:18px;background:rgba(10,10,15,.5)}
-#pipeline-canvas{height:220px}.dbx-hero-copy{position:absolute;left:22px;top:18px}.dbx-hero-copy small{color:#ffd166;letter-spacing:.08em;text-transform:uppercase}.dbx-hero-copy h2{font-size:28px;margin-top:6px}
-.dbx-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.dbx-kpi{background:#0f0f17;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}.dbx-kpi label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b6b88}.dbx-kpi strong{display:block;font-size:34px;font-family:'Syne',sans-serif;margin-top:9px}
-.dbx-kpi p{margin-top:6px;font-size:13px;color:#a0a0b8}
-.dbx-kpi.gold{border-top:2px solid #f0b429}.dbx-kpi.green strong{color:#34d399}.dbx-kpi.red strong{color:#f87171}.dbx-kpi.blue strong{color:#6b8cff}
-.dbx-main{display:grid;grid-template-columns:1.65fr 1fr;gap:18px}
-.dbx-card{background:#0f0f17;border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 2px 16px rgba(0,0,0,.4)}
-.dbx-card-head{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center}
-.dbx-search{max-width:210px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.09);background:#141420;color:#f0f0ff}
-.dbx-table{width:100%;border-collapse:collapse}.dbx-table th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b6b88;padding:10px 20px;text-align:left;background:#141420}.dbx-table td{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06)}.dbx-table tr:hover{background:rgba(255,255,255,.02)}
-.dbx-brand{display:flex;align-items:center;gap:10px}.dbx-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0b429,#6b8cff);font-weight:700}
-.dbx-brand small{display:block;color:#6b6b88}
-.dbx-status{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid}.dbx-s-new{color:#6b8cff;border-color:rgba(107,140,255,.3);background:rgba(107,140,255,.12)}.dbx-s-review{color:#f0b429;border-color:rgba(240,180,41,.3);background:rgba(240,180,41,.12)}.dbx-s-ok{color:#34d399;border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.1)}.dbx-s-bad{color:#f87171;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.1)}
-.dbx-side{display:flex;flex-direction:column;gap:14px}.dbx-mini{padding:18px}.dbx-bars{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;height:110px;align-items:end;margin-top:12px}.dbx-bar{background:linear-gradient(180deg,rgba(240,180,41,.95),rgba(240,180,41,.2));border-radius:6px 6px 0 0;position:relative}.dbx-bar:hover::after{content:attr(data-v);position:absolute;top:-28px;left:50%;transform:translateX(-50%);font-size:11px;background:#111;padding:3px 7px;border-radius:6px}
-.dbx-deadline li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}.dbx-date{width:40px;height:40px;border-radius:10px;background:#141420;display:grid;place-items:center}.dbx-date b{color:#f0b429}.dbx-pipe .row{margin:11px 0}.dbx-pipe .meta{display:flex;justify-content:space-between;color:#a0a0b8;font-size:13px}.dbx-track{height:7px;border-radius:10px;background:#141420;margin-top:6px;overflow:hidden}.dbx-fill{height:100%}
-@media(max-width:1000px){.dbx-grid{grid-template-columns:1fr 1fr}.dbx-main{grid-template-columns:1fr}}@media(max-width:620px){.dbx-wrap{padding:18px}.dbx-grid{grid-template-columns:1fr}}
-</style>
-{% endblock %}
-
+{% block topbar_title %}Dashboard{% endblock %}
 {% block content %}
-<div class="dbx-wrap">
-  <div class="dbx-top">
-    <div>
-      <h1>Dashboard</h1>
-      <p>Track active deals, pending payments, and everything in your pipeline.</p>
-    </div>
-    <a href="{{ url_for('enquiries_page') }}" class="dbx-add">Add Deal</a>
-  </div>
-
-  <section class="dbx-hero">
-    <div id="pipeline-canvas"></div>
-    <div class="dbx-hero-copy">
-      <small>Pipeline Galaxy</small>
-      <h2>Live movement across deal stages</h2>
-    </div>
-  </section>
-
-  <section class="dbx-grid">
-    <article class="dbx-kpi gold"><label>Active Deals</label><strong data-count="{{ dashboard_state.stats.total }}">{{ dashboard_state.stats.total }}</strong><p>↑ from last month</p></article>
-    <article class="dbx-kpi green"><label>This Month</label><strong>₹{{ "{:,}".format(dashboard_state.stats.total_val) }}</strong><p>Projected earnings</p></article>
-    <article class="dbx-kpi red"><label>Pending Payment</label><strong>₹{{ "{:,}".format((dashboard_state.stats.total_val*0.2)|int) }}</strong><p>{{ dashboard_state.pending_tasks|length }} awaiting follow-up</p></article>
-    <article class="dbx-kpi blue"><label>Avg Deal Value</label><strong>₹{{ "{:,}".format(dashboard_state.stats.avg_value or 0) }}</strong><p>{{ dashboard_state.stats.conversion }}% close rate</p></article>
-  </section>
-
-  <section class="dbx-main">
-    <div class="dbx-card">
-      <div class="dbx-card-head"><h3>Recent Deals</h3><input class="dbx-search" placeholder="Search deals..." /></div>
-      <table class="dbx-table">
-        <thead><tr><th>Brand</th><th>Amount</th><th>Status</th><th>Deadline</th><th>Action</th></tr></thead>
-        <tbody>
-        {% for r in dashboard_state.recent[:8] %}
-          {% set st = r.status %}
-          <tr>
-            <td><div class="dbx-brand"><div class="dbx-av">{{ r.brand_name[0] if r.brand_name else '?' }}</div><div><b>{{ r.brand_name }}</b><small>{{ r.platform }}</small></div></div></td>
-            <td>₹{{ r.budget }}</td>
-            <td>
-              <span class="dbx-status {% if st in ['new'] %}dbx-s-new{% elif st in ['reviewing','negotiating'] %}dbx-s-review{% elif st in ['accepted','closed'] %}dbx-s-ok{% else %}dbx-s-bad{% endif %}">{{ r.status_label }}</span>
-            </td>
-            <td>{{ r.created_at_fmt }}</td>
-            <td><a class="btn-ghost" href="/enquiries/{{ r.id }}">View →</a></td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <aside class="dbx-side">
-      <div class="dbx-card dbx-mini">
-        <div style="display:flex;justify-content:space-between"><h3>Monthly Earnings</h3><span style="color:#6b6b88;font-size:12px">2024</span></div>
-        <div class="dbx-bars">
-          <div class="dbx-bar" data-v="₹45K" style="height:38%"></div><div class="dbx-bar" data-v="₹62K" style="height:52%"></div><div class="dbx-bar" data-v="₹38K" style="height:32%"></div><div class="dbx-bar" data-v="₹80K" style="height:66%"></div><div class="dbx-bar" data-v="₹55K" style="height:46%"></div><div class="dbx-bar" data-v="₹1.2L" style="height:100%;box-shadow:0 0 16px rgba(240,180,41,.28)"></div>
-        </div>
-      </div>
-      <div class="dbx-card dbx-mini">
-        <div style="display:flex;justify-content:space-between"><h3>Deadlines</h3><span class="dbx-status dbx-s-review">This week</span></div>
-        <ul class="dbx-deadline" style="list-style:none;margin-top:8px">
-          <li><div class="dbx-date"><b>15</b></div><div><b>boAt review</b><small style="display:block;color:#6b6b88">2 days</small></div></li>
-          <li><div class="dbx-date"><b>22</b></div><div><b>SUGAR draft</b><small style="display:block;color:#6b6b88">9 days</small></div></li>
-          <li style="border:none"><div class="dbx-date"><b>28</b></div><div><b>Myntra post</b><small style="display:block;color:#6b6b88">15 days</small></div></li>
-        </ul>
-      </div>
-      <div class="dbx-card dbx-mini dbx-pipe">
-        <h3>Deal Pipeline</h3>
-        {% set total = dashboard_state.stats.total or 1 %}
-        {% for s in dashboard_state.pipeline %}
-          {% set pct = ((s.count/total)*100)|round(0,'floor') %}
-          <div class="row"><div class="meta"><span>{{ s.label }}</span><b>{{ s.count }}</b></div><div class="dbx-track"><div class="dbx-fill" style="width:{{ pct }}%;background:{{ s.color }}"></div></div></div>
-        {% endfor %}
-      </div>
-    </aside>
-  </section>
+<div class="page-head fade-in"><div><h1>Dashboard</h1><p class="page-sub">Track active deals, value, and upcoming follow-ups.</p></div><a class="btn" href="{{ url_for('enquiries_page') }}">Open all deals</a></div>
+{% if dashboard_state.stats.conversion >= 50 %}<div class="insight fade-in"><i class="insight-dot"></i>Your {{ dashboard_state.stats.conversion }}% close rate is strong. Keep response times tight to maintain momentum.</div>{% endif %}
+<div class="kpi-grid fade-in">
+  <div class="kpi gold-accent"><div class="kpi-label">Active deals</div><div class="kpi-val">{{ dashboard_state.stats.total }}</div></div>
+  <div class="kpi blue-accent"><div class="kpi-label">Pipeline value</div><div class="kpi-val">₹{{ "{:,}".format(dashboard_state.stats.total_val) }}</div></div>
+  <div class="kpi red-accent"><div class="kpi-label">Pending</div><div class="kpi-val">{{ dashboard_state.pending_tasks|length }}</div></div>
+  <div class="kpi green-accent"><div class="kpi-label">Close rate</div><div class="kpi-val">{{ dashboard_state.stats.conversion }}%</div></div>
 </div>
+<div style="display:grid;grid-template-columns:1fr 280px;gap:14px" class="dash-grid">
+  <div class="card fade-in">
+    <div class="card-head"><div class="card-title">Recent deals</div></div>
+    <table class="tbl">
+      <thead><tr><th>Brand</th><th>Budget</th><th>Stage</th><th>Deadline</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for r in dashboard_state.recent[:8] %}
+        <tr>
+          <td><b>{{ r.brand_name }}</b><br><small style="color:var(--t3)">{{ r.platform }}</small></td>
+          <td style="font-family:var(--mono)">{{ r.budget }}</td>
+          <td><span class="pill pill-{{ r.status }}">{{ r.status_label }}</span></td>
+          <td>{{ r.created_at_fmt }}</td>
+          <td><a href="/enquiries/{{ r.id }}" class="btn btn-sm">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <aside style="display:grid;gap:14px">
+    <div class="card fade-in" style="padding:16px"><div class="card-title">Monthly trend</div><div style="height:120px;display:flex;gap:8px;align-items:end;margin-top:10px">{% for h in [30,42,38,65,52,78] %}<i style="display:block;flex:1;height:{{h}}%;background:linear-gradient(180deg,var(--gold),rgba(255,255,255,.2));border-radius:6px 6px 0 0"></i>{% endfor %}</div></div>
+    <div class="card fade-in" style="padding:16px"><div class="card-title">Upcoming deadlines</div>{% for t in dashboard_state.pending_tasks[:3] %}<div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>{{ t.brand_name }}</b><br><small style="color:var(--t3)">{{ t.reminder_due_fmt }}</small></div>{% else %}<p style="color:var(--t3);margin-top:8px">No upcoming reminders.</p>{% endfor %}</div>
+    <div class="card fade-in" style="padding:16px"><div class="card-title">Pipeline breakdown</div>{% set total = dashboard_state.stats.total or 1 %}{% for s in dashboard_state.pipeline %}<div style="margin-top:9px"><div style="display:flex;justify-content:space-between;color:var(--t2);font-size:12px"><span>{{ s.label }}</span><b>{{ s.count }}</b></div><div style="height:7px;background:var(--surface-2);border-radius:99px;margin-top:5px"><div style="height:7px;border-radius:99px;background:{{ s.color }};width:{{ ((s.count/total)*100)|int }}%"></div></div></div>{% endfor %}</div>
+  </aside>
+</div>
+<style>@media(max-width:980px){.dash-grid{grid-template-columns:1fr!important}}</style>
 {% endblock %}
-
-{% block threejs %}<script>const DASHBOARD_DATA = {new: {{ dashboard_state.pipeline[0].count if dashboard_state.pipeline|length>0 else 0 }}, reviewing: {{ dashboard_state.pipeline[1].count if dashboard_state.pipeline|length>1 else 0 }}, negotiating: {{ dashboard_state.pipeline[3].count if dashboard_state.pipeline|length>3 else 0 }}, accepted: {{ dashboard_state.pipeline[4].count if dashboard_state.pipeline|length>4 else 0 }}};</script>{% endblock %}

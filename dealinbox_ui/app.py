@@ -3,22 +3,31 @@ DealInbox — Never lose a brand deal again.
 Run: pip install flask pymongo werkzeug python-dotenv razorpay && python app.py
 """
 from flask import (Flask, render_template, request, redirect,
-                   session, flash, url_for, jsonify, make_response)
+                   session, flash, url_for, jsonify, make_response, Response, stream_with_context)
 from pymongo import MongoClient, DESCENDING
 from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from dotenv import load_dotenv
-import os, re, csv, io, json
+import os, re, csv, io, json, logging, uuid
+import requests
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
 app = Flask(__name__,
             template_folder=os.path.join(BASE_DIR, "templates"),
             static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret")
+logging.basicConfig(level=logging.INFO)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "alerts@dealsinbox.in")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "")
 # ── Razorpay config ───────────────────────────────────────────────────────────
 RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
@@ -62,6 +71,35 @@ users_col    = db["users"]
 enquiries    = db["enquiries"]
 activity_col = db["activity"]
 payments_col = db["payments"]
+rate_limits_col = db["rate_limits"]
+reply_drafts_col = db["reply_drafts"]
+brands_col = db["brands"]
+contracts_col = db["contracts"]
+invoices_col = db["invoices"]
+media_kits_col = db["media_kits"]
+notifications_col = db["notifications"]
+automation_rules_col = db["automation_rules"]
+reviews_col = db["reviews"]
+community_posts_col = db["community_posts"]
+brand_intel_col = db["brand_intel"]
+brand_profiles_col = db["brand_profiles"]
+relationships_col = db["relationships"]
+campaigns_col = db["campaigns"]
+creator_scores_col = db["creator_scores"]
+integrations_col = db["integrations"]
+integration_logs_col = db["integration_logs"]
+gmail_threads_col = db["gmail_threads"]
+whatsapp_messages_col = db["whatsapp_messages"]
+notion_pages_col = db["notion_pages"]
+sheets_config_col = db["sheets_config"]
+rate_cards_col = db["rate_cards"]
+retainers_col = db["retainers"]
+squads_col = db["squads"]
+marketplace_slots_col = db["marketplace_slots"]
+content_drafts_col = db["content_drafts"]
+disputes_col = db["disputes"]
+achievements_col = db["achievements"]
+referrals_col = db["referrals"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -73,8 +111,13 @@ def setup_db():
         users_col.create_index("email", unique=True, sparse=True)
         users_col.create_index("username", unique=True, sparse=True)
         enquiries.create_index([("user_id", 1), ("created_at", -1)])
+        enquiries.create_index([("tracking_token", 1)])
         activity_col.create_index([("user_id", 1), ("created_at", -1)])
         payments_col.create_index([("user_id", 1), ("created_at", -1)])
+        rate_cards_col.create_index([("creator_id", 1), ("format", 1)], unique=True)
+        content_drafts_col.create_index([("deal_id", 1), ("version", -1)])
+        marketplace_slots_col.create_index([("creator_id", 1), ("status", 1)])
+        referrals_col.create_index([("referrer_id", 1), ("created_at", -1)])
         print(f"DB ready ({DB_NAME})")
     except Exception as e:
         print(f"DB setup failed: {e}")
@@ -111,6 +154,42 @@ def log(uid, action, detail=""):
         activity_col.insert_one({"user_id": uid, "action": action,
                                   "detail": detail, "created_at": now()})
     except: pass
+
+def log_integration(uid, provider, event, detail=""):
+    try:
+        integration_logs_col.insert_one({
+            "user_id": uid,
+            "provider": (provider or "").strip().lower(),
+            "event": (event or "").strip().lower(),
+            "detail": (detail or "").strip()[:500],
+            "created_at": now(),
+        })
+    except Exception:
+        pass
+
+def mask_secret(value):
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    if len(raw) <= 6:
+        return "*" * len(raw)
+    return f"{raw[:2]}{'*' * (len(raw) - 4)}{raw[-2:]}"
+
+def google_oauth_scopes(provider):
+    base = [
+        "openid",
+        "email",
+        "profile",
+    ]
+    if provider == "gmail":
+        return base + [
+            "https://www.googleapis.com/auth/gmail.readonly",
+        ]
+    if provider == "sheets":
+        return base + [
+            "https://www.googleapis.com/auth/spreadsheets",
+        ]
+    return base
 def is_pro(user):
     if not user: return False
     if user.get("plan") == "pro": return True
@@ -142,11 +221,201 @@ def safe_count(collection, query=None, fallback=0):
         return collection.count_documents(query or {})
     except Exception:
         return fallback
+
+def api_ok(data=None, status=200):
+    return jsonify({"success": True, "data": data or {}}), status
+
+def api_error(message, status=400):
+    return jsonify({"success": False, "error": message}), status
+
+def parse_budget_num(text):
+    if not text:
+        return 0
+    cleaned = text.replace(",", "").lower()
+    m = re.search(r"(₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(lakh|lac|cr|crore|k)?", cleaned)
+    if not m:
+        return 0
+    val = float(m.group(2))
+    suffix = (m.group(3) or "").strip()
+    if suffix in {"k"}:
+        val *= 1000
+    elif suffix in {"lakh", "lac"}:
+        val *= 100000
+    elif suffix in {"cr", "crore"}:
+        val *= 10000000
+    return int(val)
+
+def slugify(text):
+    text = (text or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-") or "brand"
+
+def ensure_brand_profile(brand_name, category="", source="enquiry"):
+    slug = slugify(brand_name)
+    profile = brand_profiles_col.find_one({"slug": slug})
+    if profile:
+        update = {"updated_at": now()}
+        if category and not profile.get("industry"):
+            update["industry"] = category
+        brand_profiles_col.update_one({"_id": profile["_id"]}, {"$set": update})
+        return profile
+    doc = {
+        "name": brand_name or "Unknown Brand",
+        "slug": slug,
+        "industry": category or "General",
+        "logo": "",
+        "bio": "",
+        "claimed": False,
+        "avg_deal_size": 0,
+        "avg_response_days": 0,
+        "rating": 0,
+        "source": source,
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = brand_profiles_col.insert_one(doc)
+    doc["_id"] = inserted.inserted_id
+    return doc
+
+def claude_parse_email(raw_text, subject="", from_email=""):
+    """
+    Parse inbound brand email into normalized enquiry fields.
+    Returns a dict with brand_name, contact_name, contact_email, budget, platform, timeline, brief, deliverables.
+    """
+    fallback = {
+        "brand_name": (subject.split(" ")[0] if subject else "Unknown Brand"),
+        "contact_name": "",
+        "contact_email": from_email or "",
+        "budget": "",
+        "platform": "",
+        "timeline": "",
+        "brief": (raw_text or "")[:1500],
+        "deliverables": ""
+    }
+    if not ANTHROPIC_API_KEY:
+        return fallback
+    prompt = (
+        "Extract structured brand deal enquiry data from this email.\n"
+        "Return strict JSON only with keys: brand_name, contact_name, contact_email, budget, platform, timeline, brief, deliverables.\n"
+        "If missing, use empty strings. Keep brief concise (max 500 chars).\n\n"
+        f"Subject: {subject}\n"
+        f"From: {from_email}\n"
+        f"Body:\n{raw_text[:6000]}"
+    )
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 500,
+                "temperature": 0,
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=30
+        )
+        if r.status_code >= 300:
+            app.logger.error("Claude parse failed: %s %s", r.status_code, r.text[:500])
+            return fallback
+        payload = r.json()
+        text = ""
+        for blk in payload.get("content", []):
+            if blk.get("type") == "text":
+                text += blk.get("text", "")
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            text = text.replace("json", "", 1).strip()
+        parsed = json.loads(text)
+        out = {**fallback, **{k: (parsed.get(k) or "") for k in fallback.keys()}}
+        return out
+    except Exception as exc:
+        app.logger.exception("Claude parse exception: %s", exc)
+        return fallback
+
+def sendgrid_send(to_email, subject, body):
+    if not SENDGRID_API_KEY or not to_email:
+        return False
+    try:
+        res = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "personalizations": [{"to": [{"email": to_email}]}],
+                "from": {"email": SENDGRID_FROM_EMAIL},
+                "subject": subject,
+                "content": [{"type": "text/plain", "value": body}]
+            },
+            timeout=20
+        )
+        return 200 <= res.status_code < 300
+    except Exception as exc:
+        app.logger.exception("SendGrid error: %s", exc)
+        return False
+
+def openai_generate_reply_variants(deal_type="", budget="", deliverables="", niche="", brand_name="", brief=""):
+    fallback = {
+        "accepting": (
+            f"Hi {brand_name or 'team'},\\n\\nThanks for sharing the brief."
+            f" This looks aligned with my {niche or 'content'} audience. "
+            "Happy to move forward — please share final deliverables, usage rights, and payment terms.\\n\\nBest regards"
+        ),
+        "countering": (
+            f"Hi {brand_name or 'team'},\\n\\nThanks for the opportunity."
+            f" Based on scope ({deliverables or 'deliverables'}) and market rates in {niche or 'my niche'}, "
+            f"I'd be comfortable proceeding at a revised budget above {budget or 'the shared range'}. "
+            "If that works, I can share timelines immediately.\\n\\nBest regards"
+        ),
+        "declining": (
+            f"Hi {brand_name or 'team'},\\n\\nThank you for reaching out."
+            " I’ll have to pass on this collaboration for now, but I appreciate the interest and would be glad to explore future campaigns.\\n\\nBest regards"
+        ),
+    }
+    if not OPENAI_API_KEY:
+        return fallback
+    prompt = (
+        "You are writing professional creator-brand negotiation emails.\n"
+        "Return strict JSON with keys: accepting, countering, declining.\n"
+        "Each reply should be polished, concise, and ready to send.\n"
+        f"Deal type: {deal_type}\nBudget: {budget}\nDeliverables: {deliverables}\n"
+        f"Creator niche: {niche}\nBrand: {brand_name}\nBrief: {brief[:1200]}"
+    )
+    try:
+        res = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o",
+                "temperature": 0.5,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": "Return only valid JSON."},
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=30
+        )
+        if res.status_code >= 300:
+            return fallback
+        content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
+        parsed = json.loads(content)
+        return {
+            "accepting": parsed.get("accepting") or fallback["accepting"],
+            "countering": parsed.get("countering") or fallback["countering"],
+            "declining": parsed.get("declining") or fallback["declining"],
+        }
+    except Exception:
+        return fallback
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
     "accepted":   {"label": "Accepted",   "color": "#10b981"},
     "negotiating":{"label": "Negotiating","color": "#3b82f6"},
+    "content_approved":{"label": "Content Approved","color": "#14b8a6"},
     "closed":     {"label": "Closed",     "color": "#22c55e"},
     "declined":   {"label": "Declined",   "color": "#ef4444"},
 }
@@ -155,6 +424,15 @@ BUDGETS   = ["Under Rs.5,000","Rs.5,000-Rs.10,000","Rs.10,000-Rs.25,000",
              "Rs.25,000-Rs.50,000","Rs.50,000-Rs.1,00,000","Rs.1,00,000+","Open to discuss"]
 FREE_ENQUIRY_LIMIT = 20
 PRO_PRICE_INR      = 199
+CONTENT_FORMATS = [
+    "YouTube Integration",
+    "Reel",
+    "Story",
+    "LinkedIn Post",
+    "Podcast Mention",
+    "Newsletter",
+    "Live Stream",
+]
 UPI_ID   = os.getenv("UPI_ID",   "dealinbox@upi")
 UPI_NAME = os.getenv("UPI_NAME", "DealInbox")
 @app.context_processor
@@ -209,6 +487,102 @@ def pro_required(f):
 @app.route("/healthz")
 def ping():
     return "pong", 200
+
+@app.route("/health")
+def health():
+    try:
+        client.admin.command("ping")
+        return api_ok({"status": "ok", "db": "connected"})
+    except Exception as exc:
+        app.logger.exception("Health check failed: %s", exc)
+        return api_error("database_unavailable", 503)
+
+@app.route("/api/inbound-email", methods=["POST"])
+def inbound_email():
+    """
+    SendGrid inbound parse webhook endpoint.
+    Expected fields include: from, to, subject, text, html.
+
+    curl example:
+    curl -X POST http://localhost:5000/api/inbound-email \
+      -F 'from=brand@agency.com' \
+      -F 'to=creator@example.com' \
+      -F 'subject=Collab with Myntra' \
+      -F 'text=Hi, we want 1 reel + 2 stories. Budget INR 45000.'
+    """
+    try:
+        from_email = (request.form.get("from") or request.headers.get("X-From") or "").strip()
+        to_field = (request.form.get("to") or request.headers.get("X-To") or "").strip().lower()
+        subject = (request.form.get("subject") or "").strip()
+        raw_text = (request.form.get("text") or request.form.get("html") or "").strip()
+
+        if not to_field or not raw_text:
+            return api_error("missing_inbound_fields", 400)
+
+        creator = users_col.find_one({
+            "$or": [
+                {"email": {"$regex": re.escape(to_field), "$options": "i"}},
+                {"collab_email": {"$regex": re.escape(to_field), "$options": "i"}}
+            ]
+        })
+        if not creator:
+            return api_error("creator_not_found_for_recipient", 404)
+
+        parsed = claude_parse_email(raw_text=raw_text, subject=subject, from_email=from_email)
+        budget_label = parsed.get("budget", "")
+        budget_num = parse_budget_num(budget_label)
+
+        profile = ensure_brand_profile(parsed.get("brand_name") or "Unknown Brand", source="inbound_email")
+        enq_doc = {
+            "user_id": str(creator["_id"]),
+            "brand_name": parsed.get("brand_name") or "Unknown Brand",
+            "brand_profile_id": str(profile.get("_id")) if profile else None,
+            "contact_name": parsed.get("contact_name", ""),
+            "email": parsed.get("contact_email") or from_email,
+            "platform": parsed.get("platform", ""),
+            "budget": budget_label,
+            "budget_num": budget_num,
+            "timeline": parsed.get("timeline", ""),
+            "brief": parsed.get("brief") or raw_text[:1500],
+            "deliverables": parsed.get("deliverables", ""),
+            "status": "new",
+            "note": "",
+            "tracking_token": str(uuid.uuid4()),
+            "source": "sendgrid_inbound",
+            "subject": subject,
+            "created_at": now(),
+            "updated_at": now(),
+            "events": [{
+                "timestamp": now(),
+                "from_status": None,
+                "to_status": "new",
+                "note": "Created from inbound email",
+                "changed_by": "system"
+            }]
+        }
+        inserted = enquiries.insert_one(enq_doc)
+
+        creator_name = creator.get("name", "Creator")
+        sendgrid_send(
+            to_email=creator.get("email", ""),
+            subject=f"New collab request from {enq_doc['brand_name']}",
+            body=(
+                f"Hi {creator_name},\n\n"
+                f"You received a new collab request from {enq_doc['brand_name']}.\n"
+                f"Budget: {budget_label or 'Not specified'}\n"
+                f"Platform: {enq_doc.get('platform') or 'Not specified'}\n\n"
+                "Open DealInbox to review and respond."
+            )
+        )
+
+        return api_ok({
+            "enquiry_id": str(inserted.inserted_id),
+            "brand_name": enq_doc["brand_name"],
+            "status": "new"
+        }, 201)
+    except Exception as exc:
+        app.logger.exception("Inbound email processing failed: %s", exc)
+        return api_error("failed_to_process_inbound_email", 500)
 
 @app.route("/api/instagram-sync", methods=["POST"])
 @login_required
@@ -608,6 +982,292 @@ def toggle_anonymous():
     }})
     log(uid, "Anonymous mode " + ("enabled" if enabled else "disabled"))
     return jsonify({"ok": True, "enabled": enabled})
+
+def suggested_rate_for_creator(user, content_format):
+    followers_raw = (user or {}).get("followers", "")
+    followers = parse_budget_num(str(followers_raw))
+    if followers <= 0:
+        digits = re.sub(r"[^0-9]", "", str(followers_raw or ""))
+        followers = int(digits or 0)
+    niche = ((user or {}).get("niche") or "").strip().lower()
+    niche_multiplier = {
+        "finance": 1.25,
+        "tech": 1.2,
+        "business": 1.2,
+        "beauty": 1.05,
+        "fashion": 1.05,
+        "gaming": 1.15,
+    }.get(niche, 1.0)
+    base_per_10k = {
+        "YouTube Integration": 7000,
+        "Reel": 3500,
+        "Story": 1800,
+        "LinkedIn Post": 2800,
+        "Podcast Mention": 4500,
+        "Newsletter": 3000,
+        "Live Stream": 8500,
+    }.get(content_format, 3000)
+    followers_units = max(1, followers / 10000)
+    suggestion = int(base_per_10k * followers_units * niche_multiplier)
+    return max(2500, suggestion)
+
+@app.route("/rate-card")
+@login_required
+def rate_card_page():
+    uid = session["uid"]
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    rates = list(rate_cards_col.find({"creator_id": uid}))
+    by_format = {r.get("format"): r for r in rates}
+    return render_template("rate_card.html", content_formats=CONTENT_FORMATS, by_format=by_format, user=user)
+
+@app.route("/api/rate-card/suggested")
+@login_required
+def rate_card_suggested():
+    uid = session["uid"]
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    out = {}
+    for content_format in CONTENT_FORMATS:
+        out[content_format] = suggested_rate_for_creator(user, content_format)
+    return jsonify({"ok": True, "suggested": out})
+
+@app.route("/api/rate-card", methods=["POST"])
+@login_required
+def save_rate_card():
+    uid = session["uid"]
+    data = json_body()
+    content_format = (data.get("format") or "").strip()
+    if content_format not in CONTENT_FORMATS:
+        return jsonify({"ok": False, "error": "invalid_format"}), 400
+    try:
+        base_rate = int(data.get("base_rate", 0))
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_base_rate"}), 400
+    variables = data.get("variables_json") if isinstance(data.get("variables_json"), dict) else {}
+    defaults = {"usage_rights_pct": 20, "exclusivity_pct": 30, "rush_fee_pct": 15, "raw_footage_pct": 10}
+    for key, val in defaults.items():
+        try:
+            defaults[key] = int(variables.get(key, val))
+        except Exception:
+            pass
+    rate_cards_col.update_one(
+        {"creator_id": uid, "format": content_format},
+        {"$set": {
+            "creator_id": uid,
+            "format": content_format,
+            "base_rate": max(0, base_rate),
+            "variables_json": defaults,
+            "updated_at": now(),
+        }, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True})
+
+@app.route("/dashboard/integrations")
+@login_required
+def integrations_hub():
+    uid = session["uid"]
+    integrations = list(integrations_col.find({"user_id": uid}).sort("provider", 1))
+    statuses = {}
+    for item in integrations:
+        provider = (item.get("provider") or "").strip().lower()
+        if provider:
+            statuses[provider] = item
+    providers = [
+        {"key": "gmail", "label": "Gmail", "desc": "Ingest inbound brand threads and detect new deal opportunities."},
+        {"key": "sheets", "label": "Google Sheets", "desc": "Sync deal pipeline rows into your custom sheet format."},
+        {"key": "notion", "label": "Notion", "desc": "Mirror accepted deals and campaign notes to Notion pages."},
+        {"key": "whatsapp", "label": "WhatsApp", "desc": "Log inbound WhatsApp conversations into your deal timeline."},
+    ]
+    recent_logs = list(integration_logs_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(20))
+    return render_template(
+        "integrations.html",
+        providers=providers,
+        statuses=statuses,
+        recent_logs=recent_logs,
+        fmt_dt=fmt_dt,
+    )
+
+@app.route("/api/integrations/status")
+@login_required
+def integrations_status():
+    uid = session["uid"]
+    items = list(integrations_col.find({"user_id": uid}))
+    out = {}
+    for row in items:
+        key = (row.get("provider") or "").strip().lower()
+        if not key:
+            continue
+        out[key] = {
+            "status": row.get("status", "disconnected"),
+            "connected_at": fmt_dt(row.get("connected_at")),
+            "last_sync_at": fmt_dt(row.get("last_sync_at")),
+            "updated_at": fmt_dt(row.get("updated_at")),
+        }
+    return jsonify({"ok": True, "integrations": out})
+
+@app.route("/api/integrations/logs")
+@login_required
+def integrations_logs():
+    uid = session["uid"]
+    provider = (request.args.get("provider") or "").strip().lower()
+    q = {"user_id": uid}
+    if provider:
+        q["provider"] = provider
+    rows = list(integration_logs_col.find(q).sort("created_at", DESCENDING).limit(100))
+    clean = []
+    for r in rows:
+        clean.append({
+            "provider": r.get("provider", ""),
+            "event": r.get("event", ""),
+            "detail": r.get("detail", ""),
+            "created_at": fmt_dt(r.get("created_at")),
+        })
+    return jsonify({"ok": True, "logs": clean})
+
+@app.route("/api/integrations/connect", methods=["POST"])
+@login_required
+def integrations_connect():
+    uid = session["uid"]
+    data = json_body()
+    provider = (data.get("provider") or "").strip().lower()
+    if provider not in {"gmail", "sheets", "notion", "whatsapp"}:
+        return api_error("invalid_provider", 400)
+    if provider in {"gmail", "sheets"}:
+        return api_error("use_google_oauth_start", 400)
+    token = (data.get("token") or "").strip()
+    config = data.get("config") if isinstance(data.get("config"), dict) else {}
+    now_ts = now()
+    update_doc = {
+        "user_id": uid,
+        "provider": provider,
+        "status": "connected",
+        "token": token,
+        "token_masked": mask_secret(token),
+        "config": config,
+        "connected_at": now_ts,
+        "updated_at": now_ts,
+    }
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": update_doc, "$setOnInsert": {"created_at": now_ts}},
+        upsert=True
+    )
+    log_integration(uid, provider, "connected", f"{provider} integration connected")
+    return api_ok({"provider": provider, "status": "connected"})
+
+@app.route("/integrations/google/start")
+@login_required
+def integrations_google_start():
+    uid = session["uid"]
+    provider = (request.args.get("provider") or "").strip().lower()
+    if provider not in {"gmail", "sheets"}:
+        flash("Invalid Google integration provider.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not GOOGLE_CLIENT_ID:
+        flash("Google OAuth is not configured yet (missing GOOGLE_CLIENT_ID).", "error")
+        return redirect(url_for("integrations_hub"))
+    state = str(uuid.uuid4())
+    session[f"google_oauth_state_{provider}"] = state
+    redirect_uri = GOOGLE_OAUTH_REDIRECT_URI or url_for("integrations_google_callback", _external=True)
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(google_oauth_scopes(provider)),
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+        "state": f"{provider}:{state}",
+    }
+    query = "&".join([f"{k}={requests.utils.quote(str(v), safe='')}" for k, v in params.items()])
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{query}")
+
+@app.route("/integrations/google/callback")
+@login_required
+def integrations_google_callback():
+    uid = session["uid"]
+    code = (request.args.get("code") or "").strip()
+    state_raw = (request.args.get("state") or "").strip()
+    if ":" not in state_raw:
+        flash("Invalid OAuth state.", "error")
+        return redirect(url_for("integrations_hub"))
+    provider, state = state_raw.split(":", 1)
+    provider = provider.strip().lower()
+    if provider not in {"gmail", "sheets"}:
+        flash("Invalid OAuth provider.", "error")
+        return redirect(url_for("integrations_hub"))
+    expected = session.pop(f"google_oauth_state_{provider}", "")
+    if not expected or expected != state:
+        flash("OAuth state mismatch. Please try connecting again.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not code:
+        flash("Missing OAuth authorization code.", "error")
+        return redirect(url_for("integrations_hub"))
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        flash("Google OAuth credentials are incomplete on the server.", "error")
+        return redirect(url_for("integrations_hub"))
+    redirect_uri = GOOGLE_OAUTH_REDIRECT_URI or url_for("integrations_google_callback", _external=True)
+    token_res = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        },
+        timeout=30,
+    )
+    if token_res.status_code >= 300:
+        app.logger.error("Google token exchange failed: %s", token_res.text[:500])
+        flash("Google OAuth exchange failed. Please try again.", "error")
+        log_integration(uid, provider, "oauth_failed", "token_exchange_failed")
+        return redirect(url_for("integrations_hub"))
+    payload = token_res.json()
+    access_token = (payload.get("access_token") or "").strip()
+    refresh_token = (payload.get("refresh_token") or "").strip()
+    if not access_token:
+        flash("Google OAuth did not return an access token.", "error")
+        log_integration(uid, provider, "oauth_failed", "missing_access_token")
+        return redirect(url_for("integrations_hub"))
+    now_ts = now()
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": {
+            "user_id": uid,
+            "provider": provider,
+            "status": "connected",
+            "oauth_provider": "google",
+            "token": access_token,
+            "token_masked": mask_secret(access_token),
+            "refresh_token": refresh_token,
+            "refresh_token_masked": mask_secret(refresh_token),
+            "scope": payload.get("scope", ""),
+            "token_type": payload.get("token_type", ""),
+            "expires_in": payload.get("expires_in", 0),
+            "connected_at": now_ts,
+            "updated_at": now_ts,
+        }, "$setOnInsert": {"created_at": now_ts}},
+        upsert=True
+    )
+    log_integration(uid, provider, "connected", f"{provider} connected via Google OAuth")
+    flash(f"{provider.title()} connected successfully via Google.", "success")
+    return redirect(url_for("integrations_hub"))
+
+@app.route("/api/integrations/<provider>/disconnect", methods=["POST"])
+@login_required
+def integrations_disconnect(provider):
+    uid = session["uid"]
+    provider = (provider or "").strip().lower()
+    if provider not in {"gmail", "sheets", "notion", "whatsapp"}:
+        return api_error("invalid_provider", 400)
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": {"status": "disconnected", "token": "", "token_masked": "", "updated_at": now()}},
+        upsert=True
+    )
+    log_integration(uid, provider, "disconnected", f"{provider} integration disconnected")
+    return api_ok({"provider": provider, "status": "disconnected"})
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC ENQUIRY PAGE
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -618,6 +1278,29 @@ def public_page(username):
         return render_template("404.html"), 404
     return render_template("public_page.html",
                            user=user, platforms=PLATFORMS, budgets=BUDGETS)
+
+@app.route("/u/<username>")
+def creator_portfolio_page(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return render_template("404.html"), 404
+    uid = str(user.get("_id"))
+    rates = list(rate_cards_col.find({"creator_id": uid}).sort("format", 1))
+    wins = enquiries.count_documents({"user_id": uid, "status": {"$in": ["accepted", "closed", "content_approved"]}})
+    total = enquiries.count_documents({"user_id": uid})
+    badges = list(achievements_col.find({"creator_id": uid}).sort("unlocked_at", DESCENDING).limit(6))
+    meta_title = f"{user.get('name') or username} | {user.get('niche') or 'Creator'} Creator Portfolio"
+    meta_desc = f"Book {user.get('name') or username} for brand collaborations. Platform: {user.get('platform') or 'Creator'}."
+    return render_template(
+        "portfolio.html",
+        user=user,
+        rates=rates,
+        wins=wins,
+        total=total,
+        badges=badges,
+        meta_title=meta_title,
+        meta_desc=meta_desc,
+    )
 @app.route("/@<username>/submit", methods=["POST"])
 def submit_enquiry(username):
     user = users_col.find_one({"username": username})
@@ -650,9 +1333,11 @@ def submit_enquiry(username):
     budget_num = budget_map.get(budget, 0)
     import secrets
     tracking_token = secrets.token_urlsafe(24)
+    profile = ensure_brand_profile(brand_name, source="public_submit")
     enquiries.insert_one({
         "user_id":        str(user["_id"]),
         "brand_name":     brand_name,
+        "brand_profile_id": str(profile.get("_id")) if profile else None,
         "contact_name":   contact_name,
         "email":          email,
         "platform":       platform,
@@ -746,18 +1431,22 @@ def brand_portal(token):
         return render_template("404.html"), 404
     BRAND_STEPS = [
         {"key":"submitted","title":"Enquiry submitted","sub":"Your enquiry is in their inbox.",
-         "statuses":["new","reviewing","negotiating","accepted","closed","declined"]},
+         "statuses":["new","reviewing","negotiating","accepted","content_approved","closed","declined"]},
         {"key":"reviewing","title":"Under review","sub":f"{(creator.get('name') or 'Creator').split()[0]} is looking at your brief.",
-         "statuses":["reviewing","negotiating","accepted","closed","declined"]},
+         "statuses":["reviewing","negotiating","accepted","content_approved","closed","declined"]},
         {"key":"negotiating","title":"In discussion","sub":"Details are being worked out.",
-         "statuses":["negotiating","accepted","closed"]},
+         "statuses":["negotiating","accepted","content_approved","closed"]},
         {"key":"accepted","title":"Deal accepted","sub":"The collaboration is confirmed.",
-         "statuses":["accepted","closed"]},
+         "statuses":["accepted","content_approved","closed"]},
+        {"key":"content_approved","title":"Content approved","sub":"Draft approved by brand.",
+         "statuses":["content_approved","closed"]},
         {"key":"closed","title":"Deal closed","sub":"All done - great collaboration!",
          "statuses":["closed"]},
     ]
+    drafts = list(content_drafts_col.find({"deal_id": str(enq.get("_id"))}).sort("version", DESCENDING))
     return render_template("brand_portal.html",
                            enq=enq, creator=creator,
+                           drafts=drafts,
                            brand_steps=BRAND_STEPS,
                            current_status=enq.get("status","new"),
                            STATUSES=STATUSES, fmt_dt=fmt_dt)
@@ -1137,6 +1826,204 @@ def api_status(eid):
     log(uid, f"Quick status changed to {STATUSES[status]['label']}")
     return jsonify({"ok": True, "label": STATUSES[status]["label"],
                     "color": STATUSES[status]["color"]})
+
+@app.route("/api/enquiry/<eid>/ai-replies", methods=["POST"])
+@login_required
+def ai_reply_variants(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    payload = json_body()
+    variants = openai_generate_reply_variants(
+        deal_type=payload.get("deal_type", "") or enq.get("platform", ""),
+        budget=payload.get("budget", "") or enq.get("budget", ""),
+        deliverables=payload.get("deliverables", "") or enq.get("deliverables", ""),
+        niche=payload.get("niche", "") or user.get("niche", ""),
+        brand_name=enq.get("brand_name", ""),
+        brief=enq.get("brief", ""),
+    )
+    doc = {
+        "user_id": uid,
+        "enquiry_id": str(enquiry_id),
+        "accepting": variants["accepting"],
+        "countering": variants["countering"],
+        "declining": variants["declining"],
+        "updated_at": now(),
+        "created_at": now(),
+    }
+    reply_drafts_col.update_one(
+        {"user_id": uid, "enquiry_id": str(enquiry_id)},
+        {"$set": doc, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True, "variants": variants})
+
+@app.route("/api/enquiry/<eid>/reply-draft", methods=["POST"])
+@login_required
+def save_reply_draft(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    data = json_body()
+    key = (data.get("key") or "").strip().lower()
+    text = (data.get("text") or "").strip()
+    if key not in {"accepting", "countering", "declining"}:
+        return jsonify({"ok": False, "error": "invalid_variant_key"}), 400
+    if not text:
+        return jsonify({"ok": False, "error": "empty_text"}), 400
+    reply_drafts_col.update_one(
+        {"user_id": uid, "enquiry_id": str(enquiry_id)},
+        {"$set": {key: text, "updated_at": now()}, "$setOnInsert": {"created_at": now()}},
+        upsert=True
+    )
+    return jsonify({"ok": True})
+
+@app.route("/api/enquiry/<eid>/content-drafts", methods=["GET", "POST"])
+@login_required
+def content_drafts_api(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if request.method == "GET":
+        rows = list(content_drafts_col.find({"deal_id": str(enquiry_id), "creator_id": uid}).sort("version", DESCENDING))
+        clean = []
+        for r in rows:
+            clean.append({
+                "id": str(r.get("_id")),
+                "version": r.get("version", 1),
+                "file_url": r.get("file_url", ""),
+                "status": r.get("status", "submitted"),
+                "feedback": r.get("feedback", []),
+                "submitted_at": fmt_dt(r.get("submitted_at")),
+            })
+        return jsonify({"ok": True, "drafts": clean})
+    data = json_body()
+    file_url = (data.get("file_url") or "").strip()
+    if not file_url:
+        return jsonify({"ok": False, "error": "file_url_required"}), 400
+    latest = content_drafts_col.find_one({"deal_id": str(enquiry_id), "creator_id": uid}, sort=[("version", -1)])
+    next_ver = int((latest or {}).get("version", 0)) + 1
+    doc = {
+        "deal_id": str(enquiry_id),
+        "creator_id": uid,
+        "brand_token": enq.get("tracking_token", ""),
+        "version": next_ver,
+        "file_url": file_url,
+        "status": "submitted",
+        "feedback": [],
+        "submitted_at": now(),
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = content_drafts_col.insert_one(doc)
+    enquiries.update_one({"_id": enquiry_id}, {"$set": {"updated_at": now(), "status": "negotiating"}})
+    return jsonify({"ok": True, "id": str(inserted.inserted_id), "version": next_ver})
+
+@app.route("/api/brand/content-drafts/<draft_id>/review", methods=["POST"])
+def review_content_draft(draft_id):
+    draft_oid = require_valid_oid(draft_id)
+    if not draft_oid:
+        return jsonify({"ok": False, "error": "invalid_draft_id"}), 400
+    data = json_body()
+    token = (data.get("token") or "").strip()
+    action = (data.get("action") or "").strip().lower()
+    comment = (data.get("comment") or "").strip()[:500]
+    if action not in {"approve", "changes_requested", "reject"}:
+        return jsonify({"ok": False, "error": "invalid_action"}), 400
+    draft = content_drafts_col.find_one({"_id": draft_oid})
+    if not draft:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if not token or token != (draft.get("brand_token") or ""):
+        return jsonify({"ok": False, "error": "invalid_token"}), 403
+    feedback_item = {"action": action, "comment": comment, "at": now()}
+    content_drafts_col.update_one(
+        {"_id": draft_oid},
+        {"$set": {"status": action, "updated_at": now()}, "$push": {"feedback": feedback_item}}
+    )
+    if action == "approve":
+        enquiries.update_one({"_id": oid(draft.get("deal_id"))}, {"$set": {"status": "content_approved", "updated_at": now()}})
+    return jsonify({"ok": True, "status": action})
+
+def next_invoice_number():
+    y = datetime.utcnow().year
+    prefix = f"INV-{y}-"
+    latest = invoices_col.find_one({"invoice_number": {"$regex": f"^{prefix}"}}, sort=[("invoice_number", -1)])
+    if not latest:
+        return f"{prefix}001"
+    tail = str(latest.get("invoice_number", "")).replace(prefix, "")
+    try:
+        seq = int(tail) + 1
+    except Exception:
+        seq = 1
+    return f"{prefix}{seq:03d}"
+
+@app.route("/api/enquiry/<eid>/gst-invoice", methods=["POST"])
+@login_required
+def create_gst_invoice(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"ok": False, "error": "invalid_enquiry_id"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    data = json_body()
+    try:
+        base_amount = int(data.get("amount") or enq.get("budget_num") or 0)
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_amount"}), 400
+    gst_rate = 18
+    gst = int(round(base_amount * gst_rate / 100))
+    total = base_amount + gst
+    doc = {
+        "creator_id": uid,
+        "deal_id": str(enquiry_id),
+        "invoice_number": next_invoice_number(),
+        "gstin": (data.get("gstin") or "").strip(),
+        "hsn": (data.get("hsn") or "998361").strip(),
+        "service_description": (data.get("service_description") or f"Creator collaboration for {enq.get('brand_name', 'brand')}").strip(),
+        "amount": base_amount,
+        "gst": gst,
+        "gst_rate": gst_rate,
+        "total": total,
+        "status": "generated",
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = invoices_col.insert_one(doc)
+    return jsonify({"ok": True, "invoice_id": str(inserted.inserted_id), "invoice_number": doc["invoice_number"], "total": total})
+
+@app.route("/api/invoices")
+@login_required
+def list_invoices():
+    uid = session["uid"]
+    rows = list(invoices_col.find({"creator_id": uid}).sort("created_at", DESCENDING).limit(200))
+    clean = []
+    for r in rows:
+        clean.append({
+            "id": str(r.get("_id")),
+            "invoice_number": r.get("invoice_number", ""),
+            "deal_id": r.get("deal_id", ""),
+            "amount": int(r.get("amount", 0) or 0),
+            "gst": int(r.get("gst", 0) or 0),
+            "total": int(r.get("total", 0) or 0),
+            "status": r.get("status", ""),
+            "created_at": fmt_dt(r.get("created_at")),
+        })
+    return jsonify({"ok": True, "invoices": clean})
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEGOTIATION REPLAY
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1405,6 +2292,157 @@ def heatmap_page():
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
     return render_template("heatmap.html", is_pro_user=is_pro(user))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMUNITY + BRAND RELATIONSHIP LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+@app.route("/community")
+@login_required
+def community_feed_page():
+    uid = session["uid"]
+    niche = (request.args.get("niche") or "").strip()
+    platform = (request.args.get("platform") or "").strip()
+    tier = (request.args.get("tier") or "").strip()
+    q = {}
+    if niche: q["niche"] = niche
+    if platform: q["platform"] = platform
+    if tier: q["follower_tier"] = tier
+    posts = list(community_posts_col.find(q).sort("created_at", DESCENDING).limit(60))
+    trending = list(community_posts_col.find({}).sort("upvotes", DESCENDING).limit(6))
+    return render_template("community.html", posts=posts, trending=trending, niche=niche, platform=platform, tier=tier, fmt_dt=fmt_dt)
+
+@app.route("/api/community/posts", methods=["GET", "POST"])
+@login_required
+def community_posts_api():
+    uid = session["uid"]
+    if request.method == "GET":
+        posts = list(community_posts_col.find({}).sort("created_at", DESCENDING).limit(100))
+        cleaned = []
+        for p in posts:
+            p["_id"] = str(p.get("_id"))
+            cleaned.append(p)
+        return jsonify({"ok": True, "posts": cleaned})
+    data = json_body()
+    post_type = (data.get("type") or "advice").strip().lower()
+    if post_type not in {"deal_win", "rate_card", "advice", "collab_request", "red_flag"}:
+        return jsonify({"ok": False, "error": "invalid_type"}), 400
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"ok": False, "error": "content_required"}), 400
+    user = users_col.find_one({"_id": oid(uid)}) or {}
+    doc = {
+        "creator_id": uid,
+        "type": post_type,
+        "content": content[:2000],
+        "anonymous": bool(data.get("anonymous", False)),
+        "niche": (data.get("niche") or user.get("niche") or "").strip(),
+        "platform": (data.get("platform") or user.get("platform") or "").strip(),
+        "follower_tier": (data.get("follower_tier") or "").strip(),
+        "upvotes": 0,
+        "saves": 0,
+        "comments": [],
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = community_posts_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/api/community/posts/<pid>/upvote", methods=["POST"])
+@login_required
+def upvote_community_post(pid):
+    post_id = require_valid_oid(pid)
+    if not post_id:
+        return jsonify({"ok": False}), 400
+    community_posts_col.update_one({"_id": post_id}, {"$inc": {"upvotes": 1}, "$set": {"updated_at": now()}})
+    p = community_posts_col.find_one({"_id": post_id}, {"upvotes": 1})
+    return jsonify({"ok": True, "upvotes": int((p or {}).get("upvotes", 0))})
+
+@app.route("/intel")
+@login_required
+def deal_intel_page():
+    rows = list(brand_intel_col.find({}).sort("upvotes", DESCENDING).limit(120))
+    return render_template("deal_intel.html", intel=rows, fmt_dt=fmt_dt)
+
+@app.route("/api/brand-intel", methods=["POST"])
+@login_required
+def add_brand_intel():
+    uid = session["uid"]
+    data = json_body()
+    brand_name = (data.get("brand_name") or "").strip()
+    if not brand_name:
+        return jsonify({"ok": False, "error": "brand_name_required"}), 400
+    experience = (data.get("experience") or "good").strip().lower()
+    if experience not in {"good", "bad", "ugly"}:
+        return jsonify({"ok": False, "error": "invalid_experience"}), 400
+    profile = ensure_brand_profile(brand_name, category=(data.get("category") or "").strip(), source="intel")
+    hashed_creator = generate_password_hash(uid)[:32]
+    doc = {
+        "brand_name": brand_name,
+        "brand_profile_id": str(profile.get("_id")) if profile else None,
+        "category": (data.get("category") or "").strip(),
+        "deal_type": (data.get("deal_type") or "").strip(),
+        "amount_range": (data.get("amount_range") or "").strip(),
+        "experience": experience,
+        "notes": (data.get("notes") or "").strip()[:1500],
+        "creator_id_hash": hashed_creator,
+        "upvotes": 0,
+        "verified": False,
+        "created_at": now(),
+    }
+    inserted = brand_intel_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/brand/<slug>")
+def brand_profile_page(slug):
+    profile = brand_profiles_col.find_one({"slug": slug})
+    if not profile:
+        return render_template("404.html"), 404
+    intel_rows = list(brand_intel_col.find({"brand_name": profile.get("name")}).sort("created_at", DESCENDING).limit(50))
+    good = sum(1 for r in intel_rows if r.get("experience") == "good")
+    bad = sum(1 for r in intel_rows if r.get("experience") == "bad")
+    ugly = sum(1 for r in intel_rows if r.get("experience") == "ugly")
+    total = max(1, good + bad + ugly)
+    reputation_score = round(((good * 1.0) + (bad * 0.4) + (ugly * 0.1)) / total * 100)
+    badge = "✅ Fast Payer" if reputation_score >= 70 else "⚠️ Slow Payer" if reputation_score >= 40 else "🚩 Ghosted Creators"
+    return render_template("brand_profile.html", profile=profile, intel_rows=intel_rows, reputation_score=reputation_score, badge=badge, fmt_dt=fmt_dt)
+
+@app.route("/api/relationships/recompute", methods=["POST"])
+@login_required
+def recompute_relationship_scores():
+    uid = session["uid"]
+    user_enqs = list(enquiries.find({"user_id": uid}))
+    grouped = {}
+    for e in user_enqs:
+        brand = (e.get("brand_name") or "").strip()
+        if not brand:
+            continue
+        grouped.setdefault(brand, []).append(e)
+    updated = 0
+    for brand, items in grouped.items():
+        deal_count = len(items)
+        total_earned = sum((i.get("budget_num") or 0) for i in items if i.get("status") in {"accepted", "closed", "paid"})
+        closed = sum(1 for i in items if i.get("status") in {"accepted", "closed", "paid"})
+        paid = sum(1 for i in items if i.get("payment_status") == "paid" or i.get("status") == "paid")
+        repeat_bonus = min(20, max(0, (deal_count - 1) * 5))
+        close_rate = (closed / deal_count) * 35
+        payment_rate = (paid / max(1, closed)) * 30
+        score = int(min(100, repeat_bonus + close_rate + payment_rate + 15))
+        relationships_col.update_one(
+            {"creator_id": uid, "brand_name": brand},
+            {"$set": {
+                "creator_id": uid,
+                "brand_name": brand,
+                "score": score,
+                "deal_count": deal_count,
+                "total_earned": total_earned,
+                "status": "ongoing" if deal_count > 1 else "one_off",
+                "last_deal_at": max((to_naive(i.get("created_at")) for i in items if i.get("created_at")), default=now()),
+                "updated_at": now(),
+            }},
+            upsert=True
+        )
+        updated += 1
+    return jsonify({"ok": True, "updated": updated})
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
