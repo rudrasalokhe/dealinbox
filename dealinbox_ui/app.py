@@ -3,22 +3,27 @@ DealInbox — Never lose a brand deal again.
 Run: pip install flask pymongo werkzeug python-dotenv razorpay && python app.py
 """
 from flask import (Flask, render_template, request, redirect,
-                   session, flash, url_for, jsonify, make_response)
+                   session, flash, url_for, jsonify, make_response, Response, stream_with_context)
 from pymongo import MongoClient, DESCENDING
 from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from dotenv import load_dotenv
-import os, re, csv, io, json
+import os, re, csv, io, json, logging, uuid
+import requests
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
 app = Flask(__name__,
             template_folder=os.path.join(BASE_DIR, "templates"),
             static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret")
+logging.basicConfig(level=logging.INFO)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "alerts@dealsinbox.in")
 # ── Razorpay config ───────────────────────────────────────────────────────────
 RAZORPAY_KEY_ID     = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
@@ -62,6 +67,7 @@ users_col    = db["users"]
 enquiries    = db["enquiries"]
 activity_col = db["activity"]
 payments_col = db["payments"]
+rate_limits_col = db["rate_limits"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -142,6 +148,109 @@ def safe_count(collection, query=None, fallback=0):
         return collection.count_documents(query or {})
     except Exception:
         return fallback
+
+def api_ok(data=None, status=200):
+    return jsonify({"success": True, "data": data or {}}), status
+
+def api_error(message, status=400):
+    return jsonify({"success": False, "error": message}), status
+
+def parse_budget_num(text):
+    if not text:
+        return 0
+    cleaned = text.replace(",", "").lower()
+    m = re.search(r"(₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(lakh|lac|cr|crore|k)?", cleaned)
+    if not m:
+        return 0
+    val = float(m.group(2))
+    suffix = (m.group(3) or "").strip()
+    if suffix in {"k"}:
+        val *= 1000
+    elif suffix in {"lakh", "lac"}:
+        val *= 100000
+    elif suffix in {"cr", "crore"}:
+        val *= 10000000
+    return int(val)
+
+def claude_parse_email(raw_text, subject="", from_email=""):
+    """
+    Parse inbound brand email into normalized enquiry fields.
+    Returns a dict with brand_name, contact_name, contact_email, budget, platform, timeline, brief, deliverables.
+    """
+    fallback = {
+        "brand_name": (subject.split(" ")[0] if subject else "Unknown Brand"),
+        "contact_name": "",
+        "contact_email": from_email or "",
+        "budget": "",
+        "platform": "",
+        "timeline": "",
+        "brief": (raw_text or "")[:1500],
+        "deliverables": ""
+    }
+    if not ANTHROPIC_API_KEY:
+        return fallback
+    prompt = (
+        "Extract structured brand deal enquiry data from this email.\n"
+        "Return strict JSON only with keys: brand_name, contact_name, contact_email, budget, platform, timeline, brief, deliverables.\n"
+        "If missing, use empty strings. Keep brief concise (max 500 chars).\n\n"
+        f"Subject: {subject}\n"
+        f"From: {from_email}\n"
+        f"Body:\n{raw_text[:6000]}"
+    )
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 500,
+                "temperature": 0,
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=30
+        )
+        if r.status_code >= 300:
+            app.logger.error("Claude parse failed: %s %s", r.status_code, r.text[:500])
+            return fallback
+        payload = r.json()
+        text = ""
+        for blk in payload.get("content", []):
+            if blk.get("type") == "text":
+                text += blk.get("text", "")
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            text = text.replace("json", "", 1).strip()
+        parsed = json.loads(text)
+        out = {**fallback, **{k: (parsed.get(k) or "") for k in fallback.keys()}}
+        return out
+    except Exception as exc:
+        app.logger.exception("Claude parse exception: %s", exc)
+        return fallback
+
+def sendgrid_send(to_email, subject, body):
+    if not SENDGRID_API_KEY or not to_email:
+        return False
+    try:
+        res = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "personalizations": [{"to": [{"email": to_email}]}],
+                "from": {"email": SENDGRID_FROM_EMAIL},
+                "subject": subject,
+                "content": [{"type": "text/plain", "value": body}]
+            },
+            timeout=20
+        )
+        return 200 <= res.status_code < 300
+    except Exception as exc:
+        app.logger.exception("SendGrid error: %s", exc)
+        return False
 STATUSES = {
     "new":        {"label": "New",        "color": "#6366f1"},
     "reviewing":  {"label": "Reviewing",  "color": "#f59e0b"},
@@ -209,6 +318,100 @@ def pro_required(f):
 @app.route("/healthz")
 def ping():
     return "pong", 200
+
+@app.route("/health")
+def health():
+    try:
+        client.admin.command("ping")
+        return api_ok({"status": "ok", "db": "connected"})
+    except Exception as exc:
+        app.logger.exception("Health check failed: %s", exc)
+        return api_error("database_unavailable", 503)
+
+@app.route("/api/inbound-email", methods=["POST"])
+def inbound_email():
+    """
+    SendGrid inbound parse webhook endpoint.
+    Expected fields include: from, to, subject, text, html.
+
+    curl example:
+    curl -X POST http://localhost:5000/api/inbound-email \
+      -F 'from=brand@agency.com' \
+      -F 'to=creator@example.com' \
+      -F 'subject=Collab with Myntra' \
+      -F 'text=Hi, we want 1 reel + 2 stories. Budget INR 45000.'
+    """
+    try:
+        from_email = (request.form.get("from") or request.headers.get("X-From") or "").strip()
+        to_field = (request.form.get("to") or request.headers.get("X-To") or "").strip().lower()
+        subject = (request.form.get("subject") or "").strip()
+        raw_text = (request.form.get("text") or request.form.get("html") or "").strip()
+
+        if not to_field or not raw_text:
+            return api_error("missing_inbound_fields", 400)
+
+        creator = users_col.find_one({
+            "$or": [
+                {"email": {"$regex": re.escape(to_field), "$options": "i"}},
+                {"collab_email": {"$regex": re.escape(to_field), "$options": "i"}}
+            ]
+        })
+        if not creator:
+            return api_error("creator_not_found_for_recipient", 404)
+
+        parsed = claude_parse_email(raw_text=raw_text, subject=subject, from_email=from_email)
+        budget_label = parsed.get("budget", "")
+        budget_num = parse_budget_num(budget_label)
+
+        enq_doc = {
+            "user_id": str(creator["_id"]),
+            "brand_name": parsed.get("brand_name") or "Unknown Brand",
+            "contact_name": parsed.get("contact_name", ""),
+            "email": parsed.get("contact_email") or from_email,
+            "platform": parsed.get("platform", ""),
+            "budget": budget_label,
+            "budget_num": budget_num,
+            "timeline": parsed.get("timeline", ""),
+            "brief": parsed.get("brief") or raw_text[:1500],
+            "deliverables": parsed.get("deliverables", ""),
+            "status": "new",
+            "note": "",
+            "tracking_token": str(uuid.uuid4()),
+            "source": "sendgrid_inbound",
+            "subject": subject,
+            "created_at": now(),
+            "updated_at": now(),
+            "events": [{
+                "timestamp": now(),
+                "from_status": None,
+                "to_status": "new",
+                "note": "Created from inbound email",
+                "changed_by": "system"
+            }]
+        }
+        inserted = enquiries.insert_one(enq_doc)
+
+        creator_name = creator.get("name", "Creator")
+        sendgrid_send(
+            to_email=creator.get("email", ""),
+            subject=f"New collab request from {enq_doc['brand_name']}",
+            body=(
+                f"Hi {creator_name},\n\n"
+                f"You received a new collab request from {enq_doc['brand_name']}.\n"
+                f"Budget: {budget_label or 'Not specified'}\n"
+                f"Platform: {enq_doc.get('platform') or 'Not specified'}\n\n"
+                "Open DealInbox to review and respond."
+            )
+        )
+
+        return api_ok({
+            "enquiry_id": str(inserted.inserted_id),
+            "brand_name": enq_doc["brand_name"],
+            "status": "new"
+        }, 201)
+    except Exception as exc:
+        app.logger.exception("Inbound email processing failed: %s", exc)
+        return api_error("failed_to_process_inbound_email", 500)
 
 @app.route("/api/instagram-sync", methods=["POST"])
 @login_required

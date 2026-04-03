@@ -1,131 +1,38 @@
 {% extends "base.html" %}
-{% block scene_name %}brand-signal{% endblock %}
 {% block title %}{{ enq.brand_name }} — DealInbox{% endblock %}
+{% block topbar_title %}Deal Detail{% endblock %}
 {% block content %}
-<div class="detail-three-wrap"><div id="brand-signal-canvas" class="detail-three"></div></div>
-<div class="deal-workspace">
-  <div class="deal-head">
-    <div>
-      <a href="{{ url_for('enquiries_page') }}" class="back-link">← Back to Brand Opportunities</a>
-      <h1>{{ enq.brand_name }}</h1>
-      <p class="page-sub">Collab request received {{ fmt_dt(enq.created_at) }}</p>
-    </div>
-    <span class="status-pill status-pill-lg" style="background:{{ STATUSES[enq.status].color if enq.status in STATUSES else '#333' }}15;color:{{ STATUSES[enq.status].color if enq.status in STATUSES else '#888' }}">{{ STATUSES[enq.status].label if enq.status in STATUSES else enq.status }}</span>
+<a class="btn btn-ghost fade-in" href="{{ url_for('enquiries_page') }}">← Back to Brand Deals</a>
+<section class="card fade-in" style="margin-top:10px;padding:24px;background:linear-gradient(135deg,var(--surface),var(--surface-2))">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;gap:12px"><div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#5B8EF5,#9B72F5);display:grid;place-items:center;font-weight:800">{{ enq.brand_name[0]|upper }}</div><div><h1 style="font-size:26px;font-weight:900;letter-spacing:-.8px">{{ enq.brand_name }}</h1><p style="color:var(--t2);font-size:13px">{{ enq.email }} · {{ fmt_dt(enq.created_at) }}</p></div></div>
+    <span class="pill pill-{{ enq.status }}">{{ STATUSES[enq.status].label if enq.status in STATUSES else enq.status }}</span>
   </div>
-
-  <div class="deal-layout">
-    <main class="deal-main">
-      <section class="deal-info-grid">
-        <article class="deal-meta-card"><label>Brand</label><strong>{{ enq.brand_name }}</strong></article>
-        <article class="deal-meta-card"><label>Platform</label><strong>{{ enq.platform or '—' }}</strong></article>
-        <article class="deal-meta-card"><label>Budget</label><strong>{{ enq.budget or 'Not specified' }}</strong></article>
-        <article class="deal-meta-card"><label>Timeline</label><strong>{{ enq.timeline or 'Not specified' }}</strong></article>
-      </section>
-
-      <section class="settings-card settings-card-lg">
-        <h2>Campaign brief</h2>
-        <p class="brief-text">{{ enq.brief or 'No campaign brief provided.' }}</p>
-      </section>
-
-      {% if enq.deliverables %}
-      <section class="settings-card settings-card-lg">
-        <h2>Requested deliverables</h2>
-        <p class="brief-text">{{ enq.deliverables }}</p>
-      </section>
-      {% endif %}
-
-      <section class="settings-card settings-card-lg">
-        <h2>Negotiation notes</h2>
-        <p class="brief-text">{{ enq.note or 'No internal notes yet. Add notes in the deal stage panel.' }}</p>
-      </section>
-
-      <section class="settings-card settings-card-lg">
-        <h2>Quick reply templates</h2>
-        <div class="ai-wrap">
-          <div class="ai-btns">
-            <button class="ai-btn" onclick="genReply('interested')">✅ Interested</button>
-            <button class="ai-btn" onclick="genReply('negotiate')">💬 Counter-offer</button>
-            <button class="ai-btn" onclick="genReply('more_info')">❓ Ask clarifying questions</button>
-            <button class="ai-btn" onclick="genReply('decline')">🚫 Decline politely</button>
-          </div>
-          <div class="ai-output" id="aiOut"></div>
-          <div class="ai-actions" id="aiActions" style="display:none">
-            <button class="btn btn-sm btn-green" onclick="copyReply()">Copy reply</button>
-            <button class="btn btn-sm btn-primary" onclick="openMailWithReply()">Open in email client →</button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <aside class="deal-side">
-      <section class="settings-card">
-        <h2>Deal stage management</h2>
-        <form method="POST" action="{{ url_for('update_status', eid=enq._id) }}" class="status-form">
-          <div class="fg"><label>Status</label><select name="status">{% for s, info in STATUSES.items() %}<option value="{{ s }}" {% if enq.status == s %}selected{% endif %}>{{ info.label }}</option>{% endfor %}</select></div>
-          <div class="fg"><label>Internal note</label><textarea name="note" rows="4" placeholder="e.g. Approved at ₹45,000 for 1 Reel + 2 Stories">{{ enq.note or '' }}</textarea></div>
-          <button type="submit" class="btn btn-primary btn-full">Save stage update</button>
-        </form>
-      </section>
-
-      <section class="settings-card">
-        <h2>Contact & actions</h2>
-        <div class="sidebar-actions">
-          <a href="mailto:{{ enq.email }}?subject=Re%3A%20Collab%20with%20{{ session.name | urlencode }}&body=Hi%20{{ (enq.contact_name or enq.brand_name) | urlencode }}%2C%0A%0A" class="btn btn-full btn-primary">Email brand</a>
-          <button class="btn btn-full" onclick="copyBrief()">Copy campaign brief</button>
-          {% if enq.tracking_token %}
-          <button class="btn btn-full btn-green" onclick="copyTrackUrl()">Copy brand status link</button>
-          <a href="/track/{{ enq.tracking_token }}" target="_blank" class="btn btn-full">Preview brand portal ↗</a>
-          {% endif %}
-          <form method="POST" action="{{ url_for('delete_enquiry', eid=enq._id) }}" onsubmit="return confirm('Delete this opportunity?')">
-            <button type="submit" class="btn btn-danger btn-full">Delete opportunity</button>
-          </form>
-        </div>
-      </section>
-
-      <section class="settings-card">
-        <h2>Deal timeline</h2>
-        <div class="timeline">
-          <div class="tl-item"><i></i><div><h5>Request received</h5><small>{{ fmt_dt(enq.created_at) }}</small></div></div>
-          {% if enq.updated_at and enq.updated_at != enq.created_at %}
-          <div class="tl-item"><i></i><div><h5>Last updated</h5><small>{{ fmt_dt(enq.updated_at) }}</small></div></div>
-          {% endif %}
-        </div>
-      </section>
-    </aside>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px" class="meta-grid">
+    <div class="card" style="padding:12px 14px;background:var(--bg)"><label>Platform</label><b>{{ enq.platform or '—' }}</b></div>
+    <div class="card" style="padding:12px 14px;background:var(--bg)"><label>Budget</label><b>{{ enq.budget or '—' }}</b></div>
+    <div class="card" style="padding:12px 14px;background:var(--bg)"><label>Timeline</label><b>{{ enq.timeline or '—' }}</b></div>
+    <div class="card" style="padding:12px 14px;background:var(--bg)"><label>Deliverables</label><b>{{ enq.deliverables or '—' }}</b></div>
   </div>
+</section>
+
+<div style="display:grid;grid-template-columns:1fr 288px;gap:14px;margin-top:14px" class="detail-grid">
+  <main style="display:grid;gap:14px">
+    <section class="card fade-in" style="padding:18px"><h3>Campaign brief</h3><p style="color:var(--t2);margin-top:8px">{{ enq.brief or 'No brief provided.' }}</p></section>
+    <section class="card fade-in" style="padding:18px"><h3>AI Reply Generator</h3><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0"><button class="btn reply-btn" onclick="genReply('interested')">Interested</button><button class="btn reply-btn" onclick="genReply('negotiate')">Counter</button><button class="btn reply-btn" onclick="genReply('more_info')">More info</button><button class="btn reply-btn" onclick="genReply('decline')">Decline</button></div><div id="aiOut" style="min-height:80px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px;color:var(--t2);font-style:italic"></div><div style="margin-top:8px"><button class="btn btn-sm" onclick="copyReply()">Copy</button></div></section>
+    <section class="card fade-in" style="padding:18px"><h3>Notes</h3><p style="color:var(--t2);margin-top:8px">{{ enq.note or 'No internal notes yet.' }}</p></section>
+  </main>
+  <aside style="display:grid;gap:14px">
+    <section class="card fade-in" style="padding:18px"><h3>Deal stage</h3><form method="POST" action="{{ url_for('update_status', eid=enq._id) }}"><div class="fg"><label>Status</label><select name="status">{% for s,info in STATUSES.items() %}<option value="{{ s }}" {% if enq.status==s %}selected{% endif %}>{{ info.label }}</option>{% endfor %}</select></div><div class="fg"><label>Note</label><textarea name="note">{{ enq.note or '' }}</textarea></div><button class="btn btn-gold btn-full" type="submit">Save</button></form></section>
+    <section class="card fade-in" style="padding:18px"><h3>Actions</h3><div style="display:grid;gap:8px;margin-top:8px"><a class="btn" href="mailto:{{ enq.email }}">Email brand</a><button class="btn" onclick="copyBrief()">Copy brief</button>{% if enq.tracking_token %}<button class="btn" onclick="copyTrackUrl()">Copy tracking link</button><a class="btn" href="/track/{{ enq.tracking_token }}" target="_blank">Preview portal</a>{% endif %}<form method="POST" action="{{ url_for('delete_enquiry', eid=enq._id) }}" onsubmit="return confirm('Delete this opportunity?')"><button class="btn btn-danger btn-full" type="submit">Delete</button></form></div></section>
+  </aside>
 </div>
-
 <script>
-const brandEmail = {{ enq.email|tojson }};
-const brandName = {{ enq.brand_name|tojson }};
-const contactName = {{ (enq.contact_name or enq.brand_name)|tojson }};
-const creatorName = {{ session.name|tojson }};
-const budget = {{ (enq.budget or 'unspecified budget')|tojson }};
-const platform = {{ (enq.platform or 'your platform')|tojson }};
-
-const replies = {
-  interested: `Hi ${contactName},\n\nThanks for reaching out about ${brandName} — this looks like a strong fit.\n\nThe ${platform} campaign is relevant and the ${budget} range works. Could we align on final deliverables and timeline this week?\n\nBest,\n${creatorName}`,
-  negotiate: `Hi ${contactName},\n\nThanks for the opportunity with ${brandName}.\n\nI'm interested, but my standard rate for ${platform} is above ${budget}. Is there room to adjust budget so we can structure the collaboration properly?\n\nBest,\n${creatorName}`,
-  more_info: `Hi ${contactName},\n\nThank you for reaching out for ${brandName}. Before I confirm, could you share:\n• exact deliverables\n• posting timeline\n• content constraints\n• one-off vs ongoing scope\n\nThanks,\n${creatorName}`,
-  decline: `Hi ${contactName},\n\nThank you for considering me for ${brandName}. I’ll pass on this campaign as it isn’t the right fit for my audience currently.\n\nPlease keep me in mind for future collaborations.\n\nBest,\n${creatorName}`
-};
-
-function genReply(t){
-  const o=document.getElementById('aiOut');
-  const actions=document.getElementById('aiActions');
-  o.className='ai-output visible';
-  o.textContent='Generating reply…';
-  actions.style.display='none';
-  setTimeout(()=>{o.textContent=replies[t];actions.style.display='flex';},350);
-}
-function copyReply(){navigator.clipboard.writeText(document.getElementById('aiOut').textContent).then(()=>showToast('Reply copied!'));}
-function openMailWithReply(){
-  const body=document.getElementById('aiOut').textContent;
-  if(!body||body==='Generating reply…'){showToast('Generate a reply first');return;}
-  const subject=encodeURIComponent(`Re: Brand Collab — ${brandName} × ${creatorName}`);
-  window.location.href=`mailto:${brandEmail}?subject=${subject}&body=${encodeURIComponent(body)}`;
-}
-function copyBrief(){navigator.clipboard.writeText(`Brand: ${brandName}\nPlatform: ${platform}\nBudget: ${budget}\n\nBrief:\n{{ enq.brief or '' }}`).then(()=>showToast('Brief copied!'));}
-function copyTrackUrl(){const url=`{{ request.host_url }}track/{{ enq.tracking_token or '' }}`;navigator.clipboard.writeText(url).then(()=>showToast('Tracking link copied!'));}
+const replies={interested:`Hi {{ enq.contact_name or enq.brand_name }},\n\nThanks for reaching out — happy to explore this campaign.`,negotiate:`Hi {{ enq.contact_name or enq.brand_name }},\n\nInterested, but would like to discuss budget and deliverables.`,more_info:`Hi {{ enq.contact_name or enq.brand_name }},\n\nCould you share exact deliverables and timeline?`,decline:`Hi {{ enq.contact_name or enq.brand_name }},\n\nThanks for the opportunity. I’ll pass for now.`};
+function genReply(t){document.getElementById('aiOut').textContent=replies[t]||'';}
+function copyReply(){navigator.clipboard.writeText(document.getElementById('aiOut').textContent||'');showToast('Copied');}
+function copyBrief(){navigator.clipboard.writeText(`{{ enq.brief or '' }}`);showToast('Brief copied');}
+function copyTrackUrl(){navigator.clipboard.writeText(`{{ request.host_url }}track/{{ enq.tracking_token or '' }}`);showToast('Tracking link copied');}
 </script>
+<style>@media(max-width:980px){.detail-grid{grid-template-columns:1fr!important}.meta-grid{grid-template-columns:1fr 1fr!important}}</style>
 {% endblock %}
