@@ -1,104 +1,25 @@
 {% extends "base.html" %}
-{% block scene_name %}data-universe{% endblock %}
-{% block title %}Creator Earnings — DealInbox{% endblock %}
+{% block title %}Analytics — DealInbox{% endblock %}
+{% block topbar_title %}Analytics{% endblock %}
 {% block content %}
-<div id="analytics-canvas" class="analytics-three"></div>
-<div class="page-header">
-  <div><h1>Creator Earnings</h1><p class="page-sub">Track pipeline value, close rate, and creator income momentum.</p></div>
-  <button class="btn btn-sm" onclick="exportReport()">Export</button>
+<div class="kpi-grid fade-in">
+  <div class="kpi"><div class="kpi-label">Total Deals</div><div class="kpi-val">{{ total }}</div></div>
+  <div class="kpi"><div class="kpi-label">Signed</div><div class="kpi-val">{{ accepted }}</div></div>
+  <div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">{{ conversion }}%</div></div>
+  <div class="kpi"><div class="kpi-label">Pipeline Value</div><div class="kpi-val">₹{{ "{:,}".format(total_value) }}</div></div>
 </div>
-
-{% if total > 0 %}<div class="insight-banner"><p>{% if conversion >= 50 %}Your {{ conversion }}% close rate is excellent. Most creators sit around 25–30%.{% elif conversion >= 25 %}Solid {{ conversion }}% close rate. Fast replies to new enquiries are the quickest way to push this higher.{% else %}Focus on sharing your link in more places — more enquiries means more chances to close.{% endif %}</p></div>{% endif %}
-
-<div class="kpi-grid">
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✉</span></div><div class="kpi-val">{{ total }}</div><div class="kpi-label">Brand opportunities</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">✓</span></div><div class="kpi-val">{{ accepted }}</div><div class="kpi-label">Signed collaborations</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">%</span></div><div class="kpi-val">{{ conversion }}%</div><div class="kpi-label">Win rate</div></div>
-  <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">₹</span></div><div class="kpi-val">₹{{ "{:,}".format(total_value) }}</div><div class="kpi-label">Estimated pipeline value</div></div>
+<div class="insight fade-in"><i class="insight-dot"></i>{% if conversion >= 50 %}Outstanding conversion rate. Scale volume while preserving response speed.{% elif conversion >= 25 %}Strong baseline. Better qualification can improve win rate further.{% else %}Focus on clearer public positioning to improve brand-fit enquiries.{% endif %}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="an-grid">
+  <div class="card fade-in" style="grid-column:1/-1;padding:18px"><h3>Monthly deals</h3>{% set mx=namespace(v=1) %}{% for m in months %}{% if m.count>mx.v %}{% set mx.v=m.count %}{% endif %}{% endfor %}<div style="height:220px;display:flex;align-items:flex-end;gap:10px;margin-top:14px">{% for m in months %}<div style="flex:1;text-align:center"><div title="{{ m.count }}" style="height:{{ [8,(m.count/mx.v*160)|int]|max }}px;background:linear-gradient(180deg,var(--gold),rgba(255,255,255,.2));border-radius:6px 6px 0 0"></div><small style="color:var(--t3)">{{ m.month }}</small></div>{% endfor %}</div></div>
+  <div class="card fade-in" style="padding:18px"><h3>Stage mix</h3>{% for s,info in STATUSES.items() %}{% set c = status_counts.get(s,0) %}<div style="margin-top:8px"><div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">{{ info.label }}</span><b>{{ c }}</b></div><div style="height:7px;background:var(--surface-2);border-radius:99px"><div style="height:7px;background:{{ info.color }};width:{{ (c/total*100)|int if total else 0 }}%;border-radius:99px"></div></div></div>{% endfor %}</div>
+  <div class="card fade-in" style="padding:18px"><h3>Channel mix</h3>{% for p,c in plat_counts.items() %}<div style="margin-top:8px"><div style="display:flex;justify-content:space-between"><span style="color:var(--t2)">{{ p }}</span><b>{{ c }}</b></div><div style="height:7px;background:var(--surface-2);border-radius:99px"><div style="height:7px;background:var(--blue);width:{{ (c/total*100)|int if total else 0 }}%;border-radius:99px"></div></div></div>{% else %}<p style="color:var(--t3)">No data yet.</p>{% endfor %}</div>
+  <div class="card fade-in" style="padding:18px"><h3>Top brands</h3>{% for brand,c in top_brands[:3] %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span>#{{ loop.index }} {{ brand }}</span><b>{{ c }}</b></div>{% else %}<p style="color:var(--t3)">No repeat brands yet.</p>{% endfor %}</div>
+  <div class="card fade-in" style="grid-column:1/-1;padding:18px"><h3>Earnings goal</h3><div style="display:flex;gap:8px;margin-top:10px"><input id="goalInput" type="number" placeholder="Monthly goal"><button class="btn btn-gold" onclick="setGoal()">Set goal</button></div><div style="height:8px;background:var(--surface-2);border-radius:99px;margin-top:10px"><div id="goalBar" style="height:8px;background:var(--green);width:0%;border-radius:99px"></div></div><small id="goalPct" style="color:var(--t3)">Set your monthly goal</small></div>
 </div>
-
-<div class="analytics-grid">
-  <div class="analytics-card analytics-card-wide">
-    <h2>Brand opportunities — last 6 months</h2>
-    {% set mx=namespace(v=1) %}{% for m in months %}{% if m.count>mx.v %}{% set mx.v=m.count %}{% endif %}{% endfor %}
-    <div class="bar-chart">
-      {% for m in months %}
-      <div class="bc-col">
-        <div class="bc-bar-wrap"><div class="bc-bar" style="height:{{ [2,(m.count/mx.v*90)|int]|max }}px" title="{{ m.count }}"></div></div>
-        <div class="bc-val">{{ m.count }}</div>
-        <div class="bc-label">{{ m.month }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="analytics-card">
-    <h2>Collab stage mix</h2>
-    {% if total %}
-    <div class="sb-list">
-      {% for s, info in STATUSES.items() %}{% set c=status_counts.get(s,0) %}
-      <div class="sb-row">
-        <div class="sb-label"><span class="sb-dot" style="background:{{ info.color }}"></span>{{ info.label }}</div>
-        <div class="sb-bar-wrap"><div class="sb-bar" style="width:{{ (c/total*100)|int }}%;background:{{ info.color }}"></div></div>
-        <div class="sb-count">{{ c }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}<div class="empty-small">No data yet.</div>{% endif %}
-  </div>
-
-  <div class="analytics-card">
-    <h2>Channel mix</h2>
-    {% if plat_counts %}
-    <div class="sb-list">
-      {% for p, c in plat_counts.items() %}
-      <div class="sb-row">
-        <div class="sb-label" style="width:90px">{{ p }}</div>
-        <div class="sb-bar-wrap"><div class="sb-bar" style="width:{{ (c/total*100)|int if total else 0 }}%;background:var(--blue)"></div></div>
-        <div class="sb-count">{{ c }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}<div class="empty-small">No data yet.</div>{% endif %}
-  </div>
-
-  <div class="analytics-card">
-    <h2>Top recurring brands</h2>
-    {% if top_brands %}
-    <div class="top-brands">
-      {% for brand, c in top_brands %}
-      <div class="tb-row">
-        <div class="tb-rank" style="color:{% if loop.index==1 %}var(--amber){% else %}var(--t4){% endif %}">#{{ loop.index }}</div>
-        <div class="tb-name">{{ brand }}</div>
-        <div class="tb-count">{{ c }} enquir{{ 'y' if c==1 else 'ies' }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}<div class="empty-small">No data yet.</div>{% endif %}
-  </div>
-
-  <div class="analytics-card analytics-card-wide">
-    <h2>Monthly creator earnings goal</h2>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="flex:1;min-width:160px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--t3)"><span>Progress</span><span id="goalPct" style="color:var(--green)">Set a goal →</span></div>
-        <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:5px"><div id="goalBar" style="height:100%;background:var(--green);border-radius:2px;width:0%;transition:width .8s ease"></div></div>
-        <div style="font-size:11px;color:var(--t4)" id="goalHint">Track your monthly pipeline against a target.</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <input type="number" id="goalInput" placeholder="₹ goal" style="width:130px">
-        <button class="btn btn-green btn-sm" onclick="setGoal()">Set</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 const pv={{ total_value }};
-function setGoal(){const g=parseInt(document.getElementById('goalInput').value)||0;if(!g)return;const p=Math.min(100,Math.round(pv/g*100));document.getElementById('goalBar').style.width=p+'%';document.getElementById('goalPct').textContent=`₹${pv.toLocaleString('en-IN')} / ₹${g.toLocaleString('en-IN')} (${p}%)`;document.getElementById('goalHint').textContent=p>=100?'Goal reached!':p>=75?'Almost there.':p>=50?'Halfway there.':'Keep building.';localStorage.setItem('di_goal',g)}
-window.addEventListener('load',()=>{const s=localStorage.getItem('di_goal');if(s){document.getElementById('goalInput').value=s;setGoal()}});
-function exportReport(){const a=document.createElement('a');a.href='data:text/plain,'+encodeURIComponent(`DealInbox Analytics\nTotal: {{ total }}\nClosed: {{ accepted }}\nWin rate: {{ conversion }}%\nPipeline: ₹{{ "{:,}".format(total_value) }}`);a.download='analytics.txt';a.click();showToast('Exported')}
+function setGoal(){const g=parseInt(document.getElementById('goalInput').value)||0;if(!g)return;const p=Math.min(100,Math.round((pv/g)*100));document.getElementById('goalBar').style.width=p+'%';document.getElementById('goalPct').textContent=`₹${pv.toLocaleString('en-IN')} / ₹${g.toLocaleString('en-IN')} (${p}%)`;localStorage.setItem('di_goal',g);} 
+window.addEventListener('load',()=>{const s=localStorage.getItem('di_goal');if(s){document.getElementById('goalInput').value=s;setGoal();}});
 </script>
+<style>@media(max-width:900px){.an-grid{grid-template-columns:1fr!important}}</style>
 {% endblock %}
-
-{% block threejs %}<script>const ANALYTICS_3D_DATA = {monthly: {{ months | map(attribute='count') | list | tojson }}};</script>{% endblock %}
