@@ -1301,6 +1301,214 @@ def creator_portfolio_page(username):
         meta_title=meta_title,
         meta_desc=meta_desc,
     )
+
+@app.route("/marketplace")
+def marketplace_page():
+    niche = (request.args.get("niche") or "").strip()
+    content_format = (request.args.get("format") or "").strip()
+    q = {"status": "open"}
+    if niche:
+        q["niche"] = niche
+    if content_format:
+        q["format"] = content_format
+    slots = list(marketplace_slots_col.find(q).sort("available_from", 1).limit(200))
+    creator_ids = [s.get("creator_id") for s in slots if s.get("creator_id")]
+    creators = {}
+    if creator_ids:
+        for u in users_col.find({"_id": {"$in": [oid(cid) for cid in creator_ids if oid(cid)]}}, {"name": 1, "username": 1, "platform": 1, "followers": 1}):
+            creators[str(u.get("_id"))] = u
+    return render_template("marketplace.html", slots=slots, creators=creators, niche=niche, content_format=content_format)
+
+@app.route("/marketplace/manage")
+@login_required
+def marketplace_manage_page():
+    uid = session["uid"]
+    rows = list(marketplace_slots_col.find({"creator_id": uid}).sort("created_at", DESCENDING))
+    return render_template("marketplace_manage.html", rows=rows, content_formats=CONTENT_FORMATS, now=now)
+
+@app.route("/api/marketplace/slots", methods=["GET", "POST"])
+@login_required
+def marketplace_slots_api():
+    uid = session["uid"]
+    if request.method == "GET":
+        rows = list(marketplace_slots_col.find({"creator_id": uid}).sort("created_at", DESCENDING))
+        clean = []
+        for r in rows:
+            clean.append({
+                "id": str(r.get("_id")),
+                "format": r.get("format", ""),
+                "price": int(r.get("price", 0) or 0),
+                "niche": r.get("niche", ""),
+                "available_from": fmt_date(r.get("available_from")),
+                "status": r.get("status", "open"),
+            })
+        return jsonify({"ok": True, "slots": clean})
+    data = json_body()
+    content_format = (data.get("format") or "").strip()
+    if content_format not in CONTENT_FORMATS:
+        return jsonify({"ok": False, "error": "invalid_format"}), 400
+    try:
+        price = int(data.get("price", 0))
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_price"}), 400
+    available_from_raw = (data.get("available_from") or "").strip()
+    available_from = now()
+    if available_from_raw:
+        try:
+            available_from = datetime.strptime(available_from_raw, "%Y-%m-%d")
+        except Exception:
+            pass
+    doc = {
+        "creator_id": uid,
+        "format": content_format,
+        "price": max(0, price),
+        "niche": (data.get("niche") or "").strip(),
+        "slot_limit": max(1, int(data.get("slot_limit", 1) or 1)),
+        "min_budget": max(0, int(data.get("min_budget", 0) or 0)),
+        "available_from": available_from,
+        "booked_by": None,
+        "status": "open",
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = marketplace_slots_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/api/marketplace/slots/<slot_id>/book", methods=["POST"])
+def book_marketplace_slot(slot_id):
+    slot_oid = require_valid_oid(slot_id)
+    if not slot_oid:
+        return jsonify({"ok": False, "error": "invalid_slot_id"}), 400
+    slot = marketplace_slots_col.find_one({"_id": slot_oid, "status": "open"})
+    if not slot:
+        return jsonify({"ok": False, "error": "slot_unavailable"}), 404
+    data = json_body()
+    brand_name = (data.get("brand_name") or "").strip()
+    contact_name = (data.get("contact_name") or "").strip()
+    email = (data.get("email") or "").strip()
+    brief = (data.get("brief") or "").strip()
+    if not all([brand_name, email, brief]):
+        return jsonify({"ok": False, "error": "missing_required_fields"}), 400
+    import secrets
+    tracking_token = secrets.token_urlsafe(24)
+    creator_id = slot.get("creator_id")
+    enquiry_doc = {
+        "user_id": creator_id,
+        "brand_name": brand_name,
+        "contact_name": contact_name,
+        "email": email,
+        "platform": slot.get("format", ""),
+        "budget": f"₹{int(slot.get('price', 0) or 0):,}",
+        "budget_num": int(slot.get("price", 0) or 0),
+        "timeline": "",
+        "brief": brief,
+        "deliverables": slot.get("format", ""),
+        "status": "new",
+        "note": "",
+        "tracking_token": tracking_token,
+        "source": "marketplace_booking",
+        "created_at": now(),
+        "updated_at": now(),
+    }
+    inserted = enquiries.insert_one(enquiry_doc)
+    marketplace_slots_col.update_one(
+        {"_id": slot_oid},
+        {"$set": {"status": "booked", "booked_by": {"brand_name": brand_name, "email": email}, "booked_deal_id": str(inserted.inserted_id), "updated_at": now()}}
+    )
+    campaign_id_raw = (data.get("campaign_id") or "").strip()
+    campaign_oid = require_valid_oid(campaign_id_raw)
+    if campaign_oid:
+        campaigns_col.update_one(
+            {"_id": campaign_oid},
+            {"$push": {"applicants": {
+                "creator_id": creator_id,
+                "creator_username": ((users_col.find_one({"_id": oid(creator_id)}) or {}).get("username", "")),
+                "status": "applied",
+                "source": "marketplace",
+                "slot_id": str(slot_oid),
+                "deal_id": str(inserted.inserted_id),
+                "applied_at": now(),
+            }}, "$set": {"updated_at": now()}}
+        )
+    return jsonify({"ok": True, "deal_id": str(inserted.inserted_id)})
+
+@app.route("/brand", methods=["GET", "POST"])
+def brand_campaigns_page():
+    if request.method == "POST":
+        data = request.form
+        brand_name = (data.get("brand_name") or "").strip()
+        brand_email = (data.get("brand_email") or "").strip().lower()
+        if not brand_name or not brand_email:
+            flash("Brand name and email are required.", "error")
+            return redirect(url_for("brand_campaigns_page"))
+        session["brand_name"] = brand_name
+        session["brand_email"] = brand_email
+        doc = {
+            "brand_name": brand_name,
+            "brand_email": brand_email,
+            "title": (data.get("title") or "").strip(),
+            "brief": (data.get("brief") or "").strip(),
+            "budget_min": int(data.get("budget_min") or 0),
+            "budget_max": int(data.get("budget_max") or 0),
+            "timeline": (data.get("timeline") or "").strip(),
+            "creator_criteria_json": {
+                "platform": (data.get("platform") or "").strip(),
+                "niche": (data.get("niche") or "").strip(),
+                "location": (data.get("location") or "").strip(),
+            },
+            "status": "open",
+            "applicants": [],
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        campaigns_col.insert_one(doc)
+        flash("Campaign created.", "success")
+        return redirect(url_for("brand_campaigns_page"))
+    brand_email = (session.get("brand_email") or "").strip().lower()
+    campaigns = list(campaigns_col.find({"brand_email": brand_email}).sort("created_at", DESCENDING)) if brand_email else []
+    return render_template("brand_campaigns.html", campaigns=campaigns, brand_email=brand_email, brand_name=session.get("brand_name", ""))
+
+@app.route("/brand/campaign/<cid>")
+def brand_campaign_detail(cid):
+    campaign_oid = require_valid_oid(cid)
+    if not campaign_oid:
+        return render_template("404.html"), 404
+    campaign = campaigns_col.find_one({"_id": campaign_oid})
+    if not campaign:
+        return render_template("404.html"), 404
+    brand_email = (session.get("brand_email") or "").strip().lower()
+    if not brand_email or brand_email != (campaign.get("brand_email") or "").strip().lower():
+        flash("Please use the campaign brand email session to access this campaign.", "error")
+        return redirect(url_for("brand_campaigns_page"))
+    applicants = campaign.get("applicants", []) or []
+    return render_template("brand_campaign_detail.html", campaign=campaign, applicants=applicants)
+
+@app.route("/api/brand/campaign/<cid>/applicants/<idx>/status", methods=["POST"])
+def update_campaign_applicant_status(cid, idx):
+    campaign_oid = require_valid_oid(cid)
+    if not campaign_oid:
+        return jsonify({"ok": False, "error": "invalid_campaign_id"}), 400
+    brand_email = (session.get("brand_email") or "").strip().lower()
+    campaign = campaigns_col.find_one({"_id": campaign_oid})
+    if not campaign:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if not brand_email or brand_email != (campaign.get("brand_email") or "").strip().lower():
+        return jsonify({"ok": False, "error": "unauthorized"}), 403
+    try:
+        index = int(idx)
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_index"}), 400
+    applicants = campaign.get("applicants", []) or []
+    if index < 0 or index >= len(applicants):
+        return jsonify({"ok": False, "error": "index_out_of_range"}), 400
+    data = json_body()
+    status = (data.get("status") or "").strip().lower()
+    if status not in {"applied", "shortlisted", "approved", "rejected"}:
+        return jsonify({"ok": False, "error": "invalid_status"}), 400
+    applicants[index]["status"] = status
+    applicants[index]["updated_at"] = now()
+    campaigns_col.update_one({"_id": campaign_oid}, {"$set": {"applicants": applicants, "updated_at": now()}})
+    return jsonify({"ok": True})
 @app.route("/@<username>/submit", methods=["POST"])
 def submit_enquiry(username):
     user = users_col.find_one({"username": username})
