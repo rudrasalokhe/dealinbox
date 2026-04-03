@@ -11,36 +11,26 @@
       --glass-2: rgba(255,255,255,0.06);
       --glass-3: rgba(255,255,255,0.09);
       --glass-gold: rgba(240,180,41,0.08);
+      --glass-blue: rgba(99,102,241,0.08);
       --border-1: rgba(255,255,255,0.06);
       --border-2: rgba(255,255,255,0.1);
       --border-3: rgba(255,255,255,0.16);
       --border-gold: rgba(240,180,41,0.3);
-      --gold:#f0b429;
-      --gold-light:#fbbf24;
-      --gold-dim:rgba(240,180,41,0.15);
-      --gold-glow:rgba(240,180,41,0.3);
-      --indigo:#6366f1;
-      --green:#10b981;
-      --text-1:#f4f4f8;
-      --text-2:#a0a0b8;
-      --text-3:#5a5a72;
-      --text-4:#2e2e42;
-      --font-ui:'Inter', -apple-system, sans-serif;
-      --font-display:'Syne', sans-serif;
-      --ease-out:cubic-bezier(0.22, 1, 0.36, 1);
-      --ease-spring:cubic-bezier(0.34, 1.56, 0.64, 1);
+      --gold:#f0b429; --gold-light:#fbbf24; --gold-dim:rgba(240,180,41,0.15); --gold-glow:rgba(240,180,41,0.3);
+      --indigo:#6366f1; --green:#10b981; --amber:#f59e0b; --red:#ef4444;
+      --text-1:#f4f4f8; --text-2:#a0a0b8; --text-3:#5a5a72; --text-4:#2e2e42;
+      --font-ui:'Inter',-apple-system,sans-serif; --font-display:'Syne',sans-serif;
+      --ease-out:cubic-bezier(0.22,1,0.36,1); --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
     }
-
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
     body{font-family:var(--font-ui);font-size:14px;line-height:1.5;color:var(--text-1);overflow-x:hidden;background:#04040c}
     *{position:relative;z-index:1}
     .bg-mesh{z-index:0!important}
-    a{color:inherit;text-decoration:none}
+    a{text-decoration:none;color:inherit}
     button{cursor:pointer;font-family:var(--font-ui);border:none}
     ::selection{background:var(--gold-dim);color:var(--gold)}
-    ::-webkit-scrollbar{width:3px}
-    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:99px}
+    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:99px}
 
     .bg-mesh{position:fixed;inset:0;z-index:0;background:#04040c;overflow:hidden;pointer-events:none}
     .bg-orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:.55;animation:orb-drift 20s ease-in-out infinite}
@@ -51,11 +41,10 @@
     .bg-noise{position:absolute;inset:-50%;width:200%;height:200%;opacity:.025;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");background-size:256px 256px}
 
     .container{width:min(1160px,100% - 48px);margin:0 auto}
-    .logotype{display:flex;align-items:center;gap:9px;font-family:var(--font-ui);font-weight:700;font-size:15px;letter-spacing:-.3px}
+    .logotype{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;letter-spacing:-.3px}
 
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;line-height:1;transition:all .18s var(--ease-out);user-select:none;border:1px solid transparent;white-space:nowrap}
-    .btn svg{width:14px;height:14px;flex-shrink:0}
-    .btn:active{transform:scale(.97)!important}
+    .btn:active{transform:scale(.97)!important}.btn svg{width:14px;height:14px;flex-shrink:0}
     .btn-primary{background:var(--gold);color:#04040c;border-color:var(--gold);font-weight:600;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 0 0 0 var(--gold-glow)}
     .btn-primary:hover{background:var(--gold-light);box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 0 24px var(--gold-glow),0 4px 20px rgba(240,180,41,.2);transform:translateY(-1px)}
     .btn-glass{background:var(--glass-2);border-color:var(--border-2);backdrop-filter:blur(20px)}
@@ -66,63 +55,54 @@
     .btn-xl{padding:14px 30px;font-size:16px;font-weight:600;border-radius:12px}
 
     .nav-wrapper{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;justify-content:center;padding:20px 24px;pointer-events:none}
-    .nav-pill{display:flex;align-items:center;gap:4px;padding:6px 6px 6px 16px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);box-shadow:0 8px 32px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.06) inset,0 0 0 1px rgba(0,0,0,.3);pointer-events:auto;transition:all .3s var(--ease-out);max-width:680px;width:100%}
+    .nav-pill{display:flex;align-items:center;gap:4px;padding:6px 6px 6px 16px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(40px) saturate(200%);box-shadow:0 8px 32px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.06) inset,0 0 0 1px rgba(0,0,0,.3);pointer-events:auto;transition:all .3s var(--ease-out);max-width:720px;width:100%}
     .nav-pill--scrolled{background:rgba(4,4,12,.85);border-color:rgba(255,255,255,.08);box-shadow:0 16px 48px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.04) inset}
     .nav-divider{width:1px;height:16px;background:var(--border-2);margin:0 4px}
-    .nav-links{display:flex;gap:2px}
-    .nav-link{padding:7px 14px;border-radius:99px;font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s}
+    .nav-links{display:flex;gap:2px}.nav-link{padding:7px 14px;border-radius:99px;font-size:13px;font-weight:500;color:var(--text-2);transition:.15s}
     .nav-link:hover,.nav-link.active{color:var(--text-1);background:rgba(255,255,255,.08)}
-    .nav-spacer{flex:1}
-    .nav-mobile-toggle{display:none}
+    .nav-spacer{flex:1}.nav-mobile-toggle{display:none}
+
     .mobile-drawer{position:fixed;top:84px;left:24px;right:24px;background:rgba(4,4,12,.95);backdrop-filter:blur(40px);border:1px solid var(--border-2);border-radius:16px;padding:16px 20px;z-index:999;opacity:0;transform:translateY(-20px);pointer-events:none;transition:.2s}
     .mobile-drawer.open{opacity:1;transform:none;pointer-events:auto}
-    .mobile-drawer a{display:block;padding:14px 0;border-bottom:1px solid var(--border-1);font-size:16px}
-    .mobile-drawer a:last-child{border-bottom:0}
+    .mobile-drawer a{display:block;padding:14px 0;border-bottom:1px solid var(--border-1);font-size:16px}.mobile-drawer a:last-child{border-bottom:0}
 
     .hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:140px 24px 100px}
     .hero-eyebrow,.section-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:99px;background:var(--glass-gold);border:1px solid var(--border-gold);backdrop-filter:blur(20px);font-size:12px;font-weight:500;color:var(--gold);letter-spacing:.02em}
     .section-eyebrow{background:var(--glass-2);border-color:var(--border-2);color:var(--text-2)}
     .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:dot-pulse 2s ease-in-out infinite}
     @keyframes dot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
-
-    .hero h1{margin-top:20px;font-family:var(--font-display);font-size:clamp(52px,9vw,96px);font-weight:800;letter-spacing:-3px;line-height:1;max-width:900px}
+    .hero h1{margin-top:20px;font-family:var(--font-display);font-size:clamp(52px,9vw,96px);font-weight:800;letter-spacing:-3px;line-height:1;max-width:940px}
     .gold-gradient{background:linear-gradient(135deg,#f0b429 0%,#fbbf24 40%,#f59e0b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     .hero-sub{font-size:clamp(16px,2vw,20px);font-weight:300;color:var(--text-2);line-height:1.7;max-width:520px;margin:24px auto 0}
     .hero-cta{margin-top:40px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 
     .trust-row{margin-top:52px;display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap}
-    .avatars{display:flex}
-    .av{width:32px;height:32px;border-radius:50%;border:2px solid rgba(4,4,12,.8);margin-left:-10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#04040c}
-    .av:first-child{margin-left:0}
-    .trust-copy{text-align:left;margin-left:6px}
-    .trust-copy strong{display:block;font-size:13px;font-weight:500}
-    .trust-copy span{font-size:12px;color:var(--text-3)}
+    .avatars{display:flex}.av{width:32px;height:32px;border-radius:50%;border:2px solid rgba(4,4,12,.8);margin-left:-10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#04040c}.av:first-child{margin-left:0}
+    .trust-copy{text-align:left;margin-left:6px}.trust-copy strong{display:block;font-size:13px;font-weight:500}.trust-copy span{font-size:12px;color:var(--text-3)}
     .trust-divider{width:1px;height:28px;background:var(--border-2);margin:0 8px}
-    .stars{font-size:12px;color:var(--gold)}
-    .rating{font-size:12px;color:var(--text-3)}
 
-    .hero-mock{margin-top:80px;max-width:960px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 100px rgba(0,0,0,.7),0 0 80px rgba(99,102,241,.06),0 0 40px rgba(240,180,41,.04);animation:mockup-float 6s ease-in-out infinite}
+    .hero-mock{margin-top:80px;max-width:980px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 100px rgba(0,0,0,.7),0 0 80px rgba(99,102,241,.06),0 0 40px rgba(240,180,41,.04);animation:mockup-float 6s ease-in-out infinite}
     @keyframes mockup-float{0%,100%{transform:translateY(0) rotateX(0)}50%{transform:translateY(-10px) rotateX(1deg)}}
     .browser{height:42px;background:rgba(8,8,20,.95);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 16px;gap:12px}
     .tl{display:flex;gap:6px}.tl i{width:10px;height:10px;border-radius:50%}
     .url{flex:1;max-width:240px;margin:auto;height:22px;background:rgba(255,255,255,.05);border-radius:5px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.3)}
-    .mock-body{display:flex;background:rgba(4,4,12,.97);min-height:340px}
-    .mock-side{width:180px;border-right:1px solid rgba(255,255,255,.05);padding:14px 10px;background:rgba(255,255,255,.02)}
+    .mock-body{display:flex;background:rgba(4,4,12,.97);min-height:360px}
+    .mock-side{width:190px;border-right:1px solid rgba(255,255,255,.05);padding:14px 10px;background:rgba(255,255,255,.02)}
     .mock-nav-item{height:30px;border-radius:8px;padding:0 10px;display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px}
     .mock-nav-item.active{background:rgba(240,180,41,.1);color:rgba(240,180,41,.9);border-left:2px solid var(--gold)}
     .mini-dot{width:3px;height:3px;border-radius:50%}
     .mock-content{flex:1;padding:16px;background:rgba(4,4,12,.6)}
-    .mock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-    .mock-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px}
+    .mock-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+    .mock-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px}
     .mock-stat b{display:block;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.3)}
-    .mock-stat span{display:block;margin-top:6px;font-family:var(--font-display);font-size:18px}
+    .mock-stat span{display:block;margin-top:4px;font-family:var(--font-display);font-size:16px}
+    .mock-main-row{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
     .deals{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;overflow:hidden}
     .deals-head{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.3);display:flex;justify-content:space-between}
     .deal{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;align-items:center;gap:10px;font-size:11px}
-    .deal:last-child{border-bottom:0}
-    .d-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
-    .deal strong{font-weight:500}
-    .deal .amt{margin-left:auto;color:var(--gold)}
+    .deal:last-child{border-bottom:0}.d-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
+    .amt{margin-left:auto;color:var(--gold)}
+    .mini-chart{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:10px}
 
     .section{padding:120px 24px}
     .section-head{text-align:center;max-width:720px;margin:0 auto 72px}
@@ -132,99 +112,69 @@
     .social-proof{padding:40px 24px;border-top:1px solid var(--border-1);border-bottom:1px solid var(--border-1);background:rgba(255,255,255,.015);backdrop-filter:blur(20px);text-align:center}
     .social-proof p{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
     .platforms{display:flex;justify-content:center;align-items:center;gap:48px;flex-wrap:wrap}
-    .platforms span{font-family:var(--font-display);font-size:16px;color:var(--text-4);letter-spacing:-.3px;transition:.2s}
-    .platforms span:hover{color:var(--text-2)}
+    .platforms span{font-family:var(--font-display);font-size:16px;color:var(--text-4);letter-spacing:-.3px;transition:.2s}.platforms span:hover{color:var(--text-2)}
 
     .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border-radius:20px;overflow:hidden;background:var(--border-1)}
-    .feature{background:rgba(4,4,12,.8);padding:36px 32px;backdrop-filter:blur(20px);transition:background .2s}
-    .feature:hover{background:rgba(255,255,255,.03)}
+    .feature{background:rgba(4,4,12,.8);padding:36px 32px;backdrop-filter:blur(20px);transition:background .2s}.feature:hover{background:rgba(255,255,255,.03)}
     .feature-icon{width:44px;height:44px;border-radius:12px;background:var(--glass-gold);border:1px solid var(--border-gold);display:flex;align-items:center;justify-content:center}
     .feature-icon svg{width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:1.8}
-    .feature h3{margin-top:20px;font-size:16px;font-weight:600}
-    .feature p{margin-top:8px;font-size:14px;color:var(--text-2);line-height:1.65}
+    .feature h3{margin-top:20px;font-size:16px;font-weight:600}.feature p{margin-top:8px;font-size:14px;color:var(--text-2);line-height:1.65}
+
+    .deep-grid{display:grid;gap:18px}
+    .deep{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;background:var(--glass-1);border:1px solid var(--border-1);backdrop-filter:blur(20px);border-radius:20px;padding:24px}
+    .deep.alt .deep-text{order:2}.deep.alt .deep-visual{order:1}
+    .deep h3{font-family:var(--font-display);font-size:32px;letter-spacing:-.8px}
+    .deep p{margin-top:12px;color:var(--text-2);line-height:1.7}
+    .deep-link{display:inline-block;margin-top:14px;color:var(--gold);font-weight:500}
+    .deep-visual{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px}
 
     .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .card{background:var(--glass-1);border:1px solid var(--border-1);border-radius:16px;padding:24px;backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%)}
-    .card-interactive{transition:border-color .2s,transform .2s,box-shadow .2s}
-    .card-interactive:hover{border-color:var(--border-2);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04)}
+    .card{background:var(--glass-1);border:1px solid var(--border-1);border-radius:16px;padding:24px;backdrop-filter:blur(20px) saturate(150%)}
+    .card-interactive{transition:border-color .2s,transform .2s,box-shadow .2s}.card-interactive:hover{border-color:var(--border-2);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04)}
     .quote-mark{font-size:64px;font-family:var(--font-display);color:var(--gold);opacity:.2;line-height:.7;display:block;margin-bottom:-8px}
     .t-text{font-size:15px;font-weight:300;color:var(--text-2);line-height:1.75;font-style:italic}
     .t-user{margin-top:20px;padding-top:20px;border-top:1px solid var(--border-1);display:flex;align-items:center;gap:12px}
     .t-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-display);font-size:16px;font-weight:700}
-    .t-user strong{font-size:14px}.t-user span{font-size:12px;color:var(--text-3)}
 
     .pricing-grid{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px}
     .divider{height:1px;background:var(--border-1);border:none;margin:20px 0}
-    .price{font-family:var(--font-display);font-size:44px;line-height:1}
-    .price small{font-family:var(--font-ui);font-size:14px;color:var(--text-3);font-weight:400}
+    .price{font-family:var(--font-display);font-size:44px;line-height:1}.price small{font-family:var(--font-ui);font-size:14px;color:var(--text-3);font-weight:400}
     .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;letter-spacing:.02em;border:1px solid transparent;backdrop-filter:blur(10px)}
-    .badge i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
-    .badge-green{background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.25)}
-    .badge-gold{background:var(--gold-dim);color:var(--gold);border-color:var(--border-gold)}
+    .badge i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}.badge-green{background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.25)}.badge-gold{background:var(--gold-dim);color:var(--gold);border-color:var(--border-gold)}
     .pro{position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(99,102,241,.08) 0%,rgba(240,180,41,.04) 100%);border:1px solid rgba(240,180,41,.2);box-shadow:0 0 60px rgba(240,180,41,.04),0 20px 60px rgba(0,0,0,.4)}
-    .pro::before{content:'';position:absolute;top:-80px;right:-80px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(240,180,41,.08),transparent 70%);filter:blur(40px);z-index:0}
-    .pro>*{z-index:1}
-    .list{list-style:none;display:grid;gap:12px}
-    .list li{display:flex;gap:10px;color:var(--text-2);font-size:14px}
-    .list svg{width:16px;height:16px;stroke-width:1.8;fill:none;margin-top:2px;flex:none}
+    .pro::before{content:'';position:absolute;top:-80px;right:-80px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(240,180,41,.08),transparent 70%);filter:blur(40px);z-index:0}.pro>*{z-index:1}
+    .list{list-style:none;display:grid;gap:12px}.list li{display:flex;gap:10px;color:var(--text-2);font-size:14px}.list svg{width:16px;height:16px;stroke-width:1.8;fill:none;margin-top:2px;flex:none}
 
-    .final{padding:140px 24px;text-align:center}
-    .final-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(240,180,41,.05),transparent 70%);filter:blur(80px);pointer-events:none}
+    .final{padding:140px 24px;text-align:center}.final-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(240,180,41,.05),transparent 70%);filter:blur(80px);pointer-events:none}
     .final h2{font-family:var(--font-display);font-size:clamp(36px,6vw,64px);letter-spacing:-2px;line-height:1.05}
     .final p{margin:20px auto 0;font-size:17px;color:var(--text-2);max-width:440px;font-weight:300}
     .final small{display:block;margin-top:14px;font-size:12px;color:var(--text-3)}
 
     footer{padding:40px max(5vw,24px);border-top:1px solid var(--border-1);background:rgba(255,255,255,.01);backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
     .footer-left{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-3)}
-    .footer-right{display:flex;gap:24px;font-size:13px;color:var(--text-3)}
-    .footer-right a:hover{color:var(--text-1);transition:.15s}
+    .footer-right{display:flex;gap:24px;font-size:13px;color:var(--text-3)}.footer-right a:hover{color:var(--text-1);transition:.15s}
 
     .reveal{opacity:0;transform:translateY(24px);transition:opacity .65s var(--ease-out),transform .65s var(--ease-out)}
     .reveal.visible{opacity:1;transform:none}
     .stagger-grid>*:nth-child(1){transition-delay:0s}.stagger-grid>*:nth-child(2){transition-delay:.07s}.stagger-grid>*:nth-child(3){transition-delay:.14s}.stagger-grid>*:nth-child(4){transition-delay:.21s}.stagger-grid>*:nth-child(5){transition-delay:.28s}.stagger-grid>*:nth-child(6){transition-delay:.35s}
-
     .hero-anim{opacity:0;animation:hero-in .7s var(--ease-out) forwards}
     @keyframes hero-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 
-    @media (max-width: 1024px){
-      .feature-grid,.test-grid,.pricing-grid{grid-template-columns:1fr 1fr}
-      .mock-side{display:none}
-    }
-    @media (max-width: 760px){
-      .container{width:min(1160px,100% - 32px)}
-      .feature-grid,.test-grid,.pricing-grid{grid-template-columns:1fr}
-      .nav-links,.nav-divider,.nav-spacer,.nav-login{display:none}
-      .nav-mobile-toggle{display:inline-flex}
-      .nav-pill{max-width:100%;padding:6px}
-      .hero h1{letter-spacing:-2px}
-      .trust-divider{display:none}
-    }
+    @media (max-width: 1080px){.feature-grid,.test-grid,.pricing-grid{grid-template-columns:1fr 1fr}.mock-side{display:none}.mock-stats{grid-template-columns:repeat(2,1fr)}.mock-main-row{grid-template-columns:1fr}.deep{grid-template-columns:1fr}}
+    @media (max-width:760px){.container{width:min(1160px,100% - 32px)}.feature-grid,.test-grid,.pricing-grid{grid-template-columns:1fr}.nav-links,.nav-divider,.nav-spacer,.nav-login{display:none}.nav-mobile-toggle{display:inline-flex}.nav-pill{max-width:100%;padding:6px}.hero h1{letter-spacing:-2px}.trust-divider{display:none}}
   </style>
 </head>
 <body>
-  <div class="bg-mesh" aria-hidden="true">
-    <div class="bg-orb bg-orb-1"></div>
-    <div class="bg-orb bg-orb-2"></div>
-    <div class="bg-orb bg-orb-3"></div>
-    <div class="bg-noise"></div>
-  </div>
+  <div class="bg-mesh" aria-hidden="true"><div class="bg-orb bg-orb-1"></div><div class="bg-orb bg-orb-2"></div><div class="bg-orb bg-orb-3"></div><div class="bg-noise"></div></div>
 
   <header class="nav-wrapper">
     <nav class="nav-pill" id="navPill">
       <a href="#" class="logotype">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-          <defs><linearGradient id="logo-grad" x1="0" y1="0" x2="22" y2="22"><stop offset="0%" stop-color="#f0b429"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>
-          <rect width="22" height="22" rx="6" fill="url(#logo-grad)"/>
-          <path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><defs><linearGradient id="logo-grad" x1="0" y1="0" x2="22" y2="22"><stop offset="0%" stop-color="#f0b429"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs><rect width="22" height="22" rx="6" fill="url(#logo-grad)"/><path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/></svg>
         <span>deals<span style="color:var(--gold)">inbox</span></span>
       </a>
       <span class="nav-divider"></span>
-      <div class="nav-links">
-        <a href="#features" class="nav-link active">Features</a>
-        <a href="#pricing" class="nav-link">Pricing</a>
-        <a href="#brands" class="nav-link">For Brands</a>
-      </div>
+      <div class="nav-links"><a href="#features" class="nav-link active">Features</a><a href="#pricing" class="nav-link">Pricing</a><a href="#brands" class="nav-link">For Brands</a></div>
       <span class="nav-spacer"></span>
       <a href="/login" class="btn btn-ghost btn-sm nav-login">Log in</a>
       <a href="/signup" class="btn btn-primary btn-sm">Get started</a>
@@ -232,85 +182,50 @@
     </nav>
   </header>
 
-  <div class="mobile-drawer" id="mobileDrawer">
-    <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#brands">For Brands</a>
-    <a href="/login">Log in</a>
-    <a href="/signup">Get started</a>
-  </div>
+  <div class="mobile-drawer" id="mobileDrawer"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#brands">For Brands</a><a href="/login">Log in</a><a href="/signup">Get started</a></div>
 
   <main>
     <section class="hero container">
       <div class="hero-eyebrow hero-anim" style="animation-delay:0s"><span class="eyebrow-dot"></span><span>Built for Indian content creators</span></div>
       <h1 class="hero-anim" style="animation-delay:.12s">Every brand deal,<br>finally <span class="gold-gradient">organised.</span></h1>
       <p class="hero-sub hero-anim" style="animation-delay:.24s">One link. Brands submit proper briefs.<br>You track everything — no more DMs, no more chaos.</p>
-      <div class="hero-cta hero-anim" style="animation-delay:.36s">
-        <a href="/signup" class="btn btn-primary btn-xl">Create your page — free
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <a href="/login" class="btn btn-glass btn-xl">See a live example ↗</a>
-      </div>
-
-      <div class="trust-row hero-anim" style="animation-delay:.48s">
-        <div class="avatars">
-          <span class="av" style="background:linear-gradient(135deg,#e11d48,#be185d)">P</span>
-          <span class="av" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">R</span>
-          <span class="av" style="background:linear-gradient(135deg,#0891b2,#0e7490)">N</span>
-          <span class="av" style="background:linear-gradient(135deg,#059669,#047857)">A</span>
-          <span class="av" style="background:linear-gradient(135deg,#d97706,#b45309)">S</span>
-        </div>
-        <div class="trust-copy"><strong>2,400+ creators</strong><span>₹3.2Cr in deals tracked</span></div>
-        <span class="trust-divider"></span>
-        <div><div class="stars">★★★★★</div><div class="rating">4.9 rating</div></div>
-      </div>
+      <div class="hero-cta hero-anim" style="animation-delay:.36s"><a href="/signup" class="btn btn-primary btn-xl">Create your page — free <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a><a href="/login" class="btn btn-glass btn-xl">See a live example ↗</a></div>
+      <div class="trust-row hero-anim" style="animation-delay:.48s"><div class="avatars"><span class="av" style="background:linear-gradient(135deg,#e11d48,#be185d)">P</span><span class="av" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">R</span><span class="av" style="background:linear-gradient(135deg,#0891b2,#0e7490)">N</span><span class="av" style="background:linear-gradient(135deg,#059669,#047857)">A</span><span class="av" style="background:linear-gradient(135deg,#d97706,#b45309)">S</span></div><div class="trust-copy"><strong>2,400+ creators</strong><span>₹3.2Cr in deals tracked</span></div><span class="trust-divider"></span><div><div style="font-size:12px;color:var(--gold)">★★★★★</div><div style="font-size:12px;color:var(--text-3)">4.9 rating</div></div></div>
 
       <div class="hero-mock hero-anim" style="animation-delay:.6s">
-        <div class="browser">
-          <div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
-          <div class="url">🔒 dealsinbox.in/dashboard</div>
-        </div>
+        <div class="browser"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><div class="url">🔒 dealsinbox.in/dashboard</div></div>
         <div class="mock-body">
           <aside class="mock-side">
-            <div class="logotype" style="transform:scale(.85);transform-origin:left top;margin-bottom:10px">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="6" fill="#f0b429"/><path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/></svg>
-              <span>deals<span style="color:var(--gold)">inbox</span></span>
-            </div>
-            <div class="mock-nav-item active"><span class="mini-dot" style="background:var(--gold)"></span>Dashboard</div>
-            <div class="mock-nav-item"><span class="mini-dot" style="background:#fff"></span>Deals</div>
-            <div class="mock-nav-item"><span class="mini-dot" style="background:var(--green)"></span>Earnings</div>
-            <div class="mock-nav-item"><span class="mini-dot" style="background:var(--indigo)"></span>My Page</div>
+            <div class="logotype" style="transform:scale(.85);transform-origin:left top;margin-bottom:10px"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="6" fill="#f0b429"/><path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/></svg><span>deals<span style="color:var(--gold)">inbox</span></span></div>
+            <div class="mock-nav-item active"><span class="mini-dot" style="background:var(--gold)"></span>Dashboard</div><div class="mock-nav-item"><span class="mini-dot" style="background:#fff"></span>Deals</div><div class="mock-nav-item"><span class="mini-dot" style="background:var(--green)"></span>Earnings</div><div class="mock-nav-item"><span class="mini-dot" style="background:var(--indigo)"></span>My Page</div>
           </aside>
           <div class="mock-content">
             <div class="mock-stats">
               <div class="mock-stat"><b>ACTIVE DEALS</b><span style="color:var(--gold)">8</span></div>
               <div class="mock-stat"><b>THIS MONTH</b><span style="color:var(--green)">₹1.2L</span></div>
+              <div class="mock-stat"><b>PENDING</b><span style="color:var(--amber)">₹45K</span></div>
               <div class="mock-stat"><b>AVG DEAL</b><span style="color:var(--indigo)">₹22.5K</span></div>
             </div>
-            <div class="deals">
-              <div class="deals-head"><span>RECENT DEALS</span><span style="color:var(--gold)">View all →</span></div>
-              <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#16a34a,#22c55e)">M</span><strong>Mamaearth</strong><span class="amt">₹25,000</span><span class="mini-dot" style="width:6px;height:6px;background:var(--green)"></span></div>
-              <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)">B</span><strong>boAt</strong><span class="amt">₹45,000</span><span class="mini-dot" style="width:6px;height:6px;background:var(--gold)"></span></div>
-              <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#be185d,#ec4899)">N</span><strong>Nykaa</strong><span class="amt">₹18,000</span><span class="mini-dot" style="width:6px;height:6px;background:var(--indigo)"></span></div>
-              <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">My</span><strong>Myntra</strong><span class="amt">₹60,000</span><span class="mini-dot" style="width:6px;height:6px;background:var(--green)"></span></div>
+            <div class="mock-main-row">
+              <div class="deals">
+                <div class="deals-head"><span>RECENT DEALS</span><span style="color:var(--gold)">View all →</span></div>
+                <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#16a34a,#22c55e)">M</span><strong>Mamaearth</strong><span class="amt">₹25,000</span><span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span></div>
+                <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)">B</span><strong>boAt</strong><span class="amt">₹45,000</span><span style="width:6px;height:6px;border-radius:50%;background:var(--gold)"></span></div>
+                <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#be185d,#ec4899)">N</span><strong>Nykaa</strong><span class="amt">₹18,000</span><span style="width:6px;height:6px;border-radius:50%;background:var(--indigo)"></span></div>
+                <div class="deal"><span class="d-av" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">My</span><strong>Myntra</strong><span class="amt">₹60,000</span><span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span></div>
+              </div>
+              <div class="mini-chart"><svg viewBox="0 0 300 100" width="100%" height="100"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0b429"/><stop offset="1" stop-color="rgba(240,180,41,.25)"/></linearGradient></defs><rect x="10" y="58" width="32" height="32" rx="3" fill="url(#g)"/><rect x="54" y="42" width="32" height="48" rx="3" fill="url(#g)"/><rect x="98" y="68" width="32" height="22" rx="3" fill="url(#g)"/><rect x="142" y="35" width="32" height="55" rx="3" fill="url(#g)"/><rect x="186" y="48" width="32" height="42" rx="3" fill="url(#g)"/><rect x="230" y="16" width="32" height="74" rx="3" fill="#fbbf24"/></svg></div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="social-proof reveal">
-      <p>Creators from these platforms use DealInbox</p>
-      <div class="platforms"><span>YouTube</span><span>Instagram</span><span>Moj</span><span>Josh</span><span>LinkedIn</span></div>
-    </section>
+    <section class="social-proof reveal"><p>Creators from these platforms use DealInbox</p><div class="platforms"><span>YouTube</span><span>Instagram</span><span>Moj</span><span>Josh</span><span>LinkedIn</span></div></section>
 
     <section class="section" id="features">
       <div class="container reveal">
-        <div class="section-head">
-          <span class="section-eyebrow">FEATURES</span>
-          <h2>Built for how creators actually work</h2>
-          <p>No spreadsheets. No forgotten follow-ups. Just clean, high-clarity deal management.</p>
-        </div>
+        <div class="section-head"><span class="section-eyebrow">FEATURES</span><h2>Built for how creators actually work</h2><p>No spreadsheets. No forgotten follow-ups. Just clean, high-clarity deal management.</p></div>
         <div class="feature-grid stagger-grid">
           <article class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M3 11h18v8H3z"/><path d="M7 11l2-4h6l2 4"/></svg></div><h3>One link, zero chaos</h3><p>Share your DealInbox link. Brands fill a proper brief — budget, timeline, deliverables. No more back-and-forth DMs.</p></article>
           <article class="feature reveal"><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v4H3zM3 10h18v4H3zM3 14h18v4H3z"/></svg></div><h3>Track every deal's journey</h3><p>Kanban pipeline from first contact to paid. See exactly where every deal stands.</p></article>
@@ -324,107 +239,48 @@
 
     <section class="section">
       <div class="container reveal">
-        <div class="section-head">
-          <span class="section-eyebrow">CREATORS LOVE IT</span>
-          <h2>Real creators, real results</h2>
-          <p>Built from actual creator workflows, not generic productivity theory.</p>
+        <div class="section-head"><span class="section-eyebrow">PRODUCT</span><h2>Built for serious creators</h2><p>Everything you need to run your creator business like a funded startup.</p></div>
+        <div class="deep-grid">
+          <article class="deep reveal"><div class="deep-text"><span class="section-eyebrow">DEAL TRACKING</span><h3>Your pipeline in one view</h3><p>Stop managing deals across 6 apps. Track each inquiry from first brief to final payment with complete clarity.</p><a href="/login" class="deep-link">See how it works →</a></div><div class="deep-visual"><svg viewBox="0 0 360 180" width="100%" height="180"><rect x="8" y="20" width="108" height="150" rx="10" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.06)"/><rect x="126" y="20" width="108" height="150" rx="10" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.06)"/><rect x="244" y="20" width="108" height="150" rx="10" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.06)"/><rect x="18" y="52" width="88" height="28" rx="7" fill="rgba(99,102,241,.15)"/><rect x="136" y="52" width="88" height="28" rx="7" fill="rgba(240,180,41,.15)"/><rect x="254" y="52" width="88" height="28" rx="7" fill="rgba(16,185,129,.15)"/></svg></div></article>
+          <article class="deep alt reveal"><div class="deep-text"><span class="section-eyebrow">BRAND SUBMISSIONS</span><h3>Brands submit proper briefs</h3><p>One link. Proper context. Budget, deliverables, timelines and references before you say yes to any deal.</p><a href="/signup" class="deep-link">Create your page →</a></div><div class="deep-visual"><div style="display:grid;gap:8px"><div style="height:36px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"></div><div style="height:36px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"></div><div style="height:72px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)"></div><div style="height:36px;width:130px;border-radius:9px;background:rgba(240,180,41,.85)"></div></div></div></article>
+          <article class="deep reveal"><div class="deep-text"><span class="section-eyebrow">ANALYTICS</span><h3>Numbers you can show investors</h3><p>Monthly earnings, payout reliability and category performance — negotiate with data, not guesswork.</p><a href="/login" class="deep-link">Explore analytics →</a></div><div class="deep-visual"><svg viewBox="0 0 360 180" width="100%" height="180"><line x1="12" y1="150" x2="348" y2="150" stroke="rgba(255,255,255,.08)"/><rect x="28" y="92" width="30" height="58" rx="4" fill="rgba(240,180,41,.25)"/><rect x="74" y="78" width="30" height="72" rx="4" fill="rgba(240,180,41,.35)"/><rect x="120" y="102" width="30" height="48" rx="4" fill="rgba(240,180,41,.28)"/><rect x="166" y="64" width="30" height="86" rx="4" fill="rgba(240,180,41,.45)"/><rect x="212" y="52" width="30" height="98" rx="4" fill="rgba(240,180,41,.55)"/><rect x="258" y="30" width="30" height="120" rx="4" fill="#fbbf24"/></svg></div></article>
         </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container reveal">
+        <div class="section-head"><span class="section-eyebrow">CREATORS LOVE IT</span><h2>Real creators, real results</h2><p>Built from actual creator workflows, not generic productivity theory.</p></div>
         <div class="test-grid stagger-grid">
-          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Before DealInbox, I had a Notion doc, a spreadsheet, and 40 unread DMs all tracking the same deals. First month I switched, I found a ₹18K deal I'd completely forgotten about.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#e11d48,#be185d)">PS</div><div><strong>Priya S.</strong><br><span>890K · Beauty</span></div></div></article>
-          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Brands fill in their budget upfront now. I've stopped having the awkward money conversation. My average deal value went up 30% in 3 months.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#1d4ed8,#4f46e5)">RK</div><div><strong>Rohan K.</strong><br><span>1.2M · Tech</span></div></div></article>
-          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Sent my DealInbox link to a top FMCG brand's marketing team. They called it the most professional outreach they'd seen from an indie creator. Closed the deal same week.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#059669,#0d9488)">NM</div><div><strong>Neha M.</strong><br><span>450K · Lifestyle</span></div></div></article>
+          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Before DealInbox, I had a Notion doc, a spreadsheet, and 40 unread DMs all tracking the same deals. First month I switched, I found a ₹18K deal I'd completely forgotten about.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#e11d48,#be185d)">PS</div><div><strong>Priya S.</strong><br><span style="font-size:12px;color:var(--text-3)">890K · Beauty</span></div></div></article>
+          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Brands fill in their budget upfront now. I've stopped having the awkward money conversation. My average deal value went up 30% in 3 months.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#1d4ed8,#4f46e5)">RK</div><div><strong>Rohan K.</strong><br><span style="font-size:12px;color:var(--text-3)">1.2M · Tech</span></div></div></article>
+          <article class="card card-interactive reveal"><div style="color:var(--gold);font-size:14px">★★★★★</div><span class="quote-mark">“</span><p class="t-text">Sent my DealInbox link to a top FMCG brand's marketing team. They called it the most professional outreach they'd seen from an indie creator. Closed the deal same week.</p><div class="t-user"><div class="t-avatar" style="background:linear-gradient(135deg,#059669,#0d9488)">NM</div><div><strong>Neha M.</strong><br><span style="font-size:12px;color:var(--text-3)">450K · Lifestyle</span></div></div></article>
         </div>
       </div>
     </section>
 
     <section class="section" id="pricing">
       <div class="container reveal">
-        <div class="section-head">
-          <span class="section-eyebrow">PRICING</span>
-          <h2>Simple pricing</h2>
-          <p>Start for free, upgrade when your pipeline scales.</p>
-        </div>
+        <div class="section-head"><span class="section-eyebrow">PRICING</span><h2>Simple pricing</h2><p>Start for free, upgrade when your pipeline scales.</p></div>
         <div class="pricing-grid">
-          <article class="card reveal">
-            <span class="badge badge-green"><i></i>Free</span>
-            <div class="price" style="margin-top:12px">₹0 <small>/forever</small></div>
-            <p style="margin-top:6px;color:var(--text-3);font-size:13px">Everything to get started</p>
-            <hr class="divider"/>
-            <ul class="list">
-              <li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>1 public DealInbox link</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Up to 10 active deals</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Basic earnings tracker</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Email reminders</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Brand submission form</li>
-            </ul>
-            <a href="/signup" class="btn btn-glass" style="width:100%;margin-top:20px">Start for free</a>
-          </article>
-
-          <article class="card pro reveal">
-            <span class="badge badge-gold"><i></i>Most popular</span>
-            <div class="price" style="margin-top:12px"><span class="gold-gradient">₹499</span> <small>/month</small></div>
-            <p style="margin-top:6px;color:var(--text-3);font-size:13px">Everything in Free +</p>
-            <hr class="divider" style="background:rgba(240,180,41,.15)"/>
-            <ul class="list">
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Everything in Free</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Unlimited active deals</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Advanced analytics dashboard</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Earnings chart + breakdown</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Custom deal link slug</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Kanban board view</li>
-              <li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>PDF export + priority support</li>
-            </ul>
-            <a href="/signup" class="btn btn-primary" style="width:100%;margin-top:20px">Start 14-day free trial</a>
-            <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--text-3)">No credit card required</p>
-          </article>
+          <article class="card reveal"><span class="badge badge-green"><i></i>Free</span><div class="price" style="margin-top:12px">₹0 <small>/forever</small></div><p style="margin-top:6px;color:var(--text-3);font-size:13px">Everything to get started</p><hr class="divider"/><ul class="list"><li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>1 public DealInbox link</li><li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Up to 10 active deals</li><li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Basic earnings tracker</li><li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Email reminders</li><li><svg viewBox="0 0 24 24" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Brand submission form</li></ul><a href="/signup" class="btn btn-glass" style="width:100%;margin-top:20px">Start for free</a></article>
+          <article class="card pro reveal"><span class="badge badge-gold"><i></i>Most popular</span><div class="price" style="margin-top:12px"><span class="gold-gradient">₹499</span> <small>/month</small></div><p style="margin-top:6px;color:var(--text-3);font-size:13px">Everything in Free +</p><hr class="divider" style="background:rgba(240,180,41,.15)"/><ul class="list"><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Everything in Free</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Unlimited active deals</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Advanced analytics dashboard</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Earnings chart + breakdown</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Custom deal link slug</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Kanban board view</li><li><svg viewBox="0 0 24 24" stroke="var(--gold)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>PDF export + priority support</li></ul><a href="/signup" class="btn btn-primary" style="width:100%;margin-top:20px">Start 14-day free trial</a><p style="text-align:center;margin-top:10px;font-size:12px;color:var(--text-3)">No credit card required</p></article>
         </div>
       </div>
     </section>
 
-    <section class="final">
-      <div class="final-glow"></div>
-      <div class="container reveal">
-        <h2>Your next brand deal is <span class="gold-gradient">waiting.</span></h2>
-        <p>Join 2,400+ Indian creators who actually know what's in their inbox.</p>
-        <a href="/signup" class="btn btn-primary btn-xl" style="margin-top:40px">Create your free page →</a>
-        <small>No credit card · Free forever plan · Set up in 2 min</small>
-      </div>
-    </section>
+    <section class="final"><div class="final-glow"></div><div class="container reveal"><h2>Your next brand deal is <span class="gold-gradient">waiting.</span></h2><p>Join 2,400+ Indian creators who actually know what's in their inbox.</p><a href="/signup" class="btn btn-primary btn-xl" style="margin-top:40px">Create your free page →</a><small>No credit card · Free forever plan · Set up in 2 min</small></div></section>
   </main>
 
-  <footer id="brands">
-    <div class="footer-left">
-      <a href="#" class="logotype">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="6" fill="#f0b429"/><path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <span>deals<span style="color:var(--gold)">inbox</span></span>
-      </a>
-      <span>© 2026 DealInbox. Made for Indian creators.</span>
-    </div>
-    <div class="footer-right"><a href="#">Privacy</a><a href="#">Terms</a><a href="#brands">For Brands</a><a href="#">Twitter</a></div>
-  </footer>
+  <footer id="brands"><div class="footer-left"><a href="#" class="logotype"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="6" fill="#f0b429"/><path d="M5 8h12M5 11h8M5 14h10" stroke="#04040c" stroke-width="1.8" stroke-linecap="round"/></svg><span>deals<span style="color:var(--gold)">inbox</span></span></a><span>© 2026 DealInbox. Made for Indian creators.</span></div><div class="footer-right"><a href="#">Privacy</a><a href="#">Terms</a><a href="#brands">For Brands</a><a href="#">Twitter</a></div></footer>
 
   <script>
     const navPill = document.getElementById('navPill');
     const mobileToggle = document.getElementById('mobileToggle');
     const mobileDrawer = document.getElementById('mobileDrawer');
-
-    window.addEventListener('scroll', () => {
-      navPill.classList.toggle('nav-pill--scrolled', window.scrollY > 80);
-    });
-
-    mobileToggle?.addEventListener('click', () => {
-      mobileDrawer.classList.toggle('open');
-    });
-
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          io.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.1 });
-
+    window.addEventListener('scroll', () => navPill.classList.toggle('nav-pill--scrolled', window.scrollY > 80));
+    mobileToggle?.addEventListener('click', () => mobileDrawer.classList.toggle('open'));
+    const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }}), { threshold: 0.1 });
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   </script>
 </body>
