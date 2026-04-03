@@ -138,6 +138,26 @@ def log(uid, action, detail=""):
         activity_col.insert_one({"user_id": uid, "action": action,
                                   "detail": detail, "created_at": now()})
     except: pass
+
+def log_integration(uid, provider, event, detail=""):
+    try:
+        integration_logs_col.insert_one({
+            "user_id": uid,
+            "provider": (provider or "").strip().lower(),
+            "event": (event or "").strip().lower(),
+            "detail": (detail or "").strip()[:500],
+            "created_at": now(),
+        })
+    except Exception:
+        pass
+
+def mask_secret(value):
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    if len(raw) <= 6:
+        return "*" * len(raw)
+    return f"{raw[:2]}{'*' * (len(raw) - 4)}{raw[-2:]}"
 def is_pro(user):
     if not user: return False
     if user.get("plan") == "pro": return True
@@ -920,6 +940,112 @@ def toggle_anonymous():
     }})
     log(uid, "Anonymous mode " + ("enabled" if enabled else "disabled"))
     return jsonify({"ok": True, "enabled": enabled})
+
+@app.route("/dashboard/integrations")
+@login_required
+def integrations_hub():
+    uid = session["uid"]
+    integrations = list(integrations_col.find({"user_id": uid}).sort("provider", 1))
+    statuses = {}
+    for item in integrations:
+        provider = (item.get("provider") or "").strip().lower()
+        if provider:
+            statuses[provider] = item
+    providers = [
+        {"key": "gmail", "label": "Gmail", "desc": "Ingest inbound brand threads and detect new deal opportunities."},
+        {"key": "sheets", "label": "Google Sheets", "desc": "Sync deal pipeline rows into your custom sheet format."},
+        {"key": "notion", "label": "Notion", "desc": "Mirror accepted deals and campaign notes to Notion pages."},
+        {"key": "whatsapp", "label": "WhatsApp", "desc": "Log inbound WhatsApp conversations into your deal timeline."},
+    ]
+    recent_logs = list(integration_logs_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(20))
+    return render_template(
+        "integrations.html",
+        providers=providers,
+        statuses=statuses,
+        recent_logs=recent_logs,
+        fmt_dt=fmt_dt,
+    )
+
+@app.route("/api/integrations/status")
+@login_required
+def integrations_status():
+    uid = session["uid"]
+    items = list(integrations_col.find({"user_id": uid}))
+    out = {}
+    for row in items:
+        key = (row.get("provider") or "").strip().lower()
+        if not key:
+            continue
+        out[key] = {
+            "status": row.get("status", "disconnected"),
+            "connected_at": fmt_dt(row.get("connected_at")),
+            "last_sync_at": fmt_dt(row.get("last_sync_at")),
+            "updated_at": fmt_dt(row.get("updated_at")),
+        }
+    return jsonify({"ok": True, "integrations": out})
+
+@app.route("/api/integrations/logs")
+@login_required
+def integrations_logs():
+    uid = session["uid"]
+    provider = (request.args.get("provider") or "").strip().lower()
+    q = {"user_id": uid}
+    if provider:
+        q["provider"] = provider
+    rows = list(integration_logs_col.find(q).sort("created_at", DESCENDING).limit(100))
+    clean = []
+    for r in rows:
+        clean.append({
+            "provider": r.get("provider", ""),
+            "event": r.get("event", ""),
+            "detail": r.get("detail", ""),
+            "created_at": fmt_dt(r.get("created_at")),
+        })
+    return jsonify({"ok": True, "logs": clean})
+
+@app.route("/api/integrations/connect", methods=["POST"])
+@login_required
+def integrations_connect():
+    uid = session["uid"]
+    data = json_body()
+    provider = (data.get("provider") or "").strip().lower()
+    if provider not in {"gmail", "sheets", "notion", "whatsapp"}:
+        return api_error("invalid_provider", 400)
+    token = (data.get("token") or "").strip()
+    config = data.get("config") if isinstance(data.get("config"), dict) else {}
+    now_ts = now()
+    update_doc = {
+        "user_id": uid,
+        "provider": provider,
+        "status": "connected",
+        "token": token,
+        "token_masked": mask_secret(token),
+        "config": config,
+        "connected_at": now_ts,
+        "updated_at": now_ts,
+    }
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": update_doc, "$setOnInsert": {"created_at": now_ts}},
+        upsert=True
+    )
+    log_integration(uid, provider, "connected", f"{provider} integration connected")
+    return api_ok({"provider": provider, "status": "connected"})
+
+@app.route("/api/integrations/<provider>/disconnect", methods=["POST"])
+@login_required
+def integrations_disconnect(provider):
+    uid = session["uid"]
+    provider = (provider or "").strip().lower()
+    if provider not in {"gmail", "sheets", "notion", "whatsapp"}:
+        return api_error("invalid_provider", 400)
+    integrations_col.update_one(
+        {"user_id": uid, "provider": provider},
+        {"$set": {"status": "disconnected", "token": "", "token_masked": "", "updated_at": now()}},
+        upsert=True
+    )
+    log_integration(uid, provider, "disconnected", f"{provider} integration disconnected")
+    return api_ok({"provider": provider, "status": "disconnected"})
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC ENQUIRY PAGE
 # ═══════════════════════════════════════════════════════════════════════════════
