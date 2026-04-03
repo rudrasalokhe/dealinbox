@@ -1,172 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ enq.brand_name }} × {{ creator.name }} — DealInbox CreatorOS</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-</head>
-<body class="neo-theme theme-v2 bp-body" data-scene="signal-tracker">
-<div id="three-bg" aria-hidden="true"></div>
-<div class="ui-noise" aria-hidden="true"></div>
-
-<nav class="bp-nav">
-  <a href="{{ url_for('index') }}" class="bp-nav-logo">DealInbox CreatorOS</a>
-  <a href="/@{{ creator.username }}" target="_blank" class="bp-nav-link">View creator page ↗</a>
-</nav>
-
-<div class="bp-wrap">
-
-  <!-- Header -->
-  <div class="bp-header">
-    <div class="bp-header-av">{{ enq.brand_name[0].upper() }}</div>
-    <div class="bp-header-text">
-      <h1 class="bp-collab-title">{{ enq.brand_name }} <span class="bp-x">×</span> {{ creator.name }}</h1>
-      <p class="bp-submitted">Submitted {{ fmt_dt(enq.created_at) }}</p>
-    </div>
-  </div>
-
-  <!-- Status tracker -->
-  <div class="bp-status-card">
-    <div class="bp-status-top">
-      <div class="bp-status-label-sm">Collaboration status</div>
-      {% set scolor = STATUSES[current_status].color if current_status in STATUSES else '#555' %}
-      {% set slabel = STATUSES[current_status].label if current_status in STATUSES else current_status %}
-      <span class="bp-status-pill" style="background:{{ scolor }}18;color:{{ scolor }};border:1px solid {{ scolor }}30">{{ slabel }}</span>
-    </div>
-
-    <!-- Step progress -->
-    <div class="bp-steps">
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{{ enq.brand_name }} × {{ creator.name }}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<div class="wrap" style="max-width:760px;padding:48px 24px">
+  <h1 style="font-size:28px">{{ enq.brand_name }} × {{ creator.name }}</h1>
+  <p style="color:var(--t2)">Submitted {{ fmt_dt(enq.created_at) }}</p>
+  <div class="card" style="padding:16px;margin-top:16px">
+    <h3>Status progress</h3>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px">
       {% for step in brand_steps %}
-      {% set is_done = current_status in step.statuses %}
-      {% set is_active = step.key == current_status %}
-      <div class="bp-step {% if is_done %}bp-step-done{% elif is_active %}bp-step-active{% endif %}">
-        <div class="bp-step-track">
-          <div class="bp-step-dot">
-            {% if is_done %}✓{% elif is_active %}●{% else %}○{% endif %}
-          </div>
-          {% if not loop.last %}<div class="bp-step-line"></div>{% endif %}
-        </div>
-        <div class="bp-step-content">
-          <div class="bp-step-title">{{ step.title }}</div>
-          <div class="bp-step-sub">{{ step.sub }}</div>
-          {% if step.key == 'submitted' %}
-          <div class="bp-step-time">{{ fmt_dt(enq.created_at) }}</div>
-          {% elif is_active and enq.updated_at %}
-          <div class="bp-step-time">Updated {{ fmt_dt(enq.updated_at) }}</div>
-          {% endif %}
-        </div>
-      </div>
+      <div style="height:8px;border-radius:99px;background:{% if current_status in step.statuses %}var(--gold){% else %}var(--surface-2){% endif %}"></div>
       {% endfor %}
-
-      {% if current_status == 'declined' %}
-      <div class="bp-step bp-step-declined">
-        <div class="bp-step-track">
-          <div class="bp-step-dot bp-dot-x">✕</div>
-        </div>
-        <div class="bp-step-content">
-          <div class="bp-step-title">Not a fit this time</div>
-          <div class="bp-step-sub">{{ creator.name.split()[0] if creator.name else 'The creator' }} has passed on this collaboration. They may reach out for future campaigns.</div>
-        </div>
-      </div>
-      {% endif %}
     </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px;font-size:11px;color:var(--t3)">{% for step in brand_steps %}<div>{{ step.title }}</div>{% endfor %}</div>
   </div>
-
-  <!-- Creator message if note exists -->
-  {% if enq.note %}
-  <div class="bp-message">
-    <div class="bp-message-from">Message from {{ creator.name.split()[0] if creator.name else 'creator' }}</div>
-    <div class="bp-message-body">{{ enq.note }}</div>
-  </div>
-  {% endif %}
-
-  <!-- Status-based CTA -->
-  {% if current_status not in ['declined', 'closed'] %}
-  <div class="bp-cta-box">
-    <div class="bp-cta-text">
-      {% if current_status == 'new' %}
-        <strong>Your collaboration request is in the queue.</strong> {{ creator.name.split()[0] if creator.name else 'Creator' }} typically replies within {{ creator.get('response_time','48 hours') if creator else '48 hours' }}. Bookmark this page to track progress.
-      {% elif current_status == 'reviewing' %}
-        <strong>{{ creator.name.split()[0] if creator.name else 'Creator' }} is reviewing your brief.</strong> They'll reach out to you directly. No action needed right now.
-      {% elif current_status == 'negotiating' %}
-        <strong>You're in active conversation.</strong> Check your inbox — {{ creator.name.split()[0] if creator.name else 'creator' }} should have been in touch.
-      {% elif current_status == 'accepted' %}
-        <strong>Deal accepted! 🎉</strong> Check your email to coordinate next steps and deliverables.
-      {% endif %}
-    </div>
-    <a href="mailto:{{ creator.get('collab_email', creator.get('email','')) }}?subject=Re%3A%20{{ enq.brand_name }}%20%C3%97%20{{ creator.name }}" class="bp-email-btn">
-      Email {{ creator.name.split()[0] if creator.name else 'creator' }} →
-    </a>
-  </div>
-  {% endif %}
-
-  <!-- Enquiry summary -->
-  <div class="bp-section-label">Your collaboration request</div>
-  <div class="bp-details-grid">
-    <div class="bp-detail">
-      <div class="bp-detail-label">Platform</div>
-      <div class="bp-detail-val">{{ enq.platform or '—' }}</div>
-    </div>
-    <div class="bp-detail">
-      <div class="bp-detail-label">Budget</div>
-      <div class="bp-detail-val bp-val-green">{{ enq.budget or '—' }}</div>
-    </div>
-    <div class="bp-detail">
-      <div class="bp-detail-label">Timeline</div>
-      <div class="bp-detail-val">{{ enq.timeline or '—' }}</div>
-    </div>
-    <div class="bp-detail">
-      <div class="bp-detail-label">Contact</div>
-      <div class="bp-detail-val">{{ enq.contact_name or enq.email }}</div>
-    </div>
-  </div>
-
-  {% if enq.brief %}
-  <div class="bp-brief-card">
-    <div class="bp-section-label">Campaign overview you shared</div>
-    <p class="bp-brief-text">{{ enq.brief }}</p>
-  </div>
-  {% endif %}
-
-  <!-- About creator -->
-  <div class="bp-section-label" style="margin-top:32px">About {{ creator.name }}</div>
-  <div class="bp-creator-card">
-    <div class="bp-creator-av">{{ creator.name[0].upper() if creator.name else 'C' }}</div>
-    <div class="bp-creator-info">
-      <div class="bp-creator-name">{{ creator.name }}</div>
-      <div class="bp-creator-meta">
-        @{{ creator.username }}
-        {% if creator.niche %} · {{ creator.niche }}{% endif %}
-        {% if creator.followers %} · {{ creator.followers }} followers{% endif %}
-      </div>
-      {% if creator.bio %}<p class="bp-creator-bio">{{ creator.bio }}</p>{% endif %}
-    </div>
-  </div>
-
-  <!-- FAQ -->
-  <div class="bp-faq">
-    <details class="bp-faq-item">
-      <summary>What happens next?</summary>
-      <p>{{ creator.name.split()[0] if creator.name else 'Creator' }} will review your brief and reach out to {{ enq.email }} if interested. Typical response time: {{ creator.get('response_time','48 hours') if creator else '48 hours' }}.</p>
-    </details>
-    <details class="bp-faq-item">
-      <summary>How do I update or change my enquiry?</summary>
-      <p>Email <a href="mailto:{{ creator.get('collab_email', creator.get('email','')) }}">{{ creator.get('collab_email', creator.get('email','')) }}</a> with the subject "Re: {{ enq.brand_name }} × {{ creator.name }}" and they'll see it right away.</p>
-    </details>
-    <details class="bp-faq-item">
-      <summary>What is DealInbox CreatorOS?</summary>
-      <p>DealInbox CreatorOS is a professional deal management tool for creators — brands submit structured enquiries, creators track everything in one dashboard. <a href="{{ url_for('index') }}">Learn more →</a></p>
-    </details>
-  </div>
-
-  <div class="bp-powered">Powered by <a href="{{ url_for('index') }}">DealInbox CreatorOS</a></div>
+  <div class="card" style="padding:16px;margin-top:12px"><h3>Campaign brief</h3><p style="color:var(--t2);margin-top:8px">{{ enq.brief or 'No brief shared.' }}</p></div>
+  <div class="card" style="padding:16px;margin-top:12px"><h3>Creator note</h3><p style="color:var(--t2);margin-top:8px">Current status: {{ STATUSES[current_status].label if current_status in STATUSES else current_status }}</p><p style="color:var(--t2)">Deadline: {{ enq.timeline or 'TBD' }}</p></div>
+  <div class="card" style="padding:16px;margin-top:12px"><h3>Brand reply</h3><textarea rows="4" placeholder="Share additional info or timelines"></textarea></div>
 </div>
-
-<script src="{{ url_for('static', filename='js/three-scenes.js') }}"></script>
-<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+</body></html>
