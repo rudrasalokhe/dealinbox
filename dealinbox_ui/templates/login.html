@@ -1,30 +1,43 @@
-{% extends "base.html" %}
-{% block title %}Log In — DealInbox{% endblock %}
-{% block body_class %}auth-body auth-rebuild{% endblock %}
-{% block content %}
-<div class="auth-split">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In — DealInbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<nav class="pub-nav"><a class="pub-logo" href="{{ url_for('index') }}">DealInbox</a><div class="pub-actions"><a class="pub-login" href="{{ url_for('login') }}">Log in</a><a class="pub-cta" href="{{ url_for('signup') }}">Get started</a></div></nav>
+<div class="auth-grid">
   <section class="auth-left">
-    <a href="{{ url_for('index') }}" class="auth-logo">DealInbox CreatorOS</a>
-    <h1>Welcome back to your Creator Deal HQ.</h1>
-    <p>Review negotiations, respond to brands faster, and keep your pipeline moving daily.</p>
-    <div class="auth-highlight-grid">
-      <article><strong>Daily pipeline</strong><span>Prioritize urgent and high-value opportunities.</span></article>
-      <article><strong>Negotiation clarity</strong><span>Keep notes, statuses, and follow-ups in one place.</span></article>
-      <article><strong>Earnings visibility</strong><span>Track deal value and close-rate momentum.</span></article>
-    </div>
+    <a class="auth-logo" href="{{ url_for('index') }}">DealInbox</a>
+    <h1>Welcome back.</h1>
+    <p>Your brand deals are waiting.</p>
+    <div class="auth-feature"><div class="auth-icon">📋</div><div><b>Deal Pipeline</b><div style="color:var(--t3);font-size:12px">See every brand opportunity at a glance</div></div></div>
+    <div class="auth-feature"><div class="auth-icon">📊</div><div><b>Earnings Tracker</b><div style="color:var(--t3);font-size:12px">Know exactly what you've made and what's pending</div></div></div>
+    <div class="auth-feature"><div class="auth-icon">📨</div><div><b>Brand Submissions</b><div style="color:var(--t3);font-size:12px">Brands fill structured briefs. No more DM chaos.</div></div></div>
+    <div class="auth-meta"><div><div class="num">2,400+</div><div class="lbl">creators</div></div><div class="bar"></div><div><div class="num">₹3.2Cr</div><div class="lbl">tracked</div></div></div>
   </section>
-
   <section class="auth-right">
-    <div class="auth-card auth-card-rebuild">
-      <h2>Log in</h2>
-      <p>Continue managing your creator business.</p>
-      <form method="POST" class="auth-form">
-        <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required autofocus></div>
-        <div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required></div>
-        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Open Creator HQ →</button>
+    <div class="auth-card">
+      <h2 style="font-size:18px;font-weight:800">Sign in to DealInbox</h2>
+      <p style="font-size:13px;color:var(--t2);margin:6px 0 16px">New here? <a href="{{ url_for('signup') }}" style="color:var(--gold)">Create free account</a></p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          {% if cat == 'error' %}<div class="flash flash-error" style="position:static;margin-bottom:10px">{{ msg }}</div>{% endif %}
+        {% endfor %}
+      {% endwith %}
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="fg"><label>Email</label><input type="email" name="email" required></div>
+        <div class="fg"><label>Password</label><input type="password" name="password" required><div style="text-align:right;margin-top:6px"><a href="#" style="font-size:11px;color:var(--t3)">Forgot password?</a></div></div>
+        <button type="submit" class="btn btn-gold btn-full" style="padding:12px;font-size:14px">Sign in →</button>
       </form>
-      <div class="auth-foot">No account? <a href="{{ url_for('signup') }}">Create one free →</a></div>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--t3);font-size:11px;margin:20px 0"><span style="height:1px;flex:1;background:var(--border)"></span>OR<span style="height:1px;flex:1;background:var(--border)"></span></div>
+      <div style="border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;color:var(--t2)">Continue with Google</div>
     </div>
   </section>
 </div>
-{% endblock %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
