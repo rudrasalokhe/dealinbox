@@ -114,6 +114,9 @@ def setup_db():
                 pass
         users_col.create_index("email", unique=True, sparse=True)
         users_col.create_index("username", unique=True, sparse=True)
+        users_col.create_index([("role", 1)])
+        users_col.create_index([("creator_profile.niche", 1)])
+        users_col.create_index([("creator_profile.instagram_followers", 1)])
         enquiries.create_index([("user_id", 1), ("created_at", -1)])
         enquiries.create_index([("tracking_token", 1)])
         activity_col.create_index([("user_id", 1), ("created_at", -1)])
@@ -123,9 +126,12 @@ def setup_db():
         marketplace_slots_col.create_index([("creator_id", 1), ("status", 1)])
         referrals_col.create_index([("referrer_id", 1), ("created_at", -1)])
         brand_contacts_col.create_index([("uid", 1), ("created_at", -1)])
-        influencer_profiles_col.create_index([("uid", 1), ("niche", 1), ("tier", 1)])
+        brand_contacts_col.create_index([("uid", 1), ("relationship_status", 1)])
+        influencer_profiles_col.create_index([("uid", 1), ("niche", 1), ("tier", 1), ("location", 1)])
         notifications_col.create_index([("uid", 1), ("read", 1), ("created_at", -1)])
-        followup_reminders_col.create_index([("uid", 1), ("reminder_date", 1)])
+        followup_reminders_col.create_index([("uid", 1), ("reminder_date", 1), ("status", 1)])
+        campaigns_col.create_index([("uid", 1), ("status", 1)])
+        payments_col.create_index([("brand_uid", 1), ("status", 1)])
         print(f"DB ready ({DB_NAME})")
     except Exception as e:
         print(f"DB setup failed: {e}")
@@ -476,6 +482,28 @@ def login_required(f):
         return f(*a, **kw)
     return dec
 require_login = login_required
+def role_required(*roles):
+    def wrap(f):
+        @wraps(f)
+        def dec(*a, **kw):
+            if "uid" not in session:
+                flash("Please log in.", "error")
+                return redirect(url_for("login"))
+            user = users_col.find_one({"_id": oid(session["uid"])}) or {}
+            role = (user.get("role") or "creator").lower()
+            if role not in roles:
+                if role in {"brand", "agency"}:
+                    return redirect(url_for("brand_dashboard"))
+                return redirect(url_for("dashboard"))
+            return f(*a, **kw)
+        return dec
+    return wrap
+
+def is_brand_side():
+    if "uid" not in session:
+        return False
+    u = users_col.find_one({"_id": oid(session["uid"])}) or {}
+    return (u.get("role") or "creator") in {"brand", "agency"}
 def pro_required(f):
     @wraps(f)
     def dec(*a, **kw):
@@ -488,6 +516,20 @@ def pro_required(f):
             return redirect(url_for("upgrade"))
         return f(*a, **kw)
     return dec
+
+@app.before_request
+def role_based_guardrails():
+    if "uid" not in session:
+        return None
+    if request.path.startswith("/static") or request.path.startswith("/api/") or request.path.startswith("/ping"):
+        return None
+    user = users_col.find_one({"_id": oid(session["uid"])}) or {}
+    role = (user.get("role") or "creator").lower()
+    if request.path.startswith("/brand") and role not in {"brand", "agency"}:
+        return redirect(url_for("dashboard"))
+    if request.path == "/dashboard" and role in {"brand", "agency"}:
+        return redirect(url_for("brand_dashboard"))
+    return None
 # ═══════════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK (keeps Render from cold-starting)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -637,43 +679,119 @@ def index():
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
-@app.route("/signup", methods=["GET","POST"])
+@app.route("/signup")
 def signup():
+    return render_template("signup_choice.html")
+
+
+@app.route("/signup/creator", methods=["GET","POST"])
+def signup_creator():
     if request.method == "POST":
-        name     = request.form.get("name","").strip()
-        email    = request.form.get("email","").strip().lower()
+        name = request.form.get("name","").strip()
+        email = request.form.get("email","").strip().lower()
         username = re.sub(r'[^a-z0-9_]','', request.form.get("username","").strip().lower())
         password = request.form.get("password","")
-        niche    = request.form.get("niche","").strip()
-        platform = request.form.get("platform","")
+        niche = request.form.get("niche","").strip()
+        platform = request.form.get("platform","").strip()
         if not all([name, email, username, password]):
-            flash("All fields are required.","error"); return redirect(url_for("signup"))
+            flash("All fields are required.","error"); return redirect(url_for("signup_creator"))
         if len(username) < 3:
-            flash("Username must be at least 3 characters.","error"); return redirect(url_for("signup"))
+            flash("Username must be at least 3 characters.","error"); return redirect(url_for("signup_creator"))
         if len(password) < 6:
-            flash("Password must be at least 6 characters.","error"); return redirect(url_for("signup"))
+            flash("Password must be at least 6 characters.","error"); return redirect(url_for("signup_creator"))
         if users_col.find_one({"email": email}):
-            flash("Email already registered.","error"); return redirect(url_for("signup"))
+            flash("Email already registered.","error"); return redirect(url_for("signup_creator"))
         if users_col.find_one({"username": username}):
-            flash("Username taken. Try another.","error"); return redirect(url_for("signup"))
+            flash("Username taken. Try another.","error"); return redirect(url_for("signup_creator"))
+        creator_profile = {
+            "bio": "",
+            "niche": niche,
+            "instagram_handle": "",
+            "youtube_handle": "",
+            "instagram_followers": 0,
+            "youtube_subscribers": 0,
+            "instagram_engagement_rate": 0,
+            "youtube_avg_views": 0,
+            "base_rate_reel": 0,
+            "base_rate_post": 0,
+            "base_rate_story": 0,
+            "languages": [],
+            "location": "",
+            "notable_brands": [],
+            "verified": False,
+            "profile_complete": False,
+        }
         uid = users_col.insert_one({
             "name": name, "email": email, "username": username,
             "password_hash": generate_password_hash(password),
             "niche": niche, "platform": platform,
             "bio": "", "collab_email": email,
             "min_budget": "", "response_time": "48 hours",
-            "plan": "free", "created_at": now()
+            "role": "creator",
+            "plan": "free",
+            "creator_profile": creator_profile,
+            "brand_profile": {},
+            "created_at": now(),
+            "last_active_at": now(),
         }).inserted_id
-        session.update({"uid": str(uid), "email": email,
-                        "username": username, "name": name, "plan": "free"})
-        log(str(uid), "Signed up", "Welcome to DealInbox!")
-        flash(f"Welcome, {name}! Your DealInbox is ready.","success")
+        session.update({"uid": str(uid), "email": email, "username": username, "name": name, "plan": "free", "role": "creator"})
         return redirect(url_for("dashboard"))
     return render_template("signup.html",
                            platforms=PLATFORMS,
                            creator_count=users_col.count_documents({}),
                            niches=["Beauty","Fashion","Fitness","Food","Tech",
                                    "Gaming","Travel","Finance","Lifestyle","Comedy","Other"])
+
+
+@app.route("/signup/brand", methods=["GET","POST"])
+def signup_brand():
+    if request.method == "POST":
+        company_name = request.form.get("company_name", "").strip()
+        email = request.form.get("email","").strip().lower()
+        password = request.form.get("password","")
+        industry = request.form.get("industry", "").strip()
+        company_size = request.form.get("company_size", "startup").strip()
+        if not all([company_name, email, password]):
+            flash("All fields are required.", "error")
+            return redirect(url_for("signup_brand"))
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.","error")
+            return redirect(url_for("signup_brand"))
+        if users_col.find_one({"email": email}):
+            flash("Email already registered.","error")
+            return redirect(url_for("signup_brand"))
+        generated_username = re.sub(r'[^a-z0-9_]', '', company_name.lower().replace(" ", "_"))[:24] or f"brand_{uuid.uuid4().hex[:6]}"
+        while users_col.find_one({"username": generated_username}):
+            generated_username = f"{generated_username[:18]}{uuid.uuid4().hex[:4]}"
+        brand_profile = {
+            "company_name": company_name,
+            "industry": industry,
+            "website": "",
+            "logo_url": "",
+            "company_size": company_size,
+            "description": "",
+            "target_niches": [],
+            "target_tier": [],
+            "target_locations": [],
+            "monthly_budget": 0,
+            "gst_number": "",
+            "verified": False,
+        }
+        uid = users_col.insert_one({
+            "name": company_name,
+            "email": email,
+            "username": generated_username,
+            "password_hash": generate_password_hash(password),
+            "role": "brand",
+            "plan": "free",
+            "creator_profile": {},
+            "brand_profile": brand_profile,
+            "created_at": now(),
+            "last_active_at": now(),
+        }).inserted_id
+        session.update({"uid": str(uid), "email": email, "username": generated_username, "name": company_name, "plan": "free", "role": "brand"})
+        return redirect(url_for("brand_dashboard"))
+    return render_template("signup_brand.html")
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
@@ -682,9 +800,13 @@ def login():
         user     = users_col.find_one({"email": email})
         if not user or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.","error"); return redirect(url_for("login"))
+        role = (user.get("role") or "creator").lower()
         session.update({"uid": str(user["_id"]), "email": user["email"],
-                        "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free")})
+                        "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free"), "role": role})
         flash(f"Welcome back, {user.get('name','')}!","success")
+        users_col.update_one({"_id": user["_id"]}, {"$set": {"last_active_at": now()}})
+        if role in {"brand", "agency"}:
+            return redirect(url_for("brand_dashboard"))
         return redirect(url_for("dashboard"))
     return render_template("login.html")
 @app.route("/logout")
@@ -696,7 +818,7 @@ def logout():
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/dashboard")
-@login_required
+@role_required("creator")
 def dashboard():
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
@@ -2689,6 +2811,414 @@ def recompute_relationship_scores():
         )
         updated += 1
     return jsonify({"ok": True, "updated": updated})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BRAND STUDIO (SIDE B)
+# ═══════════════════════════════════════════════════════════════════════════════
+team_members_col = db["team_members"]
+lists_col = db["lists"]
+
+
+def _brand_user(uid):
+    return users_col.find_one({"_id": oid(uid), "role": {"$in": ["brand", "agency"]}}) or {}
+
+
+def _creator_user(uid):
+    return users_col.find_one({"_id": oid(uid), "role": {"$in": ["creator", None]}}) or {}
+
+
+def _tier_from_followers(followers):
+    f = int(followers or 0)
+    if f < 10000:
+        return "nano"
+    if f < 100000:
+        return "micro"
+    if f < 1000000:
+        return "macro"
+    return "mega"
+
+
+@app.route("/brand/dashboard")
+@role_required("brand", "agency")
+def brand_dashboard():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    campaigns = list(campaigns_col.find({"uid": uid}).sort("created_at", DESCENDING).limit(12))
+    crm_rows = list(influencer_profiles_col.find({"uid": uid, "deleted_at": {"$exists": False}}).sort("instagram_engagement_rate", DESCENDING).limit(3))
+    active = [c for c in campaigns if c.get("status") in {"active", "draft"}]
+    total_reach = sum(int(c.get("total_reach", 0)) for c in campaigns)
+    budget_spent = sum(int(c.get("spent_budget", 0)) for c in campaigns)
+    contracted = sum(len(c.get("creators", [])) for c in campaigns)
+    pending_actions = {
+        "briefs": sum(1 for c in campaigns for cr in (c.get("creators") or []) if not cr.get("brief_sent_at")),
+        "invoices": payments_col.count_documents({"brand_uid": uid, "status": {"$in": ["pending", "processing"]}}),
+        "reminders": followup_reminders_col.count_documents({"uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$lte": now()}}),
+    }
+    monthly_budget = int(((user.get("brand_profile") or {}).get("monthly_budget") or 0))
+    projected = int((budget_spent / max(1, now().day)) * 30)
+    return render_template("brand/dashboard.html", campaigns=campaigns, active_count=len(active), contracted=contracted, total_reach=total_reach, budget_spent=budget_spent, top_creators=crm_rows, pending_actions=pending_actions, monthly_budget=monthly_budget, projected=projected)
+
+
+@app.route("/brand/discover")
+@role_required("brand", "agency")
+def brand_discover():
+    return render_template("brand/discover.html")
+
+
+@app.route("/brand/lists")
+@role_required("brand", "agency")
+def brand_lists():
+    uid = session["uid"]
+    rows = list(lists_col.find({"uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/lists.html", lists=rows)
+
+
+@app.route("/brand/match")
+@role_required("brand", "agency")
+def brand_match():
+    return render_template("brand/match.html")
+
+
+@app.route("/api/brand/match", methods=["POST"])
+@role_required("brand", "agency")
+def api_brand_match():
+    uid = session["uid"]
+    body = json_body()
+    brief_text = (body.get("brief_text") or "").strip()
+    if not brief_text:
+        return api_error("brief_text_required", 400)
+
+    def stream_match():
+        steps = ["Reading your brief...", "Identifying target audience...", "Scanning creators...", "Ranking by fit score..."]
+        for step in steps:
+            yield f"data: {json.dumps({'type': 'progress', 'message': step})}\n\n"
+        lower = brief_text.lower()
+        target_niche = "fitness" if "fitness" in lower or "gym" in lower else "lifestyle" if "lifestyle" in lower else "tech" if "tech" in lower else "beauty" if "beauty" in lower else ""
+        target_location = "mumbai" if "mumbai" in lower else "delhi" if "delhi" in lower else ""
+        q = {"role": {"$in": ["creator", None]}, "creator_profile.profile_complete": {"$ne": False}}
+        if target_niche:
+            q["creator_profile.niche"] = {"$regex": target_niche, "$options": "i"}
+        if target_location:
+            q["creator_profile.location"] = {"$regex": target_location, "$options": "i"}
+        creators = list(users_col.find(q).limit(80))
+        scored = []
+        for u in creators:
+            cp = u.get("creator_profile") or {}
+            followers = int(cp.get("instagram_followers") or 0)
+            tier = _tier_from_followers(followers)
+            engagement = float(cp.get("instagram_engagement_rate") or 0)
+            rate = int(cp.get("base_rate_reel") or 0)
+            niche_match = 30 if target_niche and target_niche in (cp.get("niche", "").lower()) else 15
+            tier_match = 14
+            location_match = 15 if target_location and target_location in (cp.get("location", "").lower()) else 6
+            rate_fit = 12 if rate and rate <= 100000 else 6
+            engagement_quality = min(20, int(engagement * 2.5))
+            fit = min(100, niche_match + tier_match + location_match + rate_fit + engagement_quality)
+            reason = f"{u.get('name','Creator')} has {engagement}% engagement in {cp.get('niche','general')} content with audience overlap for this brief."
+            scored.append({"name": u.get("name"), "username": u.get("username"), "niche": cp.get("niche", ""), "tier": tier, "followers": followers, "engagement": engagement, "rate": rate, "location": cp.get("location", ""), "fit_score": fit, "reason": reason})
+        ranked = sorted(scored, key=lambda x: x["fit_score"], reverse=True)[:12]
+        yield f"data: {json.dumps({'type':'results','items': ranked})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(stream_with_context(stream_match()), mimetype="text/event-stream")
+
+
+@app.route("/api/brand/discover")
+@role_required("brand", "agency")
+def api_brand_discover():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    prefs = user.get("brand_profile") or {}
+    q = {"role": {"$in": ["creator", None]}}
+    niche = request.args.get("niche") or ""
+    if niche:
+        q["creator_profile.niche"] = {"$regex": niche, "$options": "i"}
+    min_eng = float(request.args.get("min_engagement") or 0)
+    max_rate = int(request.args.get("max_rate") or prefs.get("monthly_budget") or 10**9)
+    rows = []
+    for u in users_col.find(q).limit(120):
+        cp = u.get("creator_profile") or {}
+        eng = float(cp.get("instagram_engagement_rate") or 0)
+        if eng < min_eng:
+            continue
+        if int(cp.get("base_rate_reel") or 0) > max_rate:
+            continue
+        followers = int(cp.get("instagram_followers") or 0)
+        rows.append({
+            "name": u.get("name"),
+            "username": u.get("username"),
+            "niche": cp.get("niche", ""),
+            "tier": _tier_from_followers(followers),
+            "instagram_followers": followers,
+            "youtube_subscribers": int(cp.get("youtube_subscribers") or 0),
+            "engagement": eng,
+            "base_rate_reel": int(cp.get("base_rate_reel") or 0),
+            "base_rate_post": int(cp.get("base_rate_post") or 0),
+            "base_rate_story": int(cp.get("base_rate_story") or 0),
+            "location": cp.get("location", ""),
+            "verified": bool(cp.get("verified")),
+            "notable_brands": cp.get("notable_brands") or [],
+        })
+    rows.sort(key=lambda x: x["engagement"], reverse=True)
+    return jsonify(rows[:60])
+
+
+@app.route("/brand/campaigns")
+@role_required("brand", "agency")
+def brand_campaigns():
+    uid = session["uid"]
+    rows = list(campaigns_col.find({"uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/campaigns.html", campaigns=rows)
+
+
+@app.route("/brand/campaigns/new", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_campaign_new():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    if request.method == "POST":
+        if user.get("plan") == "free" and campaigns_col.count_documents({"uid": uid}) >= 3:
+            return _plan_limit_response("brand_campaigns", 3)
+        form = request.form
+        doc = {
+            "uid": uid,
+            "name": (form.get("name") or "").strip(),
+            "product_name": (form.get("product_name") or "").strip(),
+            "product_description": (form.get("product_description") or "").strip(),
+            "campaign_objective": (form.get("campaign_objective") or "awareness").strip(),
+            "status": (form.get("status") or "draft").strip(),
+            "start_date": form.get("start_date"),
+            "end_date": form.get("end_date"),
+            "total_budget": int(form.get("total_budget") or 0),
+            "spent_budget": 0,
+            "target_niche": (form.get("target_niche") or "").strip(),
+            "target_tier": (form.get("target_tier") or "").strip(),
+            "deliverables": [x.strip() for x in (form.get("deliverables") or "").split(",") if x.strip()],
+            "creators": [],
+            "brief_template": (form.get("brief_template") or "").strip(),
+            "dos": (form.get("dos") or "").strip(),
+            "donts": (form.get("donts") or "").strip(),
+            "hashtags": [x.strip() for x in (form.get("hashtags") or "").split(",") if x.strip()],
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        inserted = campaigns_col.insert_one(doc)
+        return redirect(url_for("brand_campaign_detail", cid=str(inserted.inserted_id)))
+    return render_template("brand/campaign_new.html")
+
+
+@app.route("/brand/campaigns/<cid>")
+@role_required("brand", "agency")
+def brand_campaign_detail(cid):
+    uid = session["uid"]
+    campaign = campaigns_col.find_one({"_id": oid(cid), "uid": uid})
+    if not campaign:
+        return redirect(url_for("brand_campaigns"))
+    return render_template("brand/campaign_detail.html", campaign=campaign)
+
+
+@app.route("/brand/briefs/new", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_brief_new():
+    uid = session["uid"]
+    if request.method == "POST":
+        form = request.form
+        creator_username = (form.get("creator_username") or "").strip().lstrip("@")
+        creator = users_col.find_one({"username": creator_username}) or {}
+        if not creator:
+            flash("Creator not found", "error")
+            return redirect(url_for("brand_brief_new"))
+        enq_doc = {
+            "user_id": str(creator.get("_id")),
+            "brand_name": (_brand_user(uid).get("brand_profile") or {}).get("company_name") or session.get("name"),
+            "contact_name": session.get("name"),
+            "email": session.get("email"),
+            "platform": "Instagram",
+            "budget": f"₹{int(form.get('budget_offered') or 0):,}",
+            "budget_num": int(form.get("budget_offered") or 0),
+            "brief": (form.get("brief") or "").strip(),
+            "status": "new",
+            "source": "brand_studio",
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        enquiries.insert_one(enq_doc)
+        campaign_name = (form.get("campaign_name") or "Quick Brief Campaign").strip()
+        camp = campaigns_col.find_one({"uid": uid, "name": campaign_name})
+        if not camp:
+            camp_id = campaigns_col.insert_one({
+                "uid": uid,
+                "name": campaign_name,
+                "status": "active",
+                "total_budget": int(form.get("budget_offered") or 0),
+                "spent_budget": 0,
+                "creators": [{"influencer_id": str(creator.get("_id")), "status": "brief_sent", "brief_sent_at": now(), "rate_agreed": int(form.get("budget_offered") or 0)}],
+                "created_at": now(),
+                "updated_at": now(),
+            }).inserted_id
+            camp = {"_id": camp_id}
+        notifications_col.insert_one({"uid": str(creator.get("_id")), "type": "deal_alert", "title": "New brief from DealInbox Brand Studio", "body": campaign_name, "link": "/enquiries", "read": False, "created_at": now()})
+        flash("Brief sent to creator inbox.", "success")
+        return redirect(url_for("brand_campaign_detail", cid=str(camp.get("_id"))))
+    return render_template("brand/brief_new.html")
+
+
+@app.route("/brand/crm")
+@role_required("brand", "agency")
+def brand_crm():
+    return redirect(url_for("crm_influencers_page"))
+
+
+@app.route("/brand/outreach")
+@role_required("brand", "agency")
+def brand_outreach():
+    return redirect(url_for("crm_outreach_page"))
+
+
+@app.route("/brand/reminders")
+@role_required("brand", "agency")
+def brand_reminders():
+    return redirect(url_for("crm_reminders_page"))
+
+
+@app.route("/brand/payments")
+@role_required("brand", "agency")
+def brand_payments():
+    uid = session["uid"]
+    rows = list(payments_col.find({"brand_uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/payments.html", payments=rows)
+
+
+@app.route("/brand/payments/initiate", methods=["POST"])
+@role_required("brand", "agency")
+def brand_payments_initiate():
+    uid = session["uid"]
+    data = request.form
+    payment_id = payments_col.insert_one({
+        "campaign_id": data.get("campaign_id"),
+        "brand_uid": uid,
+        "creator_uid": data.get("creator_uid"),
+        "amount": int(data.get("amount") or 0),
+        "gst_amount": int((int(data.get("amount") or 0)) * 0.18),
+        "total_amount": int((int(data.get("amount") or 0)) * 1.18),
+        "status": "processing",
+        "created_at": now(),
+    }).inserted_id
+    payments_col.update_one({"_id": payment_id}, {"$set": {"status": "completed", "paid_at": now(), "invoice_number": f"DI-{now().year}-{str(payment_id)[-6:].upper()}"}})
+    try:
+        campaigns_col.update_one({"_id": oid(data.get("campaign_id")), "uid": uid, "creators.influencer_id": data.get("creator_uid")}, {"$set": {"creators.$.paid_at": now(), "creators.$.status": "paid"}, "$inc": {"spent_budget": int(data.get("amount") or 0)}})
+    except Exception:
+        pass
+    flash("Payment marked completed.", "success")
+    return redirect(url_for("brand_payments"))
+
+
+@app.route("/brand/invoices")
+@role_required("brand", "agency")
+def brand_invoices():
+    uid = session["uid"]
+    rows = list(payments_col.find({"brand_uid": uid, "invoice_number": {"$exists": True}}).sort("paid_at", DESCENDING))
+    return render_template("brand/invoices.html", invoices=rows)
+
+
+@app.route("/brand/analytics")
+@role_required("brand", "agency")
+def brand_analytics():
+    uid = session["uid"]
+    campaigns = list(campaigns_col.find({"uid": uid}))
+    total_spent = sum(int(c.get("spent_budget") or 0) for c in campaigns)
+    total_reach = sum(int(c.get("total_reach") or 0) for c in campaigns)
+    creators_worked = set()
+    for c in campaigns:
+        for cr in c.get("creators", []):
+            creators_worked.add(cr.get("influencer_id"))
+    return render_template("brand/analytics.html", campaigns=campaigns, total_spent=total_spent, total_reach=total_reach, creators_count=len(creators_worked))
+
+
+@app.route("/brand/team", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_team():
+    uid = session["uid"]
+    if request.method == "POST":
+        team_members_col.insert_one({
+            "brand_uid": uid,
+            "email": (request.form.get("email") or "").strip().lower(),
+            "name": (request.form.get("name") or "").strip(),
+            "role": (request.form.get("role") or "viewer").strip(),
+            "status": "invited",
+            "invited_at": now(),
+        })
+        flash("Invitation queued.", "success")
+    members = list(team_members_col.find({"brand_uid": uid}).sort("invited_at", DESCENDING))
+    return render_template("brand/team.html", members=members)
+
+
+@app.route("/brand/settings", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_settings():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    if request.method == "POST":
+        bp = user.get("brand_profile") or {}
+        bp.update({
+            "company_name": request.form.get("company_name", bp.get("company_name", "")),
+            "industry": request.form.get("industry", bp.get("industry", "")),
+            "website": request.form.get("website", bp.get("website", "")),
+            "description": request.form.get("description", bp.get("description", "")),
+            "monthly_budget": int(request.form.get("monthly_budget") or bp.get("monthly_budget") or 0),
+            "gst_number": request.form.get("gst_number", bp.get("gst_number", "")),
+        })
+        users_col.update_one({"_id": oid(uid)}, {"$set": {"brand_profile": bp, "updated_at": now()}})
+        flash("Brand profile updated.", "success")
+        return redirect(url_for("brand_settings"))
+    return render_template("brand/settings.html", user=user)
+
+
+@app.route("/brand/billing")
+@role_required("brand", "agency")
+def brand_billing():
+    return render_template("brand/billing.html")
+
+
+@app.route("/brand/notifications")
+@role_required("brand", "agency")
+def brand_notifications():
+    uid = session["uid"]
+    rows = list(notifications_col.find({"uid": uid}).sort("created_at", DESCENDING).limit(60))
+    return render_template("brand/notifications.html", notifications=rows)
+
+
+@app.route("/availability", methods=["GET", "POST"])
+@role_required("creator")
+def creator_availability():
+    uid = session["uid"]
+    user = _creator_user(uid)
+    if request.method == "POST":
+        cp = user.get("creator_profile") or {}
+        cp["available_now"] = bool(request.form.get("available_now"))
+        cp["available_from"] = request.form.get("available_from")
+        cp["preferred_niches_month"] = [x.strip() for x in (request.form.get("preferred_niches_month") or "").split(",") if x.strip()]
+        cp["blackout_dates"] = [x.strip() for x in (request.form.get("blackout_dates") or "").split(",") if x.strip()]
+        users_col.update_one({"_id": oid(uid)}, {"$set": {"creator_profile": cp, "updated_at": now()}})
+        flash("Availability updated.", "success")
+        return redirect(url_for("creator_availability"))
+    return render_template("availability.html", user=user)
+
+
+@app.route("/media-kit")
+@role_required("creator")
+def creator_media_kit():
+    uid = session["uid"]
+    user = _creator_user(uid)
+    return render_template("media_kit.html", creator=user)
+
+
+@app.route("/@<username>/mediakit")
+def public_media_kit(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return render_template("404.html"), 404
+    return render_template("media_kit_public.html", creator=user)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEALINBOX CRM

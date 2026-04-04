@@ -1,0 +1,1 @@
+{% extends 'brand/base.html' %}{% block title %}Notifications{% endblock %}{% block topbar_title %}Notifications{% endblock %}{% block content %}<div class='card'>{% for n in notifications %}<div class='crm-rem-item'><b>{{ n.title }}</b><small>{{ n.body }}</small></div>{% else %}<div style='padding:12px'>No notifications.</div>{% endfor %}</div>{% endblock %}

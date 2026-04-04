@@ -141,3 +141,8 @@ label{display:block;font-size:11px;font-weight:700;color:var(--t3);text-transfor
 .crm-suggest{position:sticky;top:58px;z-index:80;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;font-size:12px}
 .crm-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:980px){.crm-filter-bar,.crm-form-grid,.crm-detail-grid{grid-template-columns:1fr!important}}
+.brand-shell{--accent:var(--blue)}
+.brand-sidebar .sb-item.active{background:var(--blue-dim);border-color:rgba(91,142,245,.35)}
+.brand-sidebar .btn-primary,.brand-shell .btn-primary{background:var(--blue);color:#fff}
+.discovery-card:hover{border-color:var(--blue)}
+@media(max-width:980px){.discover-grid{grid-template-columns:1fr!important}.role-cards{grid-template-columns:1fr!important}}
