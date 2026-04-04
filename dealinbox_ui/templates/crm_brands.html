@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Brand CRM — DealInbox{% endblock %}
+{% block topbar_title %}Brand CRM{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Brand CRM</h1><p class="page-sub">Track every brand relationship and never miss a follow-up.</p></div><a href="/crm/brands/new" class="btn btn-gold">+ Add Brand</a></div>
+<div class="crm-suggest" id="smartFollowups">💡 Loading smart follow-ups…</div>
+<div class="crm-stat-pills">{% set avg = (total_pipeline_value // (counts.total or 1)) %}<div class="crm-stat-pill"><b>{{ counts.total }}</b><span>Total Brands</span></div><div class="crm-stat-pill"><b>{{ counts.warm }}</b><span>Warm</span></div><div class="crm-stat-pill"><b>{{ counts.vip }}</b><span>VIP</span></div><div class="crm-stat-pill"><b>₹{{ "{:,}".format(avg) }}</b><span>Avg Deal Value</span></div></div>
+<form class="crm-filter-bar" method="get">
+  <select name="status"><option value="">All</option>{% for s in ['cold','warm','active','vip','blacklist'] %}<option {% if request.args.get('status')==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+  <select name="tag"><option value="">All tags</option>{% for t in tag_options %}<option {% if request.args.get('tag')==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <select name="sort"><option value="last_contacted">Last contacted</option><option value="deal_value">Deal value</option><option value="name">Name</option><option value="date_added">Date added</option></select>
+  <input id="brand-search" type="search" placeholder="Search brand or contact">
+  <button class="btn btn-sm">Apply</button>
+</form>
+<div class="brand-grid" id="brand-grid">
+{% for c in contacts %}
+  <a class="brand-card" href="/crm/brands/{{ c.id }}">
+    <div class="brand-top"><div class="brand-avatar">{{ (c.brand_name or 'B')[0]|upper }}</div><div><b>{{ c.brand_name }}</b><small>{{ c.industry or 'Industry TBD' }}</small></div><span class="pill crm-status-{{ c.relationship_status }}">{{ c.relationship_status }}</span></div>
+    <div class="brand-row"><div><b>{{ c.contact_name or 'No contact' }}</b><small>{{ c.contact_designation or '—' }}</small></div>{% if c.contact_email %}<span>✉️</span>{% endif %}</div>
+    <div class="brand-stats"><div><b>₹{{ "{:,}".format(c.total_paid or 0) }}</b><small>paid</small></div><div><b>{{ (c.collab_history or [])|length }}</b><small>deals</small></div><div><b>₹{{ "{:,}".format(c.avg_deal_value or 0) }}</b><small>avg</small></div></div>
+    <div class="tag-row">{% for t in c.tags[:4] %}<span>{{ t }}</span>{% endfor %}</div>
+    <div class="brand-foot"><small>{% if c.last_contacted_at %}Last contacted {{ fmt_date(c.last_contacted_at) }}{% else %}<span style="color:var(--red)">Never contacted</span>{% endif %}</small><small class="health">Health {{ c.health_score }}</small></div>
+  </a>
+{% endfor %}
+</div>
+<h3 style="margin-top:18px">🎯 Dream Brands</h3>
+<div class="wishlist-scroll">{% for c in contacts if c.wishlist %}<a href="/crm/brands/{{ c.id }}" class="wishlist-card">{{ c.brand_name }}</a>{% else %}<span style="color:var(--t3)">No dream brands yet.</span>{% endfor %}</div>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/crm.js') }}"></script>{% endblock %}

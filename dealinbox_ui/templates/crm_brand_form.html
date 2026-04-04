@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Add Brand — DealInbox{% endblock %}
+{% block topbar_title %}Add Brand{% endblock %}
+{% block content %}
+<form method="post" class="card" style="padding:16px;max-width:760px">
+  <div class="card-title" style="margin-bottom:10px">Brand Contact</div>
+  <div class="crm-form-grid">
+    <div class="fg"><label>Brand name</label><input name="brand_name" required value="{{ contact.brand_name or '' }}"></div>
+    <div class="fg"><label>Industry</label><input name="industry" value="{{ contact.industry or '' }}"></div>
+    <div class="fg"><label>Website</label><input name="website" value="{{ contact.website or '' }}"></div>
+    <div class="fg"><label>Instagram handle</label><input name="instagram_handle" value="{{ contact.instagram_handle or '' }}"></div>
+    <div class="fg"><label>Contact name</label><input name="contact_name" value="{{ contact.contact_name or '' }}"></div>
+    <div class="fg"><label>Contact email</label><input name="contact_email" type="email" value="{{ contact.contact_email or '' }}"></div>
+    <div class="fg"><label>Designation</label><input name="contact_designation" value="{{ contact.contact_designation or '' }}"></div>
+    <div class="fg"><label>Relationship status</label><select name="relationship_status">{% for s in ['cold','warm','active','vip','blacklist'] %}<option>{{ s }}</option>{% endfor %}</select></div>
+    <div class="fg"><label>Avg deal value</label><input name="avg_deal_value" type="number" value="{{ contact.avg_deal_value or 0 }}"></div>
+    <div class="fg"><label>Total paid</label><input name="total_paid" type="number" value="{{ contact.total_paid or 0 }}"></div>
+  </div>
+  <div class="fg"><label>Tags (comma separated)</label><input name="tags" value="{{ contact.tags or '' }}"></div>
+  <div class="fg"><label>Notes</label><textarea name="notes"></textarea></div>
+  <label><input type="checkbox" name="wishlist"> Add to dream brands wishlist</label>
+  <div style="margin-top:12px"><button class="btn btn-gold">Save Brand</button></div>
+</form>
+{% endblock %}
