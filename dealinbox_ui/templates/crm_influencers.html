@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Influencer CRM — DealInbox{% endblock %}
+{% block topbar_title %}Influencer CRM{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Influencer CRM</h1><p class="page-sub">Find, track and manage creator relationships at scale.</p></div><div style="display:flex;gap:8px"><a href="/crm/influencers/new" class="btn">+ Add Influencer</a><a href="/crm/discover" class="btn btn-gold">Discover Creators</a></div></div>
+<div class="crm-stat-pills"><div class="crm-stat-pill"><b>{{ influencers|length }}</b><span>Total tracked</span></div><div class="crm-stat-pill"><b>{{ tier_counts.micro + tier_counts.nano }}</b><span>Prospects</span></div><div class="crm-stat-pill"><b>{{ tier_counts.macro + tier_counts.mega }}</b><span>Contracted</span></div><div class="crm-stat-pill"><b>{{ avg_engagement }}%</b><span>Avg Engagement</span></div></div>
+<div class="brand-grid">{% for p in influencers %}<a class="brand-card" href="/crm/influencers/{{ p.id }}"><div class="brand-top"><div class="brand-avatar">{{ (p.creator_name or 'C')[0]|upper }}</div><div><b>{{ p.creator_name }}</b><small>{{ p.niche }} · {{ p.location }}</small></div><span class="pill">{{ p.tier }}</span></div><div class="brand-stats"><div><b>{{ p.instagram_followers or 0 }}</b><small>IG</small></div><div><b>{{ p.instagram_engagement_rate or 0 }}%</b><small>eng</small></div><div><b>₹{{ p.avg_rate_reel or 0 }}</b><small>reel</small></div></div><div class="brand-foot"><small>{{ p.relationship_status }}</small><small>Health {{ p.health_score }}</small></div></a>{% endfor %}</div>
+{% endblock %}
