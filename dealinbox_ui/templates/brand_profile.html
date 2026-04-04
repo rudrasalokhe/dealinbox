@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block title %}{{ profile.name }} — Brand Profile{% endblock %}
-{% block topbar_title %}Brand Profile{% endblock %}
-{% block content %}
-<div class="page-head"><div><h1>{{ profile.name }}</h1><p class="page-sub">{{ profile.industry or 'General' }} · {{ badge }} · Reputation {{ reputation_score }}/100</p></div>{% if not profile.claimed %}<span class="pill" style="background:var(--blue-dim);border-color:rgba(91,142,245,.25);color:var(--blue)">Unclaimed</span>{% endif %}</div>
-<div class="kpi-grid"><div class="kpi"><div class="kpi-label">Reputation Score</div><div class="kpi-val">{{ reputation_score }}</div></div><div class="kpi"><div class="kpi-label">Community Reviews</div><div class="kpi-val">{{ intel_rows|length }}</div></div><div class="kpi"><div class="kpi-label">Avg Deal Size</div><div class="kpi-val">₹{{ profile.avg_deal_size or 0 }}</div></div><div class="kpi"><div class="kpi-label">Claimed</div><div class="kpi-val">{{ 'Yes' if profile.claimed else 'No' }}</div></div></div>
-<div class="card"><div class="card-head"><div class="card-title">Intel Timeline</div></div><div style="padding:14px">{% for r in intel_rows %}<div style="padding:10px 0;border-bottom:1px solid var(--border)"><b>{{ r.experience|upper }}</b> · {{ r.amount_range or 'N/A' }}<div style="color:var(--t2)">{{ r.notes or 'No notes' }}</div><small style="color:var(--t3)">{{ fmt_dt(r.created_at) }} · ▲ {{ r.upvotes or 0 }}</small></div>{% else %}<p style="color:var(--t3)">No intel yet.</p>{% endfor %}</div></div>
-{% endblock %}
