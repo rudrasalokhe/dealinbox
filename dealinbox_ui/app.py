@@ -681,11 +681,54 @@ def index():
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/signup")
 def signup():
-    return render_template("signup_choice.html")
+    return render_template("bs_signup.html")
 
 
 @app.route("/signup/creator", methods=["GET","POST"])
 def signup_creator():
+    if request.method == "POST" and request.form.get("business_name"):
+        owner_name = request.form.get("name", "").strip()
+        business_name = request.form.get("business_name", "").strip()
+        business_type = request.form.get("business_type", "").strip()
+        phone = request.form.get("phone", "").replace("+91", "").strip()
+        email = request.form.get("email","").strip().lower()
+        password = request.form.get("password","")
+        city = request.form.get("city","").strip()
+        if not all([owner_name, business_name, business_type, phone, email, password, city]):
+            flash("Please fill all required fields.", "error")
+            return redirect(url_for("signup"))
+        if businesses_col.find_one({"email": email}):
+            flash("Email already registered.", "error")
+            return redirect(url_for("signup"))
+        username = slugify(business_name)[:24]
+        if businesses_col.find_one({"username": username}):
+            username = f"{username[:18]}-{uuid.uuid4().hex[:4]}"
+        bid = businesses_col.insert_one({
+            "owner_name": owner_name,
+            "business_name": business_name,
+            "business_type": business_type,
+            "email": email,
+            "password_hash": generate_password_hash(password),
+            "phone": phone,
+            "city": city,
+            "address": "",
+            "plan": "free",
+            "plan_expires": None,
+            "upi_id": "",
+            "razorpay_customer_id": "",
+            "logo_url": "",
+            "tagline": "",
+            "currency": "INR",
+            "working_hours": {d: {"open": "10:00", "close": "19:00"} for d in ["mon","tue","wed","thu","fri","sat","sun"]},
+            "services": [],
+            "settings": {"booking_buffer_mins": 0, "auto_confirm": False, "sms_enabled": False, "whatsapp_enabled": True},
+            "created_at": now(),
+            "is_verified": False,
+            "username": username,
+        }).inserted_id
+        session.clear()
+        session.update({"bid": str(bid), "business_name": business_name, "email": email})
+        return redirect(url_for("bs_onboarding"))
     if request.method == "POST":
         name = request.form.get("name","").strip()
         email = request.form.get("email","").strip().lower()
@@ -797,6 +840,11 @@ def login():
     if request.method == "POST":
         email    = request.form.get("email","").strip().lower()
         password = request.form.get("password","")
+        business = businesses_col.find_one({"email": email})
+        if business and check_password_hash(business["password_hash"], password):
+            session.clear()
+            session.update({"bid": str(business["_id"]), "business_name": business.get("business_name"), "email": business.get("email")})
+            return redirect(url_for("dashboard"))
         user     = users_col.find_one({"email": email})
         if not user or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.","error"); return redirect(url_for("login"))
@@ -818,8 +866,37 @@ def logout():
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/dashboard")
-@role_required("creator")
 def dashboard():
+    if "uid" not in session and "bid" not in session:
+        flash("Please log in.", "error")
+        return redirect(url_for("login"))
+    if "bid" in session:
+        b = get_business()
+        if not b:
+            session.clear()
+            return redirect(url_for("login"))
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        todays = list(bs_bookings_col.find({"business_id": str(b["_id"]), "date": today}).sort("time_slot", 1))
+        payments = list(bs_payments_col.find({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}}))
+        invoices = list(bs_invoices_col.find({"business_id": str(b["_id"])}))
+        customers = list(bs_customers_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING).limit(5))
+        revenue_today = sum(float(x.get("amount_paid", 0)) for x in todays)
+        yesterday = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+        y_revenue = sum(float(x.get("amount_paid", 0)) for x in bs_bookings_col.find({"business_id": str(b["_id"]), "date": yesterday}))
+        diff_pct = round(((revenue_today - y_revenue) / max(1, y_revenue)) * 100, 1)
+        outstanding = sum(float(i.get("total", 0)) for i in invoices if i.get("status") in {"sent", "overdue"})
+        new_customers = bs_customers_col.count_documents({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}})
+        pending_actions = {
+            "invoices": sum(1 for i in invoices if i.get("status") in {"sent","overdue"}),
+            "unconfirmed": sum(1 for r in todays if r.get("status") == "pending"),
+            "no_show": bs_bookings_col.count_documents({"business_id": str(b["_id"]), "status": "no_show"}),
+            "reviews": bs_reviews_col.count_documents({"business_id": str(b["_id"]), "reply": {"$in": [None, ""]}}),
+        }
+        service_rev = {}
+        for p in payments:
+            srv = p.get("notes", "Service")
+            service_rev[srv] = service_rev.get(srv, 0) + float(p.get("amount",0))
+        return render_template("bs_dashboard.html", business=b, todays=todays, revenue_today=revenue_today, diff_pct=diff_pct, outstanding=outstanding, new_customers=new_customers, pending_actions=pending_actions, customers=customers, service_labels=list(service_rev.keys())[:8], service_values=list(service_rev.values())[:8], fmt_dd_mmm_yyyy=fmt_dd_mmm_yyyy, format_inr=format_inr)
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
     plan = user.get("plan","free") if user else "free"
@@ -4111,10 +4188,623 @@ def api_notifications_mark_read():
     return jsonify({"ok": True})
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BHARATSTACK SAAS
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    from weasyprint import HTML
+except Exception:
+    HTML = None
+try:
+    from twilio.rest import Client as TwilioClient
+except Exception:
+    TwilioClient = None
+
+TWILIO_SID = os.getenv("TWILIO_SID", "")
+TWILIO_TOKEN = os.getenv("TWILIO_TOKEN", "")
+TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000")
+
+businesses_col = db["businesses"]
+bs_customers_col = db["customers"]
+bs_bookings_col = db["bookings"]
+bs_invoices_col = db["invoices"]
+bs_payments_col = db["payments"]
+bs_reviews_col = db["reviews"]
+bs_staff_col = db["staff"]
+bs_expenses_col = db["expenses"]
+
+def format_inr(v):
+    try:
+        n = int(round(float(v or 0)))
+    except Exception:
+        n = 0
+    s = str(abs(n))
+    if len(s) <= 3:
+        out = s
+    else:
+        out = s[-3:]
+        s = s[:-3]
+        while s:
+            out = s[-2:] + "," + out
+            s = s[:-2]
+    return f"₹{'-' if n < 0 else ''}{out}"
+
+
+def fmt_dd_mmm_yyyy(dt):
+    dt = to_naive(dt) if dt else None
+    return dt.strftime("%d %b %Y") if dt else ""
+
+
+def business_login_required(f):
+    @wraps(f)
+    def dec(*a, **kw):
+        if "bid" not in session:
+            flash("Please login to BharatStack.", "error")
+            return redirect(url_for("login"))
+        return f(*a, **kw)
+    return dec
+
+
+def get_business():
+    if "bid" not in session:
+        return None
+    return businesses_col.find_one({"_id": oid(session["bid"])})
+
+
+def whatsapp_send(to_phone, body):
+    if not (TwilioClient and TWILIO_SID and TWILIO_TOKEN and TWILIO_WHATSAPP_FROM and to_phone):
+        return False
+    try:
+        client = TwilioClient(TWILIO_SID, TWILIO_TOKEN)
+        client.messages.create(from_=TWILIO_WHATSAPP_FROM, to=f"whatsapp:+91{str(to_phone).replace('+91','').strip()}", body=body)
+        return True
+    except Exception:
+        return False
+
+
+def business_slots_for_date(business, date_str, duration_mins):
+    hours = (business or {}).get("working_hours") or {}
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+    except Exception:
+        return []
+    day = ["mon","tue","wed","thu","fri","sat","sun"][d.weekday()]
+    day_hours = hours.get(day) or {"open": "10:00", "close": "19:00"}
+    if not day_hours.get("open") or not day_hours.get("close"):
+        return []
+    start = datetime.strptime(day_hours["open"], "%H:%M")
+    close = datetime.strptime(day_hours["close"], "%H:%M")
+    slots = []
+    cur = start
+    while cur + timedelta(minutes=duration_mins) <= close:
+        slots.append(cur.strftime("%H:%M"))
+        cur += timedelta(minutes=30)
+    booked = set(r.get("time_slot") for r in bs_bookings_col.find({"business_id": str(business.get("_id")), "date": date_str, "status": {"$nin": ["cancelled", "no_show"]}}, {"time_slot": 1}))
+    return [s for s in slots if s not in booked]
+
+
+@app.route("/onboarding", methods=["GET", "POST"])
+@business_login_required
+def bs_onboarding():
+    b = get_business()
+    if request.method == "POST":
+        step = request.form.get("step", "1")
+        if step == "1":
+            working_hours = {}
+            for d in ["mon","tue","wed","thu","fri","sat","sun"]:
+                working_hours[d] = {"open": request.form.get(f"{d}_open") or "", "close": request.form.get(f"{d}_close") or ""}
+            businesses_col.update_one({"_id": b["_id"]}, {"$set": {
+                "tagline": request.form.get("tagline", "").strip(),
+                "address": request.form.get("address", "").strip(),
+                "city": request.form.get("city", "").strip(),
+                "upi_id": request.form.get("upi_id", "").strip(),
+                "working_hours": working_hours,
+            }})
+        elif step == "2":
+            services = []
+            names = request.form.getlist("service_name")
+            durs = request.form.getlist("service_duration")
+            prices = request.form.getlist("service_price")
+            for i, n in enumerate(names[:10]):
+                if n.strip():
+                    services.append({"name": n.strip(), "duration_mins": int(durs[i] or 30), "price": int(prices[i] or 0)})
+            businesses_col.update_one({"_id": b["_id"]}, {"$set": {"services": services}})
+        else:
+            cname = request.form.get("customer_name", "").strip()
+            cphone = request.form.get("customer_phone", "").strip()
+            if cname and cphone:
+                bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": cphone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()})
+            session["onboarded"] = True
+            flash("Welcome to BharatStack!", "success")
+            return redirect(url_for("dashboard"))
+        flash("Saved", "success")
+        return redirect(url_for("bs_onboarding"))
+    return render_template("bs_onboarding.html", business=b)
+
+
+@app.route("/bookings", methods=["GET", "POST"])
+@business_login_required
+def bs_bookings():
+    b = get_business()
+    if request.method == "POST":
+        form = request.form
+        customer_id = form.get("customer_id")
+        customer = bs_customers_col.find_one({"_id": oid(customer_id), "business_id": str(b["_id"])}) if customer_id else None
+        if not customer:
+            cname = form.get("customer_name", "").strip()
+            cphone = form.get("customer_phone", "").strip()
+            if not cname or not cphone:
+                flash("Customer is required", "error")
+                return redirect(url_for("bs_bookings"))
+            cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": cphone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+            customer = bs_customers_col.find_one({"_id": cid})
+        service_name = form.get("service_name", "").strip()
+        service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+        if not service_name or not form.get("date") or not form.get("time_slot"):
+            flash("Date, time and service required", "error")
+            return redirect(url_for("bs_bookings"))
+        doc = {
+            "business_id": str(b["_id"]),
+            "customer_id": str(customer["_id"]),
+            "customer_name": customer.get("name"),
+            "customer_phone": customer.get("phone"),
+            "service_name": service_name,
+            "service_price": int(form.get("service_price") or (service.get("price") if service else 0) or 0),
+            "date": form.get("date"),
+            "time_slot": form.get("time_slot"),
+            "duration_mins": int(form.get("duration_mins") or (service.get("duration_mins") if service else 30) or 30),
+            "status": "confirmed" if form.get("auto_confirm") else "pending",
+            "payment_status": "unpaid",
+            "amount_paid": 0,
+            "payment_method": "",
+            "staff_id": form.get("staff_id") or "",
+            "notes": form.get("notes", "").strip(),
+            "reminder_sent": False,
+            "created_at": now(),
+        }
+        bid = bs_bookings_col.insert_one(doc).inserted_id
+        if form.get("send_whatsapp"):
+            msg = f"Hi {doc['customer_name']}! Your {doc['service_name']} appointment at {b.get('business_name')} is confirmed for {doc['date']} at {doc['time_slot']}. See you then! 🙏"
+            whatsapp_send(doc['customer_phone'], msg)
+            bs_bookings_col.update_one({"_id": bid}, {"$set": {"reminder_sent": True}})
+        flash("Booking created", "success")
+        return redirect(url_for("bs_bookings"))
+    q = {"business_id": str(b["_id"])}
+    if request.args.get("status"):
+        q["status"] = request.args.get("status")
+    if request.args.get("date"):
+        q["date"] = request.args.get("date")
+    rows = list(bs_bookings_col.find(q).sort("date", DESCENDING))
+    customers = list(bs_customers_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING).limit(100))
+    staff = list(bs_staff_col.find({"business_id": str(b["_id"]), "is_active": True}))
+    return render_template("bs_bookings.html", business=b, bookings=rows, customers=customers, staff=staff)
+
+
+def _update_booking_status(booking_id, status):
+    b = get_business()
+    bs_bookings_col.update_one({"_id": oid(booking_id), "business_id": str(b["_id"])}, {"$set": {"status": status}})
+
+@app.route("/api/bookings/create", methods=["POST"])
+@business_login_required
+def api_bs_booking_create():
+    b = get_business()
+    data = json_body() if request.is_json else request.form
+    name = (data.get("customer_name") or "").strip()
+    phone = (data.get("customer_phone") or "").strip()
+    service_name = (data.get("service_name") or "").strip()
+    date = data.get("date")
+    time_slot = data.get("time_slot")
+    if not all([name, phone, service_name, date, time_slot]):
+        return api_error("missing_fields", 400)
+    customer = bs_customers_col.find_one({"business_id": str(b["_id"]), "phone": phone})
+    if not customer:
+        cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": name, "phone": phone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+        customer = bs_customers_col.find_one({"_id": cid})
+    service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+    doc = {
+        "business_id": str(b["_id"]),
+        "customer_id": str(customer["_id"]),
+        "customer_name": name,
+        "customer_phone": phone,
+        "service_name": service_name,
+        "service_price": int(data.get("service_price") or (service.get("price") if service else 0) or 0),
+        "date": date,
+        "time_slot": time_slot,
+        "duration_mins": int(data.get("duration_mins") or (service.get("duration_mins") if service else 30) or 30),
+        "status": "pending",
+        "payment_status": "unpaid",
+        "amount_paid": 0,
+        "payment_method": "",
+        "notes": data.get("notes") or "",
+        "reminder_sent": False,
+        "created_at": now(),
+    }
+    inserted = bs_bookings_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/api/bookings/<id>/confirm", methods=["POST"])
+@business_login_required
+def api_bs_booking_confirm(id):
+    _update_booking_status(id, "confirmed")
+    return jsonify({"ok": True})
+
+@app.route("/api/bookings/<id>/complete", methods=["POST"])
+@business_login_required
+def api_bs_booking_complete(id):
+    _update_booking_status(id, "completed")
+    return jsonify({"ok": True})
+
+@app.route("/api/bookings/<id>/cancel", methods=["POST"])
+@business_login_required
+def api_bs_booking_cancel(id):
+    _update_booking_status(id, "cancelled")
+    return jsonify({"ok": True})
+
+
+@app.route("/customers", methods=["GET", "POST"])
+@business_login_required
+def bs_customers():
+    b = get_business()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        if not name or not phone:
+            flash("Name and phone required", "error")
+            return redirect(url_for("bs_customers"))
+        bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": name, "phone": phone, "email": request.form.get("email", ""), "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": request.form.get("notes", ""), "tags": [x.strip() for x in (request.form.get("tags") or "").split(",") if x.strip()], "created_at": now()})
+        flash("Customer added", "success")
+        return redirect(url_for("bs_customers"))
+    q = {"business_id": str(b["_id"])}
+    search = request.args.get("q", "").strip()
+    if search:
+        q["$or"] = [{"name": {"$regex": re.escape(search), "$options": "i"}}, {"phone": {"$regex": re.escape(search), "$options": "i"}}]
+    rows = list(bs_customers_col.find(q).sort("created_at", DESCENDING))
+    return render_template("bs_customers.html", customers=rows, business=b)
+
+@app.route("/customers/<cid>", methods=["GET", "POST"])
+@business_login_required
+def bs_customer_detail(cid):
+    b = get_business()
+    customer = bs_customers_col.find_one({"_id": oid(cid), "business_id": str(b["_id"])})
+    if not customer:
+        return redirect(url_for("bs_customers"))
+    if request.method == "POST":
+        bs_customers_col.update_one({"_id": customer["_id"]}, {"$set": {"notes": request.form.get("notes", ""), "tags": [x.strip() for x in (request.form.get("tags") or "").split(",") if x.strip()]}})
+        return redirect(url_for("bs_customer_detail", cid=cid))
+    bookings = list(bs_bookings_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    invoices = list(bs_invoices_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    payments = list(bs_payments_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    return render_template("bs_customer_detail.html", customer=customer, bookings=bookings, invoices=invoices, payments=payments)
+
+
+@app.route("/invoices", methods=["GET", "POST"])
+@business_login_required
+def bs_invoices():
+    b = get_business()
+    if request.method == "POST":
+        customer_id = request.form.get("customer_id")
+        due = request.form.get("due_date")
+        gst_rate = float(request.form.get("gst_rate") or 0)
+        descs = request.form.getlist("item_desc")
+        qtys = request.form.getlist("item_qty")
+        rates = request.form.getlist("item_rate")
+        line_items=[]; subtotal=0
+        for i,d in enumerate(descs):
+            if not d.strip():
+                continue
+            q = float(qtys[i] or 1); r = float(rates[i] or 0); amt = q*r
+            subtotal += amt
+            line_items.append({"description": d.strip(), "qty": q, "rate": r, "amount": amt})
+        gst_amount = round(subtotal * gst_rate / 100, 2)
+        total = subtotal + gst_amount
+        count = bs_invoices_col.count_documents({"business_id": str(b["_id"])}) + 1
+        inv_no = f"BS-{datetime.utcnow().strftime('%Y')}-{count:05d}"
+        doc = {"business_id": str(b["_id"]), "customer_id": customer_id, "invoice_number": inv_no, "line_items": line_items, "subtotal": subtotal, "gst_rate": gst_rate, "gst_amount": gst_amount, "total": total, "status": request.form.get("status") or "draft", "due_date": due, "paid_at": None, "payment_method": "", "notes": request.form.get("notes", ""), "created_at": now()}
+        iid = bs_invoices_col.insert_one(doc).inserted_id
+        flash("Invoice created", "success")
+        return redirect(url_for("bs_invoice_detail", iid=str(iid)))
+    q = {"business_id": str(b["_id"])}
+    status = request.args.get("status")
+    if status:
+        q["status"] = status
+    invoices = list(bs_invoices_col.find(q).sort("created_at", DESCENDING))
+    customers = list(bs_customers_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_invoices.html", invoices=invoices, customers=customers)
+
+@app.route("/invoices/<iid>")
+@business_login_required
+def bs_invoice_detail(iid):
+    b = get_business()
+    inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv:
+        return redirect(url_for("bs_invoices"))
+    customer = bs_customers_col.find_one({"_id": oid(inv.get("customer_id"))}) if inv.get("customer_id") else None
+    return render_template("bs_invoice_detail.html", invoice=inv, customer=customer, business=b)
+
+@app.route("/api/invoices/<iid>/send", methods=["POST"])
+@business_login_required
+def api_bs_invoice_send(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    bs_invoices_col.update_one({"_id": inv["_id"]}, {"$set": {"status": "sent"}})
+    return jsonify({"ok": True})
+
+@app.route("/api/invoices/<iid>/pay", methods=["POST"])
+@business_login_required
+def api_bs_invoice_pay(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    method = (json_body().get("payment_method") or request.form.get("payment_method") or "online")
+    bs_invoices_col.update_one({"_id": inv["_id"]}, {"$set": {"status": "paid", "paid_at": now(), "payment_method": method}})
+    bs_payments_col.insert_one({"business_id": str(b["_id"]), "customer_id": inv.get("customer_id"), "booking_id": None, "invoice_id": iid, "amount": inv.get("total",0), "method": method, "razorpay_payment_id": "", "status": "completed", "notes": "invoice_payment", "created_at": now()})
+    return jsonify({"ok": True})
+
+@app.route("/api/invoices/<iid>/pdf", methods=["POST"])
+@business_login_required
+def api_bs_invoice_pdf(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    html = render_template("bs_invoice_pdf.html", invoice=inv, business=b)
+    if HTML:
+        pdf = HTML(string=html, base_url=BASE_URL).write_pdf()
+        resp = make_response(pdf)
+        resp.headers['Content-Type'] = 'application/pdf'
+        resp.headers['Content-Disposition'] = f'attachment; filename={inv.get("invoice_number","invoice")}.pdf'
+        return resp
+    return make_response(html)
+
+
+@app.route("/payments", methods=["GET"])
+@business_login_required
+def bs_payments():
+    b=get_business()
+    rows = list(bs_payments_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    pending = sum(float(r.get("amount",0)) for r in rows if r.get("status") != "completed")
+    received = sum(float(r.get("amount",0)) for r in rows if r.get("status") == "completed")
+    return render_template("bs_payments.html", payments=rows, pending=pending, received=received)
+
+@app.route("/api/payments/record", methods=["POST"])
+@business_login_required
+def api_bs_payment_record():
+    b=get_business(); data = json_body() if request.is_json else request.form
+    amount = float(data.get("amount") or 0)
+    if amount <= 0: return api_error("invalid_amount",400)
+    bs_payments_col.insert_one({"business_id": str(b["_id"]), "customer_id": data.get("customer_id"), "booking_id": data.get("booking_id"), "invoice_id": data.get("invoice_id"), "amount": amount, "method": data.get("method") or "upi", "razorpay_payment_id": data.get("razorpay_payment_id") or "", "status": data.get("status") or "completed", "notes": data.get("notes") or "", "created_at": now()})
+    return jsonify({"ok": True})
+
+@app.route("/analytics")
+@business_login_required
+def bs_analytics():
+    b=get_business()
+    plan = b.get("plan", "free")
+    bookings = list(bs_bookings_col.find({"business_id": str(b["_id"])}))
+    payments = list(bs_payments_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_analytics.html", plan=plan, bookings=bookings, payments=payments)
+
+@app.route("/staff", methods=["GET", "POST"])
+@business_login_required
+def bs_staff():
+    b=get_business()
+    if request.method == "POST":
+        bs_staff_col.insert_one({"business_id": str(b["_id"]), "name": request.form.get("name"), "phone": request.form.get("phone"), "role": request.form.get("role"), "services_offered": [x.strip() for x in (request.form.get("services_offered") or "").split(",") if x.strip()], "commission_percent": float(request.form.get("commission_percent") or 0), "is_active": True, "created_at": now()})
+        flash("Staff added","success")
+        return redirect(url_for("bs_staff"))
+    rows = list(bs_staff_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_staff.html", staff=rows)
+
+@app.route("/reviews", methods=["GET"])
+@business_login_required
+def bs_reviews():
+    b=get_business(); rows = list(bs_reviews_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    avg = round(sum(r.get("rating",0) for r in rows)/max(1,len(rows)),2)
+    return render_template("bs_reviews.html", reviews=rows, avg=avg)
+
+@app.route("/api/reviews/request", methods=["POST"])
+@business_login_required
+def api_bs_reviews_request():
+    b=get_business(); phone = (json_body().get("phone") if request.is_json else request.form.get("phone"))
+    link = f"{BASE_URL}/r/{b.get('username')}"
+    whatsapp_send(phone, f"Please rate your visit to {b.get('business_name')}: {link}")
+    return jsonify({"ok": True})
+
+@app.route("/api/reviews/<rid>/reply", methods=["POST"])
+@business_login_required
+def api_bs_reviews_reply(rid):
+    b=get_business(); reply = (json_body().get("reply") if request.is_json else request.form.get("reply"))
+    bs_reviews_col.update_one({"_id": oid(rid), "business_id": str(b["_id"])}, {"$set": {"reply": reply, "replied_at": now()}})
+    return jsonify({"ok": True})
+
+@app.route("/expenses", methods=["GET", "POST"])
+@business_login_required
+def bs_expenses():
+    b=get_business()
+    if request.method == "POST":
+        bs_expenses_col.insert_one({"business_id": str(b["_id"]), "category": request.form.get("category"), "description": request.form.get("description"), "amount": float(request.form.get("amount") or 0), "date": request.form.get("date"), "receipt_url": "", "created_at": now()})
+        return redirect(url_for("bs_expenses"))
+    rows = list(bs_expenses_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    return render_template("bs_expenses.html", expenses=rows)
+
+@app.route("/settings", methods=["GET", "POST"])
+@business_login_required
+def bs_settings():
+    b=get_business()
+    if request.method == "POST":
+        services = []
+        for n,d,p in zip(request.form.getlist("service_name"), request.form.getlist("service_duration"), request.form.getlist("service_price")):
+            if n.strip(): services.append({"name": n.strip(), "duration_mins": int(d or 30), "price": int(p or 0)})
+        settings = {
+            "booking_buffer_mins": int(request.form.get("booking_buffer_mins") or 0),
+            "auto_confirm": bool(request.form.get("auto_confirm")),
+            "sms_enabled": bool(request.form.get("sms_enabled")),
+            "whatsapp_enabled": bool(request.form.get("whatsapp_enabled")),
+        }
+        businesses_col.update_one({"_id": b["_id"]}, {"$set": {
+            "business_name": request.form.get("business_name", b.get("business_name")),
+            "business_type": request.form.get("business_type", b.get("business_type")),
+            "address": request.form.get("address", b.get("address")),
+            "tagline": request.form.get("tagline", b.get("tagline")),
+            "upi_id": request.form.get("upi_id", b.get("upi_id")),
+            "services": services or b.get("services", []),
+            "settings": settings,
+        }})
+        flash("Settings updated", "success")
+        return redirect(url_for("bs_settings"))
+    return render_template("bs_settings.html", business=b)
+
+@app.route("/upgrade")
+def bs_upgrade_page():
+    if "bid" in session:
+        b = get_business()
+        return render_template("bs_upgrade.html", business=b, razorpay_key=RAZORPAY_KEY_ID)
+    return upgrade()
+
+@app.route("/book/<username>")
+def bs_public_book(username):
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return render_template("404.html"), 404
+    return render_template("bs_public_book.html", business=b)
+
+@app.route("/api/public/book", methods=["POST"])
+def api_bs_public_book():
+    data = json_body() if request.is_json else request.form
+    username = (data.get("username") or "").strip()
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return api_error("business_not_found", 404)
+    cname = (data.get("name") or "").strip(); phone=(data.get("phone") or "").strip()
+    if not cname or not phone:
+        return api_error("name_phone_required",400)
+    customer = bs_customers_col.find_one({"business_id": str(b["_id"]), "phone": phone})
+    if not customer:
+        cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": phone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+        customer = bs_customers_col.find_one({"_id": cid})
+    service = next((s for s in (b.get("services") or []) if s.get("name") == data.get("service_name")), None)
+    doc = {"business_id": str(b["_id"]), "customer_id": str(customer["_id"]), "customer_name": cname, "customer_phone": phone, "service_name": data.get("service_name"), "service_price": int((service or {}).get("price") or data.get("service_price") or 0), "date": data.get("date"), "time_slot": data.get("time_slot"), "duration_mins": int((service or {}).get("duration_mins") or 30), "status": "pending", "payment_status": "unpaid", "amount_paid": 0, "payment_method": "", "notes": "public booking", "reminder_sent": False, "created_at": now()}
+    bs_bookings_col.insert_one(doc)
+    msg = f"Hi {cname}! Your {doc['service_name']} appointment at {b.get('business_name')} is confirmed for {doc['date']} at {doc['time_slot']}. See you then! 🙏"
+    whatsapp_send(phone, msg)
+    return jsonify({"ok": True, "booking": doc})
+
+@app.route("/api/slots")
+def api_bs_slots():
+    username = request.args.get("username", "")
+    b = businesses_col.find_one({"username": username}) if username else get_business()
+    if not b:
+        return jsonify([])
+    service_name = request.args.get("service_name") or request.args.get("service_id")
+    service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+    duration = int((service or {}).get("duration_mins") or 30)
+    slots = business_slots_for_date(b, request.args.get("date"), duration)
+    return jsonify(slots)
+
+@app.route("/api/customers/search", methods=["POST"])
+def api_bs_customers_search():
+    if "bid" not in session:
+        return jsonify([])
+    q = (json_body().get("q") if request.is_json else request.form.get("q") or "").strip()
+    b = get_business()
+    rows = list(bs_customers_col.find({"business_id": str(b["_id"]), "$or": [{"name": {"$regex": re.escape(q), "$options": "i"}}, {"phone": {"$regex": re.escape(q), "$options": "i"}}]}).limit(20)) if q else []
+    return jsonify([{"id": str(r["_id"]), "name": r.get("name"), "phone": r.get("phone")} for r in rows])
+
+@app.route("/api/dashboard/stats")
+@business_login_required
+def api_bs_dashboard_stats():
+    b = get_business(); today = datetime.utcnow().strftime("%Y-%m-%d")
+    todays = list(bs_bookings_col.find({"business_id": str(b["_id"]), "date": today}))
+    invoices = list(bs_invoices_col.find({"business_id": str(b["_id"])}))
+    customers = bs_customers_col.count_documents({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}})
+    revenue_today = sum(float(x.get("amount_paid",0)) for x in todays)
+    outstanding = sum(float(i.get("total",0)) for i in invoices if i.get("status") in {"sent","overdue"})
+    return jsonify({"todays_revenue": revenue_today, "bookings_today": len(todays), "outstanding": outstanding, "new_customers": customers})
+
+@app.route("/api/analytics/revenue")
+@business_login_required
+def api_bs_revenue():
+    b=get_business(); days=int(request.args.get("days") or 30); start = now() - timedelta(days=days)
+    rows = list(bs_payments_col.find({"business_id": str(b["_id"]), "created_at": {"$gte": start}}))
+    buckets = {}
+    for r in rows:
+        d = fmt_dd_mmm_yyyy(r.get("created_at"))
+        buckets[d] = buckets.get(d, 0) + float(r.get("amount",0))
+    return jsonify({"labels": list(buckets.keys()), "values": list(buckets.values())})
+
+@app.route("/r/<username>")
+def bs_public_reviews(username):
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return render_template("404.html"), 404
+    rows = list(bs_reviews_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    avg = round(sum(r.get("rating", 0) for r in rows) / max(1, len(rows)), 2)
+    return render_template("bs_public_reviews.html", business=b, reviews=rows, avg=avg)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+    if not businesses_col.find_one({"email": "demo@bharatstack.in"}):
+        try:
+            bid = businesses_col.insert_one({
+                "owner_name": "Priya Kapoor",
+                "business_name": "Glamour Studio",
+                "business_type": "Salon",
+                "email": "demo@bharatstack.in",
+                "password_hash": generate_password_hash("demo123"),
+                "phone": "9876543210",
+                "city": "Delhi",
+                "address": "Lajpat Nagar, New Delhi",
+                "plan": "pro",
+                "plan_expires": None,
+                "upi_id": "glamour@upi",
+                "razorpay_customer_id": "",
+                "logo_url": "",
+                "tagline": "Luxury salon services for modern India",
+                "currency": "INR",
+                "working_hours": {d: {"open": "10:00", "close": "20:00"} for d in ["mon","tue","wed","thu","fri","sat","sun"]},
+                "services": [
+                    {"name":"Haircut","duration_mins":45,"price":799},
+                    {"name":"Facial","duration_mins":60,"price":1499},
+                    {"name":"Wax","duration_mins":40,"price":699},
+                    {"name":"Hair Color","duration_mins":90,"price":2999},
+                    {"name":"Manicure","duration_mins":35,"price":599},
+                    {"name":"Pedicure","duration_mins":45,"price":799},
+                    {"name":"Cleanup","duration_mins":30,"price":499},
+                    {"name":"Bridal Makeup","duration_mins":120,"price":7999},
+                ],
+                "settings": {"booking_buffer_mins": 15, "auto_confirm": True, "sms_enabled": False, "whatsapp_enabled": True},
+                "created_at": now(),
+                "is_verified": True,
+                "username": "glamour-studio",
+            }).inserted_id
+            indian_names = ["Aarav","Vivaan","Aditya","Riya","Ananya","Ishita","Kabir","Arjun","Meera","Nisha","Rohit","Sanya","Karan","Diya","Neha","Siddharth","Pooja","Manav","Sneha","Aisha","Tanya","Rahul","Vikas","Sonal","Nikhil"]
+            cids = []
+            for i, n in enumerate(indian_names):
+                cid = bs_customers_col.insert_one({"business_id": str(bid), "name": f"{n} Sharma", "phone": f"98{70000000+i:08d}", "email": f"{n.lower()}@example.com", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["loyal" if i % 4 == 0 else "new"], "created_at": now() - timedelta(days=(i % 25))}).inserted_id
+                cids.append(cid)
+            for i in range(60):
+                cust = cids[i % len(cids)]
+                date = (now() - timedelta(days=i % 30)).strftime("%Y-%m-%d")
+                svc = ["Haircut","Facial","Wax","Cleanup","Manicure","Pedicure","Hair Color","Bridal Makeup"][i % 8]
+                price = [799,1499,699,499,599,799,2999,7999][i % 8]
+                bs_bookings_col.insert_one({"business_id": str(bid), "customer_id": str(cust), "customer_name": indian_names[i % len(indian_names)] + " Sharma", "customer_phone": f"98{70000000+i%25:08d}", "service_name": svc, "service_price": price, "date": date, "time_slot": f"{10 + (i % 8)}:00", "duration_mins": 45, "status": ["pending","confirmed","completed","cancelled","no_show"][i % 5], "payment_status": "paid" if i % 3 else "unpaid", "amount_paid": price if i % 3 else 0, "payment_method": ["upi","cash","card"][i % 3], "notes": "", "reminder_sent": i % 2 == 0, "created_at": now() - timedelta(days=i % 30)})
+            for i in range(20):
+                total = 999 + (i * 250)
+                status = ["draft","sent","paid","overdue"][i % 4]
+                iid = bs_invoices_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i % len(cids)]), "invoice_number": f"BS-{now().year}-{i+1:05d}", "line_items": [{"description": "Salon Service", "qty": 1, "rate": total, "amount": total}], "subtotal": total, "gst_rate": 18, "gst_amount": round(total * 0.18, 2), "total": round(total * 1.18, 2), "status": status, "due_date": (now() + timedelta(days=7)).strftime("%Y-%m-%d"), "paid_at": now() if status == "paid" else None, "payment_method": "upi", "notes": "", "created_at": now() - timedelta(days=i)}).inserted_id
+                if status == "paid":
+                    bs_payments_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i % len(cids)]), "booking_id": None, "invoice_id": str(iid), "amount": round(total * 1.18, 2), "method": "upi", "razorpay_payment_id": "", "status": "completed", "notes": "invoice_payment", "created_at": now() - timedelta(days=i)})
+            for i in range(8):
+                bs_reviews_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i]), "customer_name": indian_names[i] + " Sharma", "rating": 4 + (i % 2), "comment": "Great experience and professional service.", "is_verified": True, "reply": "" if i % 2 else "Thank you for your feedback!", "replied_at": now() if not i % 2 else None, "created_at": now() - timedelta(days=i)})
+            for i, name in enumerate(["Asha", "Ravi", "Komal"]):
+                bs_staff_col.insert_one({"business_id": str(bid), "name": name, "phone": f"99{80000000+i:08d}", "role": ["Stylist","Beautician","Manager"][i], "services_offered": ["Haircut","Facial"], "commission_percent": 10 + i * 2, "is_active": True, "created_at": now()})
+            for i in range(30):
+                bs_expenses_col.insert_one({"business_id": str(bid), "category": ["Rent","Salaries","Supplies","Marketing","Utilities","Other"][i % 6], "description": "Monthly expense", "amount": 1500 + (i * 120), "date": (now() - timedelta(days=i)).strftime("%Y-%m-%d"), "receipt_url": "", "created_at": now() - timedelta(days=i)})
+            print("Demo business: demo@bharatstack.in / demo123")
+        except Exception as e:
+            print(f"Demo business seed skipped: {e}")
     if not users_col.find_one({"username": "demo"}):
         try:
             users_col.insert_one({

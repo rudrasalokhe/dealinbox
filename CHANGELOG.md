@@ -65,3 +65,15 @@
 - Match endpoint emits SSE progress events and result payload for front-end streaming UX.
 
 - Fixed Brand Studio startup conflict by removing duplicate Flask endpoint naming for /brand/campaigns/<cid>.
+
+## 2026-04-04 (BharatStack SaaS rebuild)
+
+### Added
+- Reoriented platform into BharatStack multi-tenant SaaS for Indian service businesses.
+- Added business collections and routes: onboarding, bookings, customers, invoices, payments, analytics, staff, reviews, expenses, settings, upgrade, public booking, public reviews.
+- Added booking-slot API and public booking creation flow with WhatsApp confirmation hook (Twilio).
+- Added invoice PDF generation endpoint using WeasyPrint.
+- Added dashboard + analytics APIs for charts and KPIs.
+- Added comprehensive BharatStack UI templates and new light-theme design CSS (`bs.css`).
+- Added BharatStack demo data seeding (`demo@bharatstack.in` / `demo123`) with realistic services, customers, bookings, invoices, payments, reviews, staff, and expenses.
+- Updated requirements, Render config, env example, and README for BharatStack deployment.
