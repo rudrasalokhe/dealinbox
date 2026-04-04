@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Brand Campaign Manager — DealInbox{% endblock %}
+{% block topbar_title %}Brand Campaign Manager{% endblock %}
+{% block content %}
+<div class="card" style="padding:16px">
+  <h3>Create Campaign</h3>
+  <form method="POST" style="display:grid;gap:8px;margin-top:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input name="brand_name" placeholder="Brand name" value="{{ brand_name }}" required>
+      <input name="brand_email" placeholder="Brand email" value="{{ brand_email }}" required>
+    </div>
+    <input name="title" placeholder="Campaign title" required>
+    <textarea name="brief" placeholder="Campaign brief" required></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input name="budget_min" type="number" placeholder="Budget min">
+      <input name="budget_max" type="number" placeholder="Budget max">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <input name="platform" placeholder="Platform criteria">
+      <input name="niche" placeholder="Niche criteria">
+      <input name="location" placeholder="Location criteria">
+    </div>
+    <input name="timeline" placeholder="Timeline">
+    <button class="btn btn-gold" type="submit">Create campaign</button>
+  </form>
+</div>
+
+<div class="card" style="padding:16px;margin-top:12px">
+  <h3>Your campaigns</h3>
+  {% for c in campaigns %}
+    <a class="btn btn-full" style="margin-top:8px;text-align:left" href="{{ url_for('brand_campaign_detail', cid=c._id) }}">
+      <b>{{ c.title }}</b> · {{ c.status }} · {{ (c.applicants or [])|length }} applicants
+    </a>
+  {% else %}<p style="color:var(--t2)">No campaigns yet.</p>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Deal Intel Board — DealInbox{% endblock %}
+{% block topbar_title %}Deal Intel{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Deal Intel Board</h1><p class="page-sub">Anonymous intel on payer behavior, deal quality, and brand trust.</p></div></div>
+<div class="card" style="padding:16px;margin-bottom:14px">
+  <h3>Share intel</h3>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+    <input id="bname" placeholder="Brand name">
+    <input id="bcat" placeholder="Category">
+    <input id="dtype" placeholder="Deal type">
+    <input id="arange" placeholder="Amount range (₹)">
+    <select id="exp"><option value="good">good</option><option value="bad">bad</option><option value="ugly">ugly</option></select>
+    <input id="notes" placeholder="Notes">
+  </div>
+  <button class="btn btn-primary" onclick="submitIntel()" style="margin-top:8px">Submit anonymously</button>
+</div>
+<div class="card" style="overflow:auto">
+  <table class="tbl">
+    <thead><tr><th>Brand</th><th>Category</th><th>Deal Type</th><th>Amount</th><th>Experience</th><th>Upvotes</th></tr></thead>
+    <tbody>{% for i in intel %}<tr><td><a href="/brand/{{ (i.brand_name or '')|lower|replace(' ','-') }}">{{ i.brand_name }}</a></td><td>{{ i.category or '—' }}</td><td>{{ i.deal_type or '—' }}</td><td>{{ i.amount_range or '—' }}</td><td>{{ i.experience|upper }}</td><td>{{ i.upvotes or 0 }}</td></tr>{% else %}<tr><td colspan="6" style="color:var(--t3)">No intel submissions yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+<script>
+async function submitIntel(){const body={brand_name:bname.value,category:bcat.value,deal_type:dtype.value,amount_range:arange.value,experience:exp.value,notes:notes.value};const r=await fetch('/api/brand-intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(d.ok) location.reload(); else showToast(d.error||'Failed');}
+</script>
+{% endblock %}
