@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Positioning — DealInbox{% endblock %}
+{% block topbar_title %}Positioning{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Positioning</h1><p class="page-sub">Analyze your profile signal and enquiry quality.</p></div></div>
+<div class="card" style="padding:18px"><p style="color:var(--t2)">Enquiries analyzed: {{ enq_count }}</p><button class="btn btn-gold" onclick="runAnalysis()">Run analysis</button><div id="out" style="margin-top:10px;color:var(--t2)"></div></div>
+<script>
+async function runAnalysis(){const r=await fetch('/api/positioning-analysis');const d=await r.json();document.getElementById('out').textContent=d.ready?`Score: ${d.score}`:d.message;}
+</script>
+{% endblock %}

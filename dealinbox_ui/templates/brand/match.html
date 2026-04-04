@@ -1,0 +1,5 @@
+{% extends 'brand/base.html' %}{% block title %}DealInbox Match{% endblock %}{% block topbar_title %}✦ DealInbox Match{% endblock %}{% block content %}
+<div class='page-head'><div><h1>✦ DealInbox Match</h1><p class='page-sub'>AI-powered creator matching for your exact campaign</p></div></div>
+<div class='card' style='padding:16px'><label>Describe your campaign</label><textarea id='match-brief' rows='5' placeholder="We're launching a new protein supplement..."></textarea><button class='btn btn-primary' style='margin-top:10px' onclick='runMatch()'>Find My Creators →</button></div>
+<div class='card' style='padding:16px;margin-top:12px'><div id='match-progress'></div><div id='match-results' class='brand-grid' style='margin-top:10px'></div></div>
+{% endblock %}{% block extra_js %}<script src='{{ url_for("static", filename="js/brand.js") }}'></script>{% endblock %}
