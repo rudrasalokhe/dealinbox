@@ -25,3 +25,7 @@ See `.env.example` for all required values.
 ## Render Root Directory
 If your Render service is configured with **Root Directory = `dealinbox`**, this repo now includes a `dealinbox/` deployment folder containing the app files.
 If Root Directory is blank, deploy from repository root.
+
+## Build compatibility note
+- This repo pins Python to 3.11.9 via `runtime.txt` and `.python-version`.
+- `requirements.txt` keeps `Pillow==10.3.0` for Python < 3.13 and uses `Pillow==11.2.1` only when the platform forces Python 3.13+ (e.g., 3.14) to avoid build failures.
