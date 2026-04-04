@@ -1,17 +1,18 @@
 import os
-from datetime import timedelta
 
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret')
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///bharatstack.db').replace('postgres://', 'postgresql://')
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    REMEMBER_COOKIE_DURATION = timedelta(days=14)
-    WTF_CSRF_TIME_LIMIT = None
-    ITEMS_PER_PAGE = 20
+    MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/bharatstack')
+    DB_NAME = os.getenv('DB_NAME', 'bharatstack')
+
+    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+    TWILIO_SMS_NUMBER = os.getenv('TWILIO_SMS_NUMBER', '')
+    TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', '')
 
     RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
     RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
-    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
-    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
-    TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', '')
+    RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
+
+    BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')

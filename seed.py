@@ -1,36 +1,17 @@
-from datetime import date, timedelta
-import random
-from app import create_app, db
-from app.models import User, Service, Staff, Customer, Booking, Invoice, Expense
+from datetime import datetime
+import bcrypt
+from pymongo import MongoClient
+from bson import ObjectId
+from config import Config
 
-app = create_app()
-names=['Aarav','Vivaan','Aditya','Ishita','Priya','Riya','Kabir','Anaya','Saanvi','Arjun','Neha','Rohit','Kiran','Pooja','Meera','Rakesh','Sneha','Nisha','Manoj','Ankit']
+client = MongoClient(Config.MONGO_URI)
+db = client[Config.DB_NAME]
 
-with app.app_context():
-    db.drop_all(); db.create_all()
-    u=User(name='Priya Sharma', email='demo@bharatstack.in', phone='9876543210', business_name="Priya's Beauty Salon", business_type='Salon', city='Mumbai', plan='starter')
-    u.set_password('demo1234'); db.session.add(u); db.session.commit()
-    services=[]
-    for n,p,d in [('Haircut',499,45),('Facial',1499,60),('Massage',1999,75),('Manicure',799,40),('Hair Spa',1299,50)]:
-        s=Service(owner_id=u.id,name=n,price=p,duration_minutes=d,category='Beauty'); db.session.add(s); services.append(s)
-    db.session.commit()
-    staff=[]
-    for n in ['Anita','Kavya','Rina']:
-        st=Staff(owner_id=u.id,name=n,role='staff'); db.session.add(st); staff.append(st)
-    db.session.commit()
-    customers=[]
-    for i,n in enumerate(names):
-        c=Customer(owner_id=u.id,name=f'{n} Patel',phone=f'98{i:08d}',email=f'{n.lower()}@example.com'); db.session.add(c); customers.append(c)
-    db.session.commit()
-    for _ in range(50):
-        c=random.choice(customers); s=random.choice(services); st=random.choice(staff); dt=date.today()+timedelta(days=random.randint(-20,10))
-        b=Booking(owner_id=u.id,customer_id=c.id,staff_id=st.id,service_id=s.id,date=dt,amount=s.price,status=random.choice(['pending','confirmed','completed']),paid=random.choice([True,False]))
-        db.session.add(b)
-    for i in range(30):
-        c=random.choice(customers); subtotal=random.choice([999,1499,2499,3999]); gst=18
-        inv=Invoice(owner_id=u.id,customer_id=c.id,invoice_number=f'INV-2026-{i+1:03d}',subtotal=subtotal,discount=0,gst_rate=gst,gst_amount=subtotal*gst/100,total=subtotal*1.18,paid_amount=random.choice([0,subtotal*1.18]),status=random.choice(['paid','sent','overdue']))
-        db.session.add(inv)
-    for _ in range(15):
-        db.session.add(Expense(owner_id=u.id,category=random.choice(['rent','salary','supplies','marketing','utilities','other']),description='Monthly ops',amount=random.choice([1500,3000,8000]),date=date.today()-timedelta(days=random.randint(0,30))))
-    db.session.commit()
-    print('Seeded demo@bharatstack.in / demo1234')
+org_id = db.orgs.insert_one({'name': 'Demo Org', 'gst_no': '27ABCDE1234F1Z5', 'city': 'Mumbai', 'industry': 'Services', 'plan': 'pro', 'razorpay_key_id': '', 'razorpay_key_secret': '', 'twilio_sid': '', 'twilio_token': '', 'twilio_whatsapp_number': ''}).inserted_id
+u = db.users.insert_one({'email': 'demo@bharatstack.in', 'password_hash': bcrypt.hashpw(b'demo1234', bcrypt.gensalt()).decode(), 'org_id': org_id, 'role': 'admin', 'mobile': '+919999999999', 'verified': True, 'created_at': datetime.utcnow()})
+contacts=[]
+for i in range(5):
+    contacts.append(db.contacts.insert_one({'name': f'Contact {i+1}', 'company': 'Acme', 'mobile': f'+91990000000{i}', 'email': f'c{i}@x.com', 'city': 'Mumbai', 'org_id': org_id, 'created_at': datetime.utcnow()}).inserted_id)
+for i in range(10):
+    db.deals.insert_one({'title': f'Deal {i+1}', 'value': (i+1)*10000, 'stage': 'Lead' if i<7 else 'Won', 'contact_id': contacts[i%5], 'org_id': org_id, 'assigned_to': str(u.inserted_id), 'source': 'web', 'created_at': datetime.utcnow(), 'updated_at': datetime.utcnow()})
+print('Demo login: demo@bharatstack.in / demo1234')

@@ -1,31 +1,28 @@
-# BharatStack
-
-Production-ready Flask SaaS starter for Indian SMB workflows.
+# BharatStack (MongoDB backend)
 
 ## Setup
-1. `python -m venv .venv && source .venv/bin/activate`
-2. `pip install -r requirements.txt`
-3. Copy `.env.example` to `.env` and fill values.
-4. `flask --app run db upgrade` (or `python seed.py` for demo)
-5. `python run.py`
+1. Create venv and install deps: `pip install -r requirements.txt`
+2. Copy `.env.example` to `.env` and fill values.
+3. Run app: `gunicorn --bind 0.0.0.0:5000 run:app`
 
 ## Environment variables
-See `.env.example` for all required values.
+- SECRET_KEY
+- MONGO_URI
+- DB_NAME
+- BASE_URL
+- TWILIO_ACCOUNT_SID
+- TWILIO_AUTH_TOKEN
+- TWILIO_SMS_NUMBER
+- TWILIO_WHATSAPP_NUMBER
+- RAZORPAY_KEY_ID
+- RAZORPAY_KEY_SECRET
+- RAZORPAY_WEBHOOK_SECRET
 
 ## Deploy to Render
-- Uses `render.yaml` with web service + PostgreSQL.
-- Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn --bind 0.0.0.0:$PORT run:app`
-- Runtime pinned to Python 3.11.9 via `runtime.txt`/`PYTHON_VERSION`.
+- Root Directory: `dealinbox`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn --bind 0.0.0.0:$PORT run:app`
 
-## Demo credentials
-- Email: `demo@bharatstack.in`
-- Password: `demo1234`
-
-## Render Root Directory
-If your Render service is configured with **Root Directory = `dealinbox`**, this repo now includes a `dealinbox/` deployment folder containing the app files.
-If Root Directory is blank, deploy from repository root.
-
-## Build compatibility note
-- This repo pins Python to 3.11.9 via `runtime.txt` and `.python-version`.
-- `requirements.txt` keeps `Pillow==10.3.0` for Python < 3.13 and uses `Pillow==11.2.1` only when the platform forces Python 3.13+ (e.g., 3.14) to avoid build failures.
+## Seed data
+- Run: `python seed.py`
+- Demo login: `demo@bharatstack.in` / `demo1234`

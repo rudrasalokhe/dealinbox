@@ -1,33 +1,24 @@
-from datetime import date
-from flask import Blueprint, request, jsonify
+from datetime import datetime
+from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import Booking, Customer, Staff
+from app.models import oid
 
-bp = Blueprint('api', __name__)
+bp = Blueprint('api', __name__, url_prefix='/api')
 
-@bp.post('/api/bookings')
+@bp.route('/charts/revenue-6m')
 @login_required
-def create_booking():
-    data = request.get_json() or {}
-    b = Booking(owner_id=current_user.id, customer_id=data['customer_id'], staff_id=data['staff_id'], service_id=data['service_id'], date=date.fromisoformat(data['date']), amount=data.get('amount',0))
-    db.session.add(b); db.session.commit()
-    return jsonify({'id':b.id})
+def revenue_6m():
+    org_id = oid(current_user.org_id)
+    start = datetime(datetime.utcnow().year - (1 if datetime.utcnow().month <= 6 else 0), max(1, datetime.utcnow().month - 5), 1)
+    data = list(db.invoices.aggregate([
+        {'$match': {'org_id': org_id, 'status': 'paid', 'created_at': {'$gte': start}}},
+        {'$group': {'_id': {'$dateToString': {'format': '%Y-%m', 'date': '$created_at'}}, 'revenue': {'$sum': '$total'}}},
+        {'$sort': {'_id': 1}}
+    ]))
+    return jsonify(data)
 
-@bp.get('/api/customers/search')
-@login_required
-def customer_search():
-    q = request.args.get('q','')
-    rows = Customer.query.filter(Customer.owner_id==current_user.id, Customer.name.ilike(f'%{q}%')).limit(10).all()
-    return jsonify([{'id':c.id,'name':c.name,'phone':c.phone} for c in rows])
-
-@bp.get('/api/staff/availability')
-@login_required
-def availability():
-    datev=request.args.get('date')
-    return jsonify([{'staff_id':s.id,'name':s.name,'available':True,'date':datev} for s in Staff.query.filter_by(owner_id=current_user.id, is_active=True).all()])
-
-@bp.post('/api/whatsapp/send')
-@login_required
-def whatsapp_send():
-    return jsonify({'queued': True, 'message': 'WhatsApp queued'})
+@bp.route('/razorpay/webhook', methods=['POST'])
+def alias_webhook():
+    from app.payments.routes import webhook
+    return webhook()
