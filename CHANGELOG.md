@@ -63,3 +63,5 @@
 ### Notes
 - Brand-side templates intentionally use existing design tokens with blue accent for parity + side separation.
 - Match endpoint emits SSE progress events and result payload for front-end streaming UX.
+
+- Fixed Brand Studio startup conflict by removing duplicate Flask endpoint naming for /brand/campaigns/<cid>.

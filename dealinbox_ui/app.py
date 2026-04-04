@@ -2973,7 +2973,7 @@ def brand_campaigns():
 
 @app.route("/brand/campaigns/new", methods=["GET", "POST"])
 @role_required("brand", "agency")
-def brand_campaign_new():
+def brand_campaign_new_studio():
     uid = session["uid"]
     user = _brand_user(uid)
     if request.method == "POST":
@@ -3003,13 +3003,13 @@ def brand_campaign_new():
             "updated_at": now(),
         }
         inserted = campaigns_col.insert_one(doc)
-        return redirect(url_for("brand_campaign_detail", cid=str(inserted.inserted_id)))
+        return redirect(url_for("brand_campaign_detail_studio", cid=str(inserted.inserted_id)))
     return render_template("brand/campaign_new.html")
 
 
 @app.route("/brand/campaigns/<cid>")
 @role_required("brand", "agency")
-def brand_campaign_detail(cid):
+def brand_campaign_detail_studio(cid):
     uid = session["uid"]
     campaign = campaigns_col.find_one({"_id": oid(cid), "uid": uid})
     if not campaign:
@@ -3059,7 +3059,7 @@ def brand_brief_new():
             camp = {"_id": camp_id}
         notifications_col.insert_one({"uid": str(creator.get("_id")), "type": "deal_alert", "title": "New brief from DealInbox Brand Studio", "body": campaign_name, "link": "/enquiries", "read": False, "created_at": now()})
         flash("Brief sent to creator inbox.", "success")
-        return redirect(url_for("brand_campaign_detail", cid=str(camp.get("_id"))))
+        return redirect(url_for("brand_campaign_detail_studio", cid=str(camp.get("_id"))))
     return render_template("brand/brief_new.html")
 
 
