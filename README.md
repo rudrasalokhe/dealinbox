@@ -15,7 +15,8 @@ See `.env.example` for all required values.
 ## Deploy to Render
 - Uses `render.yaml` with web service + PostgreSQL.
 - Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn run:app`
+- Start command: `gunicorn --bind 0.0.0.0:$PORT run:app`
+- Runtime pinned to Python 3.11.9 via `runtime.txt`/`PYTHON_VERSION`.
 
 ## Demo credentials
 - Email: `demo@bharatstack.in`
