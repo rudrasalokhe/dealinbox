@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
+<script src='https://cdn.tailwindcss.com'></script><script>tailwind.config={theme:{extend:{colors:{bg:'#0F0F0F',surface:'#1A1A1A',surface2:'#242424',border:'#2E2E2E',primary:'#6366F1'}}}}</script>
+<link rel='stylesheet' href='{{ url_for("static", filename="css/main.css") }}'><title>BharatStack</title></head>
+<body class='bg-bg text-white'>
+<div class='min-h-screen md:flex'>
+<aside class='w-full md:w-64 bg-surface border-r border-border p-4'>
+<div class='text-xl font-bold mb-4'>BharatStack</div>
+<nav class='space-y-1 text-sm'>
+<a href='/dashboard'>Dashboard</a> <a href='/bookings'>Bookings</a> <a href='/invoices'>Invoices</a> <a href='/customers'>Customers</a> <a href='/staff'>Staff</a> <a href='/services'>Services</a> <a href='/expenses'>Expenses</a> <a href='/analytics'>Analytics</a> <a href='/settings'>Settings</a> <a href='/billing'>Billing</a>
+</nav></aside>
+<main class='flex-1'><header class='p-4 border-b border-border flex justify-between'><div>{{ current_user.business_name if current_user.is_authenticated else 'BharatStack' }}</div><div>{{ current_user.name if current_user.is_authenticated else '' }}</div></header>
+<div class='p-4'>{% with m=get_flashed_messages(with_categories=true) %}{% for c,msg in m %}<div class='mb-2 p-2 bg-surface2 rounded'>{{ msg }}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</div></main></div>
+<script src='https://cdn.jsdelivr.net/npm/chart.js'></script><script src='{{ url_for("static", filename="js/main.js") }}'></script>{% block scripts %}{% endblock %}
+</body></html>
