@@ -21,16 +21,16 @@
   </section>
   <section class="auth-right">
     <div class="auth-card">
-      <h2 style="font-size:18px;font-weight:800">Create your free account</h2>
+      <h2 style="font-size:18px;font-weight:800">Create your creator account</h2>
       <p style="font-size:13px;color:var(--t2);margin:6px 0 16px">Already have one? <a href="{{ url_for('login') }}" style="color:var(--gold)">Sign in</a></p>
-      <form method="POST" action="{{ url_for('signup') }}">
+      <form method="POST" action="{{ url_for('signup_creator') }}">
         <div class="fg"><label>Name</label><input type="text" name="name" required></div>
         <div class="fg"><label>Email</label><input type="email" name="email" required></div>
         <div class="fg"><label>Username</label><input type="text" name="username" required><small style="font-family:var(--mono);font-size:11px;color:var(--t3)">dealsinbox.in/@username</small></div>
         <div class="fg"><label>Password</label><input type="password" name="password" required></div>
         <div class="fg"><label>Niche (optional)</label><input type="text" name="niche"></div>
         <div class="fg"><label>Platform (optional)</label><select name="platform"><option value="">Select</option>{% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select></div>
-        <button class="btn btn-gold btn-full" style="padding:12px" type="submit">Create free account →</button>
+        <button class="btn btn-gold btn-full" style="padding:12px" type="submit">Create creator account →</button>
         <p style="font-size:11px;color:var(--t3);text-align:center;margin-top:14px">By signing up you agree to our Terms & Privacy Policy</p>
       </form>
     </div>

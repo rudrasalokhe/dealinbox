@@ -100,6 +100,10 @@ content_drafts_col = db["content_drafts"]
 disputes_col = db["disputes"]
 achievements_col = db["achievements"]
 referrals_col = db["referrals"]
+brand_contacts_col = db["brand_contacts"]
+influencer_profiles_col = db["influencer_profiles"]
+outreach_log_col = db["outreach_log"]
+followup_reminders_col = db["followup_reminders"]
 def setup_db():
     try:
         client.admin.command("ping")
@@ -110,6 +114,9 @@ def setup_db():
                 pass
         users_col.create_index("email", unique=True, sparse=True)
         users_col.create_index("username", unique=True, sparse=True)
+        users_col.create_index([("role", 1)])
+        users_col.create_index([("creator_profile.niche", 1)])
+        users_col.create_index([("creator_profile.instagram_followers", 1)])
         enquiries.create_index([("user_id", 1), ("created_at", -1)])
         enquiries.create_index([("tracking_token", 1)])
         activity_col.create_index([("user_id", 1), ("created_at", -1)])
@@ -118,6 +125,13 @@ def setup_db():
         content_drafts_col.create_index([("deal_id", 1), ("version", -1)])
         marketplace_slots_col.create_index([("creator_id", 1), ("status", 1)])
         referrals_col.create_index([("referrer_id", 1), ("created_at", -1)])
+        brand_contacts_col.create_index([("uid", 1), ("created_at", -1)])
+        brand_contacts_col.create_index([("uid", 1), ("relationship_status", 1)])
+        influencer_profiles_col.create_index([("uid", 1), ("niche", 1), ("tier", 1), ("location", 1)])
+        notifications_col.create_index([("uid", 1), ("read", 1), ("created_at", -1)])
+        followup_reminders_col.create_index([("uid", 1), ("reminder_date", 1), ("status", 1)])
+        campaigns_col.create_index([("uid", 1), ("status", 1)])
+        payments_col.create_index([("brand_uid", 1), ("status", 1)])
         print(f"DB ready ({DB_NAME})")
     except Exception as e:
         print(f"DB setup failed: {e}")
@@ -467,6 +481,29 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*a, **kw)
     return dec
+require_login = login_required
+def role_required(*roles):
+    def wrap(f):
+        @wraps(f)
+        def dec(*a, **kw):
+            if "uid" not in session:
+                flash("Please log in.", "error")
+                return redirect(url_for("login"))
+            user = users_col.find_one({"_id": oid(session["uid"])}) or {}
+            role = (user.get("role") or "creator").lower()
+            if role not in roles:
+                if role in {"brand", "agency"}:
+                    return redirect(url_for("brand_dashboard"))
+                return redirect(url_for("dashboard"))
+            return f(*a, **kw)
+        return dec
+    return wrap
+
+def is_brand_side():
+    if "uid" not in session:
+        return False
+    u = users_col.find_one({"_id": oid(session["uid"])}) or {}
+    return (u.get("role") or "creator") in {"brand", "agency"}
 def pro_required(f):
     @wraps(f)
     def dec(*a, **kw):
@@ -479,6 +516,20 @@ def pro_required(f):
             return redirect(url_for("upgrade"))
         return f(*a, **kw)
     return dec
+
+@app.before_request
+def role_based_guardrails():
+    if "uid" not in session:
+        return None
+    if request.path.startswith("/static") or request.path.startswith("/api/") or request.path.startswith("/ping"):
+        return None
+    user = users_col.find_one({"_id": oid(session["uid"])}) or {}
+    role = (user.get("role") or "creator").lower()
+    if request.path.startswith("/brand") and role not in {"brand", "agency"}:
+        return redirect(url_for("dashboard"))
+    if request.path == "/dashboard" and role in {"brand", "agency"}:
+        return redirect(url_for("brand_dashboard"))
+    return None
 # ═══════════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK (keeps Render from cold-starting)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -628,54 +679,182 @@ def index():
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
-@app.route("/signup", methods=["GET","POST"])
+@app.route("/signup")
 def signup():
+    return render_template("bs_signup.html")
+
+
+@app.route("/signup/creator", methods=["GET","POST"])
+def signup_creator():
+    if request.method == "POST" and request.form.get("business_name"):
+        owner_name = request.form.get("name", "").strip()
+        business_name = request.form.get("business_name", "").strip()
+        business_type = request.form.get("business_type", "").strip()
+        phone = request.form.get("phone", "").replace("+91", "").strip()
+        email = request.form.get("email","").strip().lower()
+        password = request.form.get("password","")
+        city = request.form.get("city","").strip()
+        if not all([owner_name, business_name, business_type, phone, email, password, city]):
+            flash("Please fill all required fields.", "error")
+            return redirect(url_for("signup"))
+        if businesses_col.find_one({"email": email}):
+            flash("Email already registered.", "error")
+            return redirect(url_for("signup"))
+        username = slugify(business_name)[:24]
+        if businesses_col.find_one({"username": username}):
+            username = f"{username[:18]}-{uuid.uuid4().hex[:4]}"
+        bid = businesses_col.insert_one({
+            "owner_name": owner_name,
+            "business_name": business_name,
+            "business_type": business_type,
+            "email": email,
+            "password_hash": generate_password_hash(password),
+            "phone": phone,
+            "city": city,
+            "address": "",
+            "plan": "free",
+            "plan_expires": None,
+            "upi_id": "",
+            "razorpay_customer_id": "",
+            "logo_url": "",
+            "tagline": "",
+            "currency": "INR",
+            "working_hours": {d: {"open": "10:00", "close": "19:00"} for d in ["mon","tue","wed","thu","fri","sat","sun"]},
+            "services": [],
+            "settings": {"booking_buffer_mins": 0, "auto_confirm": False, "sms_enabled": False, "whatsapp_enabled": True},
+            "created_at": now(),
+            "is_verified": False,
+            "username": username,
+        }).inserted_id
+        session.clear()
+        session.update({"bid": str(bid), "business_name": business_name, "email": email})
+        return redirect(url_for("bs_onboarding"))
     if request.method == "POST":
-        name     = request.form.get("name","").strip()
-        email    = request.form.get("email","").strip().lower()
+        name = request.form.get("name","").strip()
+        email = request.form.get("email","").strip().lower()
         username = re.sub(r'[^a-z0-9_]','', request.form.get("username","").strip().lower())
         password = request.form.get("password","")
-        niche    = request.form.get("niche","").strip()
-        platform = request.form.get("platform","")
+        niche = request.form.get("niche","").strip()
+        platform = request.form.get("platform","").strip()
         if not all([name, email, username, password]):
-            flash("All fields are required.","error"); return redirect(url_for("signup"))
+            flash("All fields are required.","error"); return redirect(url_for("signup_creator"))
         if len(username) < 3:
-            flash("Username must be at least 3 characters.","error"); return redirect(url_for("signup"))
+            flash("Username must be at least 3 characters.","error"); return redirect(url_for("signup_creator"))
         if len(password) < 6:
-            flash("Password must be at least 6 characters.","error"); return redirect(url_for("signup"))
+            flash("Password must be at least 6 characters.","error"); return redirect(url_for("signup_creator"))
         if users_col.find_one({"email": email}):
-            flash("Email already registered.","error"); return redirect(url_for("signup"))
+            flash("Email already registered.","error"); return redirect(url_for("signup_creator"))
         if users_col.find_one({"username": username}):
-            flash("Username taken. Try another.","error"); return redirect(url_for("signup"))
+            flash("Username taken. Try another.","error"); return redirect(url_for("signup_creator"))
+        creator_profile = {
+            "bio": "",
+            "niche": niche,
+            "instagram_handle": "",
+            "youtube_handle": "",
+            "instagram_followers": 0,
+            "youtube_subscribers": 0,
+            "instagram_engagement_rate": 0,
+            "youtube_avg_views": 0,
+            "base_rate_reel": 0,
+            "base_rate_post": 0,
+            "base_rate_story": 0,
+            "languages": [],
+            "location": "",
+            "notable_brands": [],
+            "verified": False,
+            "profile_complete": False,
+        }
         uid = users_col.insert_one({
             "name": name, "email": email, "username": username,
             "password_hash": generate_password_hash(password),
             "niche": niche, "platform": platform,
             "bio": "", "collab_email": email,
             "min_budget": "", "response_time": "48 hours",
-            "plan": "free", "created_at": now()
+            "role": "creator",
+            "plan": "free",
+            "creator_profile": creator_profile,
+            "brand_profile": {},
+            "created_at": now(),
+            "last_active_at": now(),
         }).inserted_id
-        session.update({"uid": str(uid), "email": email,
-                        "username": username, "name": name, "plan": "free"})
-        log(str(uid), "Signed up", "Welcome to DealInbox!")
-        flash(f"Welcome, {name}! Your DealInbox is ready.","success")
+        session.update({"uid": str(uid), "email": email, "username": username, "name": name, "plan": "free", "role": "creator"})
         return redirect(url_for("dashboard"))
     return render_template("signup.html",
                            platforms=PLATFORMS,
                            creator_count=users_col.count_documents({}),
                            niches=["Beauty","Fashion","Fitness","Food","Tech",
                                    "Gaming","Travel","Finance","Lifestyle","Comedy","Other"])
+
+
+@app.route("/signup/brand", methods=["GET","POST"])
+def signup_brand():
+    if request.method == "POST":
+        company_name = request.form.get("company_name", "").strip()
+        email = request.form.get("email","").strip().lower()
+        password = request.form.get("password","")
+        industry = request.form.get("industry", "").strip()
+        company_size = request.form.get("company_size", "startup").strip()
+        if not all([company_name, email, password]):
+            flash("All fields are required.", "error")
+            return redirect(url_for("signup_brand"))
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.","error")
+            return redirect(url_for("signup_brand"))
+        if users_col.find_one({"email": email}):
+            flash("Email already registered.","error")
+            return redirect(url_for("signup_brand"))
+        generated_username = re.sub(r'[^a-z0-9_]', '', company_name.lower().replace(" ", "_"))[:24] or f"brand_{uuid.uuid4().hex[:6]}"
+        while users_col.find_one({"username": generated_username}):
+            generated_username = f"{generated_username[:18]}{uuid.uuid4().hex[:4]}"
+        brand_profile = {
+            "company_name": company_name,
+            "industry": industry,
+            "website": "",
+            "logo_url": "",
+            "company_size": company_size,
+            "description": "",
+            "target_niches": [],
+            "target_tier": [],
+            "target_locations": [],
+            "monthly_budget": 0,
+            "gst_number": "",
+            "verified": False,
+        }
+        uid = users_col.insert_one({
+            "name": company_name,
+            "email": email,
+            "username": generated_username,
+            "password_hash": generate_password_hash(password),
+            "role": "brand",
+            "plan": "free",
+            "creator_profile": {},
+            "brand_profile": brand_profile,
+            "created_at": now(),
+            "last_active_at": now(),
+        }).inserted_id
+        session.update({"uid": str(uid), "email": email, "username": generated_username, "name": company_name, "plan": "free", "role": "brand"})
+        return redirect(url_for("brand_dashboard"))
+    return render_template("signup_brand.html")
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
         email    = request.form.get("email","").strip().lower()
         password = request.form.get("password","")
+        business = businesses_col.find_one({"email": email})
+        if business and check_password_hash(business["password_hash"], password):
+            session.clear()
+            session.update({"bid": str(business["_id"]), "business_name": business.get("business_name"), "email": business.get("email")})
+            return redirect(url_for("dashboard"))
         user     = users_col.find_one({"email": email})
         if not user or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.","error"); return redirect(url_for("login"))
+        role = (user.get("role") or "creator").lower()
         session.update({"uid": str(user["_id"]), "email": user["email"],
-                        "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free")})
+                        "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free"), "role": role})
         flash(f"Welcome back, {user.get('name','')}!","success")
+        users_col.update_one({"_id": user["_id"]}, {"$set": {"last_active_at": now()}})
+        if role in {"brand", "agency"}:
+            return redirect(url_for("brand_dashboard"))
         return redirect(url_for("dashboard"))
     return render_template("login.html")
 @app.route("/logout")
@@ -687,8 +866,37 @@ def logout():
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 @app.route("/dashboard")
-@login_required
 def dashboard():
+    if "uid" not in session and "bid" not in session:
+        flash("Please log in.", "error")
+        return redirect(url_for("login"))
+    if "bid" in session:
+        b = get_business()
+        if not b:
+            session.clear()
+            return redirect(url_for("login"))
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        todays = list(bs_bookings_col.find({"business_id": str(b["_id"]), "date": today}).sort("time_slot", 1))
+        payments = list(bs_payments_col.find({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}}))
+        invoices = list(bs_invoices_col.find({"business_id": str(b["_id"])}))
+        customers = list(bs_customers_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING).limit(5))
+        revenue_today = sum(float(x.get("amount_paid", 0)) for x in todays)
+        yesterday = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+        y_revenue = sum(float(x.get("amount_paid", 0)) for x in bs_bookings_col.find({"business_id": str(b["_id"]), "date": yesterday}))
+        diff_pct = round(((revenue_today - y_revenue) / max(1, y_revenue)) * 100, 1)
+        outstanding = sum(float(i.get("total", 0)) for i in invoices if i.get("status") in {"sent", "overdue"})
+        new_customers = bs_customers_col.count_documents({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}})
+        pending_actions = {
+            "invoices": sum(1 for i in invoices if i.get("status") in {"sent","overdue"}),
+            "unconfirmed": sum(1 for r in todays if r.get("status") == "pending"),
+            "no_show": bs_bookings_col.count_documents({"business_id": str(b["_id"]), "status": "no_show"}),
+            "reviews": bs_reviews_col.count_documents({"business_id": str(b["_id"]), "reply": {"$in": [None, ""]}}),
+        }
+        service_rev = {}
+        for p in payments:
+            srv = p.get("notes", "Service")
+            service_rev[srv] = service_rev.get(srv, 0) + float(p.get("amount",0))
+        return render_template("bs_dashboard.html", business=b, todays=todays, revenue_today=revenue_today, diff_pct=diff_pct, outstanding=outstanding, new_customers=new_customers, pending_actions=pending_actions, customers=customers, service_labels=list(service_rev.keys())[:8], service_values=list(service_rev.values())[:8], fmt_dd_mmm_yyyy=fmt_dd_mmm_yyyy, format_inr=format_inr)
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
     plan = user.get("plan","free") if user else "free"
@@ -707,6 +915,29 @@ def dashboard():
         "reminder_due": {"$lte": now() + timedelta(days=7)},
         "reminder_done": {"$ne": True}
     }).sort("reminder_due", 1).limit(5))
+    crm_warm_brands = []
+    crm_prospects = []
+    crm_overdue_count = 0
+    crm_pitches_week = 0
+    try:
+        crm_warm_brands = list(brand_contacts_col.find({
+            "uid": uid,
+            "relationship_status": {"$in": ["warm", "active"]},
+            "deleted_at": {"$exists": False}
+        }).sort("last_contacted_at", DESCENDING).limit(3))
+        crm_prospects = list(influencer_profiles_col.find({
+            "uid": uid,
+            "relationship_status": {"$in": ["prospect", "negotiating"]},
+            "deleted_at": {"$exists": False}
+        }).sort("updated_at", DESCENDING).limit(3))
+        crm_overdue_count = followup_reminders_col.count_documents({
+            "uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$lt": now()}
+        })
+        crm_pitches_week = outreach_log_col.count_documents({
+            "uid": uid, "direction": "outbound", "sent_at": {"$gte": now() - timedelta(days=7)}
+        })
+    except Exception:
+        pass
 
     completion = profile_completion(user)
     checklist = [
@@ -792,7 +1023,13 @@ def dashboard():
             "analytics_or_upgrade": url_for("analytics") if is_pro(user) else url_for("upgrade"),
             "upgrade": url_for("upgrade"),
             "status_base": "/enquiries/",
-        }
+        },
+        "crm_pulse": {
+            "brands": [{"id": str(b.get("_id")), "name": b.get("brand_name", ""), "last_contacted": fmt_date(b.get("last_contacted_at")) or "Never"} for b in crm_warm_brands],
+            "prospects": [{"id": str(p.get("_id")), "name": p.get("creator_name", ""), "tier": p.get("tier", "nano"), "status": p.get("relationship_status", "prospect")} for p in crm_prospects],
+            "overdue": crm_overdue_count,
+            "pitches_week": crm_pitches_week,
+        },
     }
     return render_template("dashboard.html",
                            new_count=new_count,
@@ -2651,10 +2888,1923 @@ def recompute_relationship_scores():
         )
         updated += 1
     return jsonify({"ok": True, "updated": updated})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BRAND STUDIO (SIDE B)
+# ═══════════════════════════════════════════════════════════════════════════════
+team_members_col = db["team_members"]
+lists_col = db["lists"]
+
+
+def _brand_user(uid):
+    return users_col.find_one({"_id": oid(uid), "role": {"$in": ["brand", "agency"]}}) or {}
+
+
+def _creator_user(uid):
+    return users_col.find_one({"_id": oid(uid), "role": {"$in": ["creator", None]}}) or {}
+
+
+def _tier_from_followers(followers):
+    f = int(followers or 0)
+    if f < 10000:
+        return "nano"
+    if f < 100000:
+        return "micro"
+    if f < 1000000:
+        return "macro"
+    return "mega"
+
+
+@app.route("/brand/dashboard")
+@role_required("brand", "agency")
+def brand_dashboard():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    campaigns = list(campaigns_col.find({"uid": uid}).sort("created_at", DESCENDING).limit(12))
+    crm_rows = list(influencer_profiles_col.find({"uid": uid, "deleted_at": {"$exists": False}}).sort("instagram_engagement_rate", DESCENDING).limit(3))
+    active = [c for c in campaigns if c.get("status") in {"active", "draft"}]
+    total_reach = sum(int(c.get("total_reach", 0)) for c in campaigns)
+    budget_spent = sum(int(c.get("spent_budget", 0)) for c in campaigns)
+    contracted = sum(len(c.get("creators", [])) for c in campaigns)
+    pending_actions = {
+        "briefs": sum(1 for c in campaigns for cr in (c.get("creators") or []) if not cr.get("brief_sent_at")),
+        "invoices": payments_col.count_documents({"brand_uid": uid, "status": {"$in": ["pending", "processing"]}}),
+        "reminders": followup_reminders_col.count_documents({"uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$lte": now()}}),
+    }
+    monthly_budget = int(((user.get("brand_profile") or {}).get("monthly_budget") or 0))
+    projected = int((budget_spent / max(1, now().day)) * 30)
+    return render_template("brand/dashboard.html", campaigns=campaigns, active_count=len(active), contracted=contracted, total_reach=total_reach, budget_spent=budget_spent, top_creators=crm_rows, pending_actions=pending_actions, monthly_budget=monthly_budget, projected=projected)
+
+
+@app.route("/brand/discover")
+@role_required("brand", "agency")
+def brand_discover():
+    return render_template("brand/discover.html")
+
+
+@app.route("/brand/lists")
+@role_required("brand", "agency")
+def brand_lists():
+    uid = session["uid"]
+    rows = list(lists_col.find({"uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/lists.html", lists=rows)
+
+
+@app.route("/brand/match")
+@role_required("brand", "agency")
+def brand_match():
+    return render_template("brand/match.html")
+
+
+@app.route("/api/brand/match", methods=["POST"])
+@role_required("brand", "agency")
+def api_brand_match():
+    uid = session["uid"]
+    body = json_body()
+    brief_text = (body.get("brief_text") or "").strip()
+    if not brief_text:
+        return api_error("brief_text_required", 400)
+
+    def stream_match():
+        steps = ["Reading your brief...", "Identifying target audience...", "Scanning creators...", "Ranking by fit score..."]
+        for step in steps:
+            yield f"data: {json.dumps({'type': 'progress', 'message': step})}\n\n"
+        lower = brief_text.lower()
+        target_niche = "fitness" if "fitness" in lower or "gym" in lower else "lifestyle" if "lifestyle" in lower else "tech" if "tech" in lower else "beauty" if "beauty" in lower else ""
+        target_location = "mumbai" if "mumbai" in lower else "delhi" if "delhi" in lower else ""
+        q = {"role": {"$in": ["creator", None]}, "creator_profile.profile_complete": {"$ne": False}}
+        if target_niche:
+            q["creator_profile.niche"] = {"$regex": target_niche, "$options": "i"}
+        if target_location:
+            q["creator_profile.location"] = {"$regex": target_location, "$options": "i"}
+        creators = list(users_col.find(q).limit(80))
+        scored = []
+        for u in creators:
+            cp = u.get("creator_profile") or {}
+            followers = int(cp.get("instagram_followers") or 0)
+            tier = _tier_from_followers(followers)
+            engagement = float(cp.get("instagram_engagement_rate") or 0)
+            rate = int(cp.get("base_rate_reel") or 0)
+            niche_match = 30 if target_niche and target_niche in (cp.get("niche", "").lower()) else 15
+            tier_match = 14
+            location_match = 15 if target_location and target_location in (cp.get("location", "").lower()) else 6
+            rate_fit = 12 if rate and rate <= 100000 else 6
+            engagement_quality = min(20, int(engagement * 2.5))
+            fit = min(100, niche_match + tier_match + location_match + rate_fit + engagement_quality)
+            reason = f"{u.get('name','Creator')} has {engagement}% engagement in {cp.get('niche','general')} content with audience overlap for this brief."
+            scored.append({"name": u.get("name"), "username": u.get("username"), "niche": cp.get("niche", ""), "tier": tier, "followers": followers, "engagement": engagement, "rate": rate, "location": cp.get("location", ""), "fit_score": fit, "reason": reason})
+        ranked = sorted(scored, key=lambda x: x["fit_score"], reverse=True)[:12]
+        yield f"data: {json.dumps({'type':'results','items': ranked})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(stream_with_context(stream_match()), mimetype="text/event-stream")
+
+
+@app.route("/api/brand/discover")
+@role_required("brand", "agency")
+def api_brand_discover():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    prefs = user.get("brand_profile") or {}
+    q = {"role": {"$in": ["creator", None]}}
+    niche = request.args.get("niche") or ""
+    if niche:
+        q["creator_profile.niche"] = {"$regex": niche, "$options": "i"}
+    min_eng = float(request.args.get("min_engagement") or 0)
+    max_rate = int(request.args.get("max_rate") or prefs.get("monthly_budget") or 10**9)
+    rows = []
+    for u in users_col.find(q).limit(120):
+        cp = u.get("creator_profile") or {}
+        eng = float(cp.get("instagram_engagement_rate") or 0)
+        if eng < min_eng:
+            continue
+        if int(cp.get("base_rate_reel") or 0) > max_rate:
+            continue
+        followers = int(cp.get("instagram_followers") or 0)
+        rows.append({
+            "name": u.get("name"),
+            "username": u.get("username"),
+            "niche": cp.get("niche", ""),
+            "tier": _tier_from_followers(followers),
+            "instagram_followers": followers,
+            "youtube_subscribers": int(cp.get("youtube_subscribers") or 0),
+            "engagement": eng,
+            "base_rate_reel": int(cp.get("base_rate_reel") or 0),
+            "base_rate_post": int(cp.get("base_rate_post") or 0),
+            "base_rate_story": int(cp.get("base_rate_story") or 0),
+            "location": cp.get("location", ""),
+            "verified": bool(cp.get("verified")),
+            "notable_brands": cp.get("notable_brands") or [],
+        })
+    rows.sort(key=lambda x: x["engagement"], reverse=True)
+    return jsonify(rows[:60])
+
+
+@app.route("/brand/campaigns")
+@role_required("brand", "agency")
+def brand_campaigns():
+    uid = session["uid"]
+    rows = list(campaigns_col.find({"uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/campaigns.html", campaigns=rows)
+
+
+@app.route("/brand/campaigns/new", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_campaign_new_studio():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    if request.method == "POST":
+        if user.get("plan") == "free" and campaigns_col.count_documents({"uid": uid}) >= 3:
+            return _plan_limit_response("brand_campaigns", 3)
+        form = request.form
+        doc = {
+            "uid": uid,
+            "name": (form.get("name") or "").strip(),
+            "product_name": (form.get("product_name") or "").strip(),
+            "product_description": (form.get("product_description") or "").strip(),
+            "campaign_objective": (form.get("campaign_objective") or "awareness").strip(),
+            "status": (form.get("status") or "draft").strip(),
+            "start_date": form.get("start_date"),
+            "end_date": form.get("end_date"),
+            "total_budget": int(form.get("total_budget") or 0),
+            "spent_budget": 0,
+            "target_niche": (form.get("target_niche") or "").strip(),
+            "target_tier": (form.get("target_tier") or "").strip(),
+            "deliverables": [x.strip() for x in (form.get("deliverables") or "").split(",") if x.strip()],
+            "creators": [],
+            "brief_template": (form.get("brief_template") or "").strip(),
+            "dos": (form.get("dos") or "").strip(),
+            "donts": (form.get("donts") or "").strip(),
+            "hashtags": [x.strip() for x in (form.get("hashtags") or "").split(",") if x.strip()],
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        inserted = campaigns_col.insert_one(doc)
+        return redirect(url_for("brand_campaign_detail_studio", cid=str(inserted.inserted_id)))
+    return render_template("brand/campaign_new.html")
+
+
+@app.route("/brand/campaigns/<cid>")
+@role_required("brand", "agency")
+def brand_campaign_detail_studio(cid):
+    uid = session["uid"]
+    campaign = campaigns_col.find_one({"_id": oid(cid), "uid": uid})
+    if not campaign:
+        return redirect(url_for("brand_campaigns"))
+    return render_template("brand/campaign_detail.html", campaign=campaign)
+
+
+@app.route("/brand/briefs/new", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_brief_new():
+    uid = session["uid"]
+    if request.method == "POST":
+        form = request.form
+        creator_username = (form.get("creator_username") or "").strip().lstrip("@")
+        creator = users_col.find_one({"username": creator_username}) or {}
+        if not creator:
+            flash("Creator not found", "error")
+            return redirect(url_for("brand_brief_new"))
+        enq_doc = {
+            "user_id": str(creator.get("_id")),
+            "brand_name": (_brand_user(uid).get("brand_profile") or {}).get("company_name") or session.get("name"),
+            "contact_name": session.get("name"),
+            "email": session.get("email"),
+            "platform": "Instagram",
+            "budget": f"₹{int(form.get('budget_offered') or 0):,}",
+            "budget_num": int(form.get("budget_offered") or 0),
+            "brief": (form.get("brief") or "").strip(),
+            "status": "new",
+            "source": "brand_studio",
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        enquiries.insert_one(enq_doc)
+        campaign_name = (form.get("campaign_name") or "Quick Brief Campaign").strip()
+        camp = campaigns_col.find_one({"uid": uid, "name": campaign_name})
+        if not camp:
+            camp_id = campaigns_col.insert_one({
+                "uid": uid,
+                "name": campaign_name,
+                "status": "active",
+                "total_budget": int(form.get("budget_offered") or 0),
+                "spent_budget": 0,
+                "creators": [{"influencer_id": str(creator.get("_id")), "status": "brief_sent", "brief_sent_at": now(), "rate_agreed": int(form.get("budget_offered") or 0)}],
+                "created_at": now(),
+                "updated_at": now(),
+            }).inserted_id
+            camp = {"_id": camp_id}
+        notifications_col.insert_one({"uid": str(creator.get("_id")), "type": "deal_alert", "title": "New brief from DealInbox Brand Studio", "body": campaign_name, "link": "/enquiries", "read": False, "created_at": now()})
+        flash("Brief sent to creator inbox.", "success")
+        return redirect(url_for("brand_campaign_detail_studio", cid=str(camp.get("_id"))))
+    return render_template("brand/brief_new.html")
+
+
+@app.route("/brand/crm")
+@role_required("brand", "agency")
+def brand_crm():
+    return redirect(url_for("crm_influencers_page"))
+
+
+@app.route("/brand/outreach")
+@role_required("brand", "agency")
+def brand_outreach():
+    return redirect(url_for("crm_outreach_page"))
+
+
+@app.route("/brand/reminders")
+@role_required("brand", "agency")
+def brand_reminders():
+    return redirect(url_for("crm_reminders_page"))
+
+
+@app.route("/brand/payments")
+@role_required("brand", "agency")
+def brand_payments():
+    uid = session["uid"]
+    rows = list(payments_col.find({"brand_uid": uid}).sort("created_at", DESCENDING))
+    return render_template("brand/payments.html", payments=rows)
+
+
+@app.route("/brand/payments/initiate", methods=["POST"])
+@role_required("brand", "agency")
+def brand_payments_initiate():
+    uid = session["uid"]
+    data = request.form
+    payment_id = payments_col.insert_one({
+        "campaign_id": data.get("campaign_id"),
+        "brand_uid": uid,
+        "creator_uid": data.get("creator_uid"),
+        "amount": int(data.get("amount") or 0),
+        "gst_amount": int((int(data.get("amount") or 0)) * 0.18),
+        "total_amount": int((int(data.get("amount") or 0)) * 1.18),
+        "status": "processing",
+        "created_at": now(),
+    }).inserted_id
+    payments_col.update_one({"_id": payment_id}, {"$set": {"status": "completed", "paid_at": now(), "invoice_number": f"DI-{now().year}-{str(payment_id)[-6:].upper()}"}})
+    try:
+        campaigns_col.update_one({"_id": oid(data.get("campaign_id")), "uid": uid, "creators.influencer_id": data.get("creator_uid")}, {"$set": {"creators.$.paid_at": now(), "creators.$.status": "paid"}, "$inc": {"spent_budget": int(data.get("amount") or 0)}})
+    except Exception:
+        pass
+    flash("Payment marked completed.", "success")
+    return redirect(url_for("brand_payments"))
+
+
+@app.route("/brand/invoices")
+@role_required("brand", "agency")
+def brand_invoices():
+    uid = session["uid"]
+    rows = list(payments_col.find({"brand_uid": uid, "invoice_number": {"$exists": True}}).sort("paid_at", DESCENDING))
+    return render_template("brand/invoices.html", invoices=rows)
+
+
+@app.route("/brand/analytics")
+@role_required("brand", "agency")
+def brand_analytics():
+    uid = session["uid"]
+    campaigns = list(campaigns_col.find({"uid": uid}))
+    total_spent = sum(int(c.get("spent_budget") or 0) for c in campaigns)
+    total_reach = sum(int(c.get("total_reach") or 0) for c in campaigns)
+    creators_worked = set()
+    for c in campaigns:
+        for cr in c.get("creators", []):
+            creators_worked.add(cr.get("influencer_id"))
+    return render_template("brand/analytics.html", campaigns=campaigns, total_spent=total_spent, total_reach=total_reach, creators_count=len(creators_worked))
+
+
+@app.route("/brand/team", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_team():
+    uid = session["uid"]
+    if request.method == "POST":
+        team_members_col.insert_one({
+            "brand_uid": uid,
+            "email": (request.form.get("email") or "").strip().lower(),
+            "name": (request.form.get("name") or "").strip(),
+            "role": (request.form.get("role") or "viewer").strip(),
+            "status": "invited",
+            "invited_at": now(),
+        })
+        flash("Invitation queued.", "success")
+    members = list(team_members_col.find({"brand_uid": uid}).sort("invited_at", DESCENDING))
+    return render_template("brand/team.html", members=members)
+
+
+@app.route("/brand/settings", methods=["GET", "POST"])
+@role_required("brand", "agency")
+def brand_settings():
+    uid = session["uid"]
+    user = _brand_user(uid)
+    if request.method == "POST":
+        bp = user.get("brand_profile") or {}
+        bp.update({
+            "company_name": request.form.get("company_name", bp.get("company_name", "")),
+            "industry": request.form.get("industry", bp.get("industry", "")),
+            "website": request.form.get("website", bp.get("website", "")),
+            "description": request.form.get("description", bp.get("description", "")),
+            "monthly_budget": int(request.form.get("monthly_budget") or bp.get("monthly_budget") or 0),
+            "gst_number": request.form.get("gst_number", bp.get("gst_number", "")),
+        })
+        users_col.update_one({"_id": oid(uid)}, {"$set": {"brand_profile": bp, "updated_at": now()}})
+        flash("Brand profile updated.", "success")
+        return redirect(url_for("brand_settings"))
+    return render_template("brand/settings.html", user=user)
+
+
+@app.route("/brand/billing")
+@role_required("brand", "agency")
+def brand_billing():
+    return render_template("brand/billing.html")
+
+
+@app.route("/brand/notifications")
+@role_required("brand", "agency")
+def brand_notifications():
+    uid = session["uid"]
+    rows = list(notifications_col.find({"uid": uid}).sort("created_at", DESCENDING).limit(60))
+    return render_template("brand/notifications.html", notifications=rows)
+
+
+@app.route("/availability", methods=["GET", "POST"])
+@role_required("creator")
+def creator_availability():
+    uid = session["uid"]
+    user = _creator_user(uid)
+    if request.method == "POST":
+        cp = user.get("creator_profile") or {}
+        cp["available_now"] = bool(request.form.get("available_now"))
+        cp["available_from"] = request.form.get("available_from")
+        cp["preferred_niches_month"] = [x.strip() for x in (request.form.get("preferred_niches_month") or "").split(",") if x.strip()]
+        cp["blackout_dates"] = [x.strip() for x in (request.form.get("blackout_dates") or "").split(",") if x.strip()]
+        users_col.update_one({"_id": oid(uid)}, {"$set": {"creator_profile": cp, "updated_at": now()}})
+        flash("Availability updated.", "success")
+        return redirect(url_for("creator_availability"))
+    return render_template("availability.html", user=user)
+
+
+@app.route("/media-kit")
+@role_required("creator")
+def creator_media_kit():
+    uid = session["uid"]
+    user = _creator_user(uid)
+    return render_template("media_kit.html", creator=user)
+
+
+@app.route("/@<username>/mediakit")
+def public_media_kit(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return render_template("404.html"), 404
+    return render_template("media_kit_public.html", creator=user)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEALINBOX CRM
+# ═══════════════════════════════════════════════════════════════════════════════
+FREE_CRM_LIMIT = 20
+FREE_AI_DAILY_LIMIT = 5
+FREE_DISCOVER_DAILY_LIMIT = 3
+
+
+def _plan_limit_response(feature, limit):
+    return jsonify({
+        "error": "limit_reached",
+        "feature": feature,
+        "limit": limit,
+        "upgrade_url": "/upgrade"
+    }), 402
+
+
+def _user_doc(uid):
+    try:
+        return users_col.find_one({"_id": oid(uid)}) or {}
+    except Exception:
+        return {}
+
+
+def _enforce_plan_limit(uid, feature, limit, period="total"):
+    user = _user_doc(uid)
+    if is_pro(user):
+        return None
+    now_dt = now()
+    scope = now_dt.strftime("%Y-%m-%d") if period == "day" else "all"
+    try:
+        doc = rate_limits_col.find_one({"uid": uid, "feature": feature, "scope": scope}) or {}
+        if int(doc.get("count", 0)) >= limit:
+            return _plan_limit_response(feature, limit)
+        rate_limits_col.update_one(
+            {"uid": uid, "feature": feature, "scope": scope},
+            {"$setOnInsert": {"created_at": now_dt}, "$inc": {"count": 1}, "$set": {"updated_at": now_dt}},
+            upsert=True,
+        )
+        return None
+    except Exception:
+        return None
+
+
+def _brand_health_score(uid, contact):
+    last_contacted = to_naive(contact.get("last_contacted_at"))
+    if last_contacted:
+        days = max(0, (now() - last_contacted).days)
+        recency_score = 40 if days < 7 else max(0, int(40 * (90 - min(days, 90)) / 83))
+    else:
+        recency_score = 0
+    try:
+        activity_count = outreach_log_col.count_documents({
+            "uid": uid,
+            "target_type": "brand",
+            "target_id": str(contact.get("_id")),
+            "created_at": {"$gte": now() - timedelta(days=30)},
+        })
+    except Exception:
+        activity_count = 0
+    activity_score = min(30, activity_count * 6)
+    deal_score = 0
+    linked = contact.get("collab_history") or []
+    if linked:
+        deal_score += 10
+    try:
+        active = enquiries.count_documents({"user_id": uid, "brand_name": contact.get("brand_name"), "status": {"$in": ["accepted", "negotiating"]}})
+        if active:
+            deal_score += 20
+    except Exception:
+        pass
+    return min(100, recency_score + activity_score + min(30, deal_score))
+
+
+def _influencer_health_score(uid, profile):
+    last_contacted = to_naive(profile.get("last_contacted_at"))
+    if last_contacted:
+        days = max(0, (now() - last_contacted).days)
+        recency_score = 40 if days < 7 else max(0, int(40 * (90 - min(days, 90)) / 83))
+    else:
+        recency_score = 0
+    try:
+        activity_count = outreach_log_col.count_documents({
+            "uid": uid,
+            "target_type": "influencer",
+            "target_id": str(profile.get("_id")),
+            "created_at": {"$gte": now() - timedelta(days=30)},
+        })
+    except Exception:
+        activity_count = 0
+    activity_score = min(30, activity_count * 6)
+    deal_score = 20 if (profile.get("relationship_status") in {"contracted", "negotiating"}) else 0
+    if profile.get("collab_history"):
+        deal_score += 10
+    return min(100, recency_score + activity_score + min(30, deal_score))
+
+
+def _status_bucket(kind, value):
+    if kind == "brand":
+        return value if value in {"cold", "warm", "active", "vip", "blacklist"} else "cold"
+    return value if value in {"prospect", "outreached", "negotiating", "contracted", "blacklist"} else "prospect"
+
+
+@app.route("/crm/brands")
+@require_login
+def crm_brands_page():
+    uid = session["uid"]
+    status = (request.args.get("status") or "").strip().lower()
+    tag = (request.args.get("tag") or "").strip().lower()
+    sort = (request.args.get("sort") or "last_contacted").strip()
+    q = {"uid": uid, "deleted_at": {"$exists": False}}
+    if status and status != "all":
+        q["relationship_status"] = status
+    if tag:
+        q["tags"] = {"$in": [tag]}
+    sort_map = {
+        "last_contacted": ("last_contacted_at", DESCENDING),
+        "deal_value": ("avg_deal_value", DESCENDING),
+        "name": ("brand_name", 1),
+        "date_added": ("created_at", DESCENDING),
+    }
+    s_key, s_order = sort_map.get(sort, ("last_contacted_at", DESCENDING))
+    contacts = []
+    counts = {"total": 0, "cold": 0, "warm": 0, "active": 0, "vip": 0, "blacklist": 0}
+    total_pipeline_value = 0
+    tags = set()
+    try:
+        raw = list(brand_contacts_col.find(q).sort(s_key, s_order))
+        counts["total"] = brand_contacts_col.count_documents({"uid": uid, "deleted_at": {"$exists": False}})
+        for key in ["cold", "warm", "active", "vip", "blacklist"]:
+            counts[key] = brand_contacts_col.count_documents({"uid": uid, "deleted_at": {"$exists": False}, "relationship_status": key})
+        for c in raw:
+            c["id"] = str(c.get("_id"))
+            c["health_score"] = _brand_health_score(uid, c)
+            c["relationship_status"] = _status_bucket("brand", c.get("relationship_status"))
+            total_pipeline_value += int(c.get("avg_deal_value") or 0)
+            for t in (c.get("tags") or []):
+                tags.add(str(t).lower())
+            contacts.append(c)
+    except Exception:
+        pass
+    return render_template("crm_brands.html", contacts=contacts, counts=counts, total_pipeline_value=total_pipeline_value, tag_options=sorted(tags))
+
+
+@app.route("/crm/brands/new", methods=["GET", "POST"])
+@require_login
+def crm_brands_new():
+    uid = session["uid"]
+    if request.method == "GET":
+        return render_template("crm_brand_form.html", contact={})
+    gate = _enforce_plan_limit(uid, "brand_contacts", FREE_CRM_LIMIT, period="total")
+    if gate:
+        return gate
+    form = request.form
+    brand_name = (form.get("brand_name") or "").strip()
+    if not brand_name:
+        flash("Brand name is required.", "error")
+        return render_template("crm_brand_form.html", contact=form), 400
+    try:
+        doc = {
+            "uid": uid,
+            "brand_name": brand_name,
+            "industry": (form.get("industry") or "").strip(),
+            "website": (form.get("website") or "").strip(),
+            "instagram_handle": (form.get("instagram_handle") or "").strip(),
+            "contact_name": (form.get("contact_name") or "").strip(),
+            "contact_email": (form.get("contact_email") or "").strip(),
+            "contact_designation": (form.get("contact_designation") or "").strip(),
+            "contact_linkedin": (form.get("contact_linkedin") or "").strip(),
+            "avg_deal_value": int(form.get("avg_deal_value") or 0),
+            "total_paid": int(form.get("total_paid") or 0),
+            "relationship_status": _status_bucket("brand", (form.get("relationship_status") or "cold").lower()),
+            "tags": [t.strip().lower() for t in (form.get("tags") or "").split(",") if t.strip()],
+            "notes": (form.get("notes") or "").strip(),
+            "last_contacted_at": None,
+            "next_followup_at": None,
+            "followup_note": "",
+            "collab_history": [],
+            "wishlist": (form.get("wishlist") == "on"),
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        inserted = brand_contacts_col.insert_one(doc)
+        return redirect(url_for("crm_brand_detail", id=str(inserted.inserted_id)))
+    except Exception:
+        flash("Unable to create brand contact.", "error")
+        return render_template("crm_brand_form.html", contact=form), 500
+
+
+@app.route("/crm/brands/<id>")
+@require_login
+def crm_brand_detail(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_brands_page"))
+    try:
+        contact = brand_contacts_col.find_one({"_id": obj_id, "uid": uid, "deleted_at": {"$exists": False}})
+        if not contact:
+            return redirect(url_for("crm_brands_page"))
+        outreach = list(outreach_log_col.find({"uid": uid, "target_type": "brand", "target_id": id}).sort("sent_at", DESCENDING))
+        reminders = list(followup_reminders_col.find({"uid": uid, "target_type": "brand", "target_id": id, "status": {"$ne": "done"}}).sort("reminder_date", 1))
+        linked_deals = list(enquiries.find({"user_id": uid, "_id": {"$in": [oid(e) for e in (contact.get("collab_history") or []) if oid(e)]}}).sort("created_at", DESCENDING))
+        contact["id"] = id
+        contact["health_score"] = _brand_health_score(uid, contact)
+        return render_template("crm_brand_detail.html", contact=contact, outreach=outreach, reminders=reminders, linked_deals=linked_deals)
+    except Exception:
+        flash("Unable to load brand.", "error")
+        return redirect(url_for("crm_brands_page"))
+
+
+@app.route("/crm/brands/<id>/edit", methods=["POST"])
+@require_login
+def crm_brand_edit(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_brands_page"))
+    try:
+        form = request.form
+        update = {
+            "brand_name": (form.get("brand_name") or "").strip(),
+            "industry": (form.get("industry") or "").strip(),
+            "website": (form.get("website") or "").strip(),
+            "instagram_handle": (form.get("instagram_handle") or "").strip(),
+            "contact_name": (form.get("contact_name") or "").strip(),
+            "contact_email": (form.get("contact_email") or "").strip(),
+            "contact_designation": (form.get("contact_designation") or "").strip(),
+            "contact_linkedin": (form.get("contact_linkedin") or "").strip(),
+            "avg_deal_value": int(form.get("avg_deal_value") or 0),
+            "total_paid": int(form.get("total_paid") or 0),
+            "relationship_status": _status_bucket("brand", (form.get("relationship_status") or "cold").lower()),
+            "tags": [t.strip().lower() for t in (form.get("tags") or "").split(",") if t.strip()],
+            "notes": (form.get("notes") or "").strip(),
+            "wishlist": form.get("wishlist") == "on",
+            "updated_at": now(),
+        }
+        brand_contacts_col.update_one({"_id": obj_id, "uid": uid}, {"$set": update})
+        return redirect(url_for("crm_brand_detail", id=id))
+    except Exception:
+        flash("Unable to update brand.", "error")
+        return redirect(url_for("crm_brand_detail", id=id))
+
+
+@app.route("/crm/brands/<id>/delete", methods=["POST"])
+@require_login
+def crm_brand_delete(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if obj_id:
+        try:
+            brand_contacts_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"deleted_at": now(), "updated_at": now()}})
+        except Exception:
+            pass
+    return redirect(url_for("crm_brands_page"))
+
+
+@app.route("/crm/brands/<id>/log-outreach", methods=["POST"])
+@require_login
+def crm_brand_log_outreach(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_brands_page"))
+    try:
+        contact = brand_contacts_col.find_one({"_id": obj_id, "uid": uid}) or {}
+        form = request.form
+        sent_at = now()
+        outreach_log_col.insert_one({
+            "uid": uid,
+            "target_type": "brand",
+            "target_id": id,
+            "target_name": contact.get("brand_name", ""),
+            "channel": (form.get("channel") or "email").strip(),
+            "direction": (form.get("direction") or "outbound").strip(),
+            "subject": (form.get("subject") or "").strip(),
+            "body": (form.get("body") or "").strip(),
+            "status": (form.get("status") or "sent").strip(),
+            "sent_at": sent_at,
+            "replied_at": None,
+            "ai_generated": bool(form.get("ai_generated")),
+            "template_used": (form.get("template_used") or "manual").strip(),
+            "created_at": now(),
+        })
+        brand_contacts_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"last_contacted_at": sent_at, "updated_at": now()}})
+    except Exception:
+        pass
+    return redirect(url_for("crm_brand_detail", id=id))
+
+
+@app.route("/crm/brands/<id>/set-reminder", methods=["POST"])
+@require_login
+def crm_brand_set_reminder(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_brands_page"))
+    try:
+        contact = brand_contacts_col.find_one({"_id": obj_id, "uid": uid}) or {}
+        reminder_date = datetime.strptime((request.form.get("reminder_date") or ""), "%Y-%m-%d") if request.form.get("reminder_date") else now() + timedelta(days=3)
+        note = (request.form.get("note") or "").strip()
+        followup_reminders_col.insert_one({
+            "uid": uid,
+            "target_type": "brand",
+            "target_id": id,
+            "target_name": contact.get("brand_name", ""),
+            "reminder_date": reminder_date,
+            "note": note,
+            "status": "pending",
+            "created_at": now(),
+        })
+        brand_contacts_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"next_followup_at": reminder_date, "followup_note": note, "updated_at": now()}})
+    except Exception:
+        pass
+    return redirect(url_for("crm_brand_detail", id=id))
+
+
+@app.route("/api/crm/brands/search")
+@require_login
+def api_crm_brands_search():
+    uid = session["uid"]
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 1:
+        return jsonify([])
+    try:
+        rows = list(brand_contacts_col.find({
+            "uid": uid,
+            "deleted_at": {"$exists": False},
+            "$or": [
+                {"brand_name": {"$regex": re.escape(q), "$options": "i"}},
+                {"contact_name": {"$regex": re.escape(q), "$options": "i"}},
+                {"tags": {"$elemMatch": {"$regex": re.escape(q), "$options": "i"}}},
+            ],
+        }).limit(25))
+        return jsonify([{"id": str(r.get("_id")), "brand_name": r.get("brand_name"), "contact_name": r.get("contact_name"), "tags": r.get("tags", [])} for r in rows])
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/api/crm/brands/<id>/generate-pitch", methods=["POST"])
+@require_login
+def api_crm_brand_generate_pitch(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return api_error("invalid_brand", 400)
+    gate = _enforce_plan_limit(uid, "ai_pitch_gen", FREE_AI_DAILY_LIMIT, period="day")
+    if gate:
+        return gate
+    tone = (request.args.get("tone") or (json_body().get("tone") if request.is_json else request.form.get("tone")) or "formal").strip().lower()
+    if tone not in {"formal", "casual", "bold"}:
+        tone = "formal"
+    brand = brand_contacts_col.find_one({"_id": obj_id, "uid": uid}) or {}
+    user = _user_doc(uid)
+    prompt = f"""You are a professional influencer marketing expert helping an Indian content creator write a cold outreach email to a brand they want to work with. Write in a tone that is {tone}. Be specific, concise, and compelling. Include: why this creator is the right fit, their key stats, one concrete content idea, and a clear CTA. Max 150 words. No fluff.
+
+Creator profile:
+  Name: {user.get('name','Creator')}
+  Niche: {user.get('niche','')}
+  Instagram: {user.get('followers','0')} followers, {user.get('engagement_rate','0')}% engagement
+  YouTube: {user.get('youtube_subscribers','0')} subscribers
+  Base rate (Reel): ₹{user.get('base_rate_reel','0')}
+  Notable past brands: {', '.join(user.get('past_brands', [])) if isinstance(user.get('past_brands'), list) else user.get('past_brands','')}
+
+Brand they're pitching:
+  Brand: {brand.get('brand_name','')}
+  Industry: {brand.get('industry','')}
+  Contact: {brand.get('contact_name','')}, {brand.get('contact_designation','')}
+  Notes: {brand.get('notes','')}
+"""
+
+    def generate():
+        produced = ""
+        if not ANTHROPIC_API_KEY:
+            fallback = f"Subject: Collaboration Idea for {brand.get('brand_name','your brand')}\n\nHi {brand.get('contact_name') or 'Team'}, I'd love to collaborate with {brand.get('brand_name') or 'your brand'} with a high-converting short-form concept for your {brand.get('industry') or 'category'} audience. My audience aligns with this niche and consistently drives engaged discovery. If helpful, I can share a 2-post concept deck and pricing options this week. Are you open to a quick call?"
+            produced = fallback
+        else:
+            try:
+                res = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={"model": "claude-sonnet-4-6", "max_tokens": 260, "messages": [{"role": "user", "content": prompt}]},
+                    timeout=40,
+                )
+                content = (((res.json() or {}).get("content") or [{}])[0] or {}).get("text", "")
+                produced = content.strip() if content else "Could not generate pitch."
+            except Exception:
+                produced = "Could not generate pitch."
+        for chunk in [produced[i:i+24] for i in range(0, len(produced), 24)]:
+            yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
+
+@app.route("/api/crm/brands/wishlist")
+@require_login
+def api_crm_wishlist():
+    uid = session["uid"]
+    try:
+        rows = list(brand_contacts_col.find({"uid": uid, "wishlist": True, "deleted_at": {"$exists": False}}).sort("updated_at", DESCENDING))
+        return jsonify([{"id": str(r.get("_id")), "brand_name": r.get("brand_name"), "industry": r.get("industry")} for r in rows])
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/crm/influencers")
+@require_login
+def crm_influencers_page():
+    uid = session["uid"]
+    tier = (request.args.get("tier") or "").lower().strip()
+    niche = (request.args.get("niche") or "").strip()
+    location = (request.args.get("location") or "").strip()
+    q = {"uid": uid, "deleted_at": {"$exists": False}}
+    if tier and tier != "all":
+        q["tier"] = tier
+    if niche and niche.lower() != "all":
+        q["niche"] = {"$regex": f"^{re.escape(niche)}$", "$options": "i"}
+    if location and location.lower() != "all":
+        q["location"] = {"$regex": f"^{re.escape(location)}$", "$options": "i"}
+    influencers = []
+    tier_counts = {"nano": 0, "micro": 0, "macro": 0, "mega": 0}
+    avg_engagement = 0
+    try:
+        rows = list(influencer_profiles_col.find(q).sort("created_at", DESCENDING))
+        total_eng = 0
+        for r in rows:
+            r["id"] = str(r.get("_id"))
+            r["health_score"] = _influencer_health_score(uid, r)
+            total_eng += float(r.get("instagram_engagement_rate") or 0)
+            t = (r.get("tier") or "").lower()
+            if t in tier_counts:
+                tier_counts[t] += 1
+            influencers.append(r)
+        avg_engagement = round(total_eng / max(1, len(rows)), 2)
+    except Exception:
+        pass
+    return render_template("crm_influencers.html", influencers=influencers, tier_counts=tier_counts, avg_engagement=avg_engagement)
+
+
+@app.route("/crm/influencers/new", methods=["GET", "POST"])
+@require_login
+def crm_influencers_new():
+    uid = session["uid"]
+    if request.method == "GET":
+        prefill = request.args.to_dict()
+        return render_template("crm_influencer_form.html", profile=prefill)
+    gate = _enforce_plan_limit(uid, "influencer_profiles", FREE_CRM_LIMIT, period="total")
+    if gate:
+        return gate
+    form = request.form
+    creator_name = (form.get("creator_name") or "").strip()
+    if not creator_name:
+        flash("Creator name is required.", "error")
+        return render_template("crm_influencer_form.html", profile=form), 400
+    username = (form.get("username") or "").strip()
+    linked_uid = None
+    try:
+        if username:
+            linked = users_col.find_one({"username": username}) or {}
+            linked_uid = str(linked.get("_id")) if linked.get("_id") else None
+        doc = {
+            "uid": uid,
+            "creator_name": creator_name,
+            "username": username,
+            "linked_uid": linked_uid,
+            "instagram_handle": (form.get("instagram_handle") or "").strip(),
+            "youtube_handle": (form.get("youtube_handle") or "").strip(),
+            "instagram_followers": int(form.get("instagram_followers") or 0),
+            "youtube_subscribers": int(form.get("youtube_subscribers") or 0),
+            "instagram_engagement_rate": float(form.get("instagram_engagement_rate") or 0),
+            "youtube_avg_views": int(form.get("youtube_avg_views") or 0),
+            "niche": (form.get("niche") or "").strip(),
+            "tier": (form.get("tier") or "nano").strip().lower(),
+            "location": (form.get("location") or "").strip(),
+            "languages": [t.strip() for t in (form.get("languages") or "").split(",") if t.strip()],
+            "avg_rate_reel": int(form.get("avg_rate_reel") or 0),
+            "avg_rate_post": int(form.get("avg_rate_post") or 0),
+            "avg_rate_story": int(form.get("avg_rate_story") or 0),
+            "past_brands": [t.strip() for t in (form.get("past_brands") or "").split(",") if t.strip()],
+            "content_quality_score": int(form.get("content_quality_score") or 0),
+            "reliability_score": int(form.get("reliability_score") or 0),
+            "relationship_status": _status_bucket("influencer", (form.get("relationship_status") or "prospect").lower()),
+            "tags": [t.strip().lower() for t in (form.get("tags") or "").split(",") if t.strip()],
+            "notes": (form.get("notes") or "").strip(),
+            "last_contacted_at": None,
+            "next_followup_at": None,
+            "collab_history": [],
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        inserted = influencer_profiles_col.insert_one(doc)
+        return redirect(url_for("crm_influencer_detail", id=str(inserted.inserted_id)))
+    except Exception:
+        flash("Unable to create influencer profile.", "error")
+        return render_template("crm_influencer_form.html", profile=form), 500
+
+
+@app.route("/crm/influencers/<id>")
+@require_login
+def crm_influencer_detail(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_influencers_page"))
+    try:
+        profile = influencer_profiles_col.find_one({"_id": obj_id, "uid": uid, "deleted_at": {"$exists": False}})
+        if not profile:
+            return redirect(url_for("crm_influencers_page"))
+        outreach = list(outreach_log_col.find({"uid": uid, "target_type": "influencer", "target_id": id}).sort("sent_at", DESCENDING))
+        reminders = list(followup_reminders_col.find({"uid": uid, "target_type": "influencer", "target_id": id, "status": {"$ne": "done"}}).sort("reminder_date", 1))
+        profile["id"] = id
+        profile["health_score"] = _influencer_health_score(uid, profile)
+        return render_template("crm_influencer_detail.html", profile=profile, outreach=outreach, reminders=reminders)
+    except Exception:
+        flash("Unable to load influencer profile.", "error")
+        return redirect(url_for("crm_influencers_page"))
+
+
+@app.route("/crm/influencers/<id>/edit", methods=["POST"])
+@require_login
+def crm_influencer_edit(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_influencers_page"))
+    try:
+        form = request.form
+        influencer_profiles_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {
+            "creator_name": (form.get("creator_name") or "").strip(),
+            "instagram_handle": (form.get("instagram_handle") or "").strip(),
+            "youtube_handle": (form.get("youtube_handle") or "").strip(),
+            "niche": (form.get("niche") or "").strip(),
+            "tier": (form.get("tier") or "nano").strip().lower(),
+            "location": (form.get("location") or "").strip(),
+            "relationship_status": _status_bucket("influencer", (form.get("relationship_status") or "prospect").lower()),
+            "notes": (form.get("notes") or "").strip(),
+            "updated_at": now(),
+        }})
+    except Exception:
+        pass
+    return redirect(url_for("crm_influencer_detail", id=id))
+
+
+@app.route("/crm/influencers/<id>/log-outreach", methods=["POST"])
+@require_login
+def crm_influencer_log_outreach(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_influencers_page"))
+    try:
+        profile = influencer_profiles_col.find_one({"_id": obj_id, "uid": uid}) or {}
+        form = request.form
+        sent_at = now()
+        outreach_log_col.insert_one({
+            "uid": uid,
+            "target_type": "influencer",
+            "target_id": id,
+            "target_name": profile.get("creator_name", ""),
+            "channel": (form.get("channel") or "email").strip(),
+            "direction": (form.get("direction") or "outbound").strip(),
+            "subject": (form.get("subject") or "").strip(),
+            "body": (form.get("body") or "").strip(),
+            "status": (form.get("status") or "sent").strip(),
+            "sent_at": sent_at,
+            "replied_at": None,
+            "ai_generated": bool(form.get("ai_generated")),
+            "template_used": (form.get("template_used") or "manual").strip(),
+            "created_at": now(),
+        })
+        influencer_profiles_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"last_contacted_at": sent_at, "updated_at": now()}})
+    except Exception:
+        pass
+    return redirect(url_for("crm_influencer_detail", id=id))
+
+
+@app.route("/crm/influencers/<id>/set-reminder", methods=["POST"])
+@require_login
+def crm_influencer_set_reminder(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return redirect(url_for("crm_influencers_page"))
+    try:
+        profile = influencer_profiles_col.find_one({"_id": obj_id, "uid": uid}) or {}
+        reminder_date = datetime.strptime((request.form.get("reminder_date") or ""), "%Y-%m-%d") if request.form.get("reminder_date") else now() + timedelta(days=3)
+        followup_reminders_col.insert_one({
+            "uid": uid,
+            "target_type": "influencer",
+            "target_id": id,
+            "target_name": profile.get("creator_name", ""),
+            "reminder_date": reminder_date,
+            "note": (request.form.get("note") or "").strip(),
+            "status": "pending",
+            "created_at": now(),
+        })
+        influencer_profiles_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"next_followup_at": reminder_date, "updated_at": now()}})
+    except Exception:
+        pass
+    return redirect(url_for("crm_influencer_detail", id=id))
+
+
+@app.route("/api/crm/influencers/search")
+@require_login
+def api_crm_influencers_search():
+    uid = session["uid"]
+    q_text = (request.args.get("q") or "").strip()
+    tier = (request.args.get("tier") or "").strip().lower()
+    niche = (request.args.get("niche") or "").strip()
+    min_followers = int(request.args.get("min_followers") or 0)
+    max_rate = int(request.args.get("max_rate") or 10**12)
+    q = {"uid": uid, "deleted_at": {"$exists": False}, "instagram_followers": {"$gte": min_followers}, "avg_rate_reel": {"$lte": max_rate}}
+    if tier:
+        q["tier"] = tier
+    if niche:
+        q["niche"] = {"$regex": re.escape(niche), "$options": "i"}
+    if q_text:
+        q["$or"] = [{"creator_name": {"$regex": re.escape(q_text), "$options": "i"}}, {"instagram_handle": {"$regex": re.escape(q_text), "$options": "i"}}, {"tags": {"$elemMatch": {"$regex": re.escape(q_text), "$options": "i"}}}]
+    try:
+        rows = list(influencer_profiles_col.find(q).sort("instagram_engagement_rate", DESCENDING).limit(50))
+        return jsonify([{"id": str(r.get("_id")), "creator_name": r.get("creator_name"), "tier": r.get("tier"), "niche": r.get("niche"), "instagram_followers": r.get("instagram_followers"), "avg_rate_reel": r.get("avg_rate_reel")} for r in rows])
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/api/crm/influencers/<id>/generate-brief", methods=["POST"])
+@require_login
+def api_crm_influencer_generate_brief(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if not obj_id:
+        return api_error("invalid_influencer", 400)
+    gate = _enforce_plan_limit(uid, "ai_brief_gen", FREE_AI_DAILY_LIMIT, period="day")
+    if gate:
+        return gate
+    profile = influencer_profiles_col.find_one({"_id": obj_id, "uid": uid}) or {}
+    user = _user_doc(uid)
+    body = json_body() if request.is_json else request.form
+    deliverables = (body.get("deliverables") or "1 Reel + 3 Stories")
+    prompt = f"""You are a brand marketing manager writing a campaign brief for an Indian influencer. Make it specific, professional and exciting for the creator to read. Include: campaign objective, key messages, content format, dos and don'ts, timeline, and budget range.
+
+Brand info: {user.get('brand_name', user.get('name','Brand'))}, {user.get('industry','')}, {user.get('product_description','')}
+Influencer: {profile.get('creator_name','')}, {profile.get('niche','')}, {profile.get('tier','')}, instagram, {profile.get('instagram_followers',0)} followers, {profile.get('instagram_engagement_rate',0)}% engagement
+Deliverables requested: {deliverables}
+"""
+
+    def generate():
+        produced = ""
+        if not ANTHROPIC_API_KEY:
+            produced = f"Campaign Objective: Launch awareness for {user.get('brand_name','our brand')} via creator storytelling.\nKey Message: Practical value + trust + CTA to shop now.\nContent Format: {deliverables}.\nDo: keep tone native and clear. Don't: over-script the voice.\nTimeline: 10 days from confirmation. Budget: aligned with your standard rate card."
+        else:
+            try:
+                res = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={"model": "claude-sonnet-4-6", "max_tokens": 320, "messages": [{"role": "user", "content": prompt}]},
+                    timeout=40,
+                )
+                produced = ((((res.json() or {}).get("content") or [{}])[0] or {}).get("text", "") or "Could not generate brief.").strip()
+            except Exception:
+                produced = "Could not generate brief."
+        for chunk in [produced[i:i+24] for i in range(0, len(produced), 24)]:
+            yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
+        yield "data: [DONE]\\n\\n"
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
+
+@app.route("/api/crm/influencers/discover")
+@require_login
+def api_crm_influencer_discover():
+    uid = session["uid"]
+    gate = _enforce_plan_limit(uid, "discover_feature", FREE_DISCOVER_DAILY_LIMIT, period="day")
+    if gate:
+        return gate
+    user = _user_doc(uid)
+    prefs = user.get("brand_preferences") or {}
+    niche = (request.args.get("niche") or prefs.get("niche") or "").strip()
+    tier = (request.args.get("tier") or prefs.get("tier") or "").strip().lower()
+    location = (request.args.get("location") or prefs.get("location") or "").strip()
+    max_rate = int(request.args.get("max_rate") or prefs.get("max_rate") or 10**9)
+    tier_ranges = {"nano": (0, 10000), "micro": (10000, 100000), "macro": (100000, 1000000), "mega": (1000000, 10**12)}
+    min_f, max_f = tier_ranges.get(tier, (0, 10**12))
+    q = {
+        "plan": {"$exists": True},
+        "niche": {"$exists": True, "$ne": ""},
+        "base_rate_reel": {"$lte": max_rate},
+        "instagram_followers_num": {"$gte": min_f, "$lte": max_f},
+    }
+    if niche:
+        q["niche"] = {"$regex": re.escape(niche), "$options": "i"}
+    if location:
+        q["location"] = {"$regex": re.escape(location), "$options": "i"}
+    try:
+        users_col.update_one({"_id": oid(uid)}, {"$set": {"brand_preferences": {"niche": niche, "tier": tier, "location": location, "max_rate": max_rate}, "updated_at": now()}})
+        rows = list(users_col.find(q, {"name": 1, "username": 1, "niche": 1, "instagram_followers_num": 1, "instagram_engagement_rate": 1, "base_rate_reel": 1, "notable_brands": 1}).sort("instagram_engagement_rate", DESCENDING).limit(25))
+        out = [{
+            "name": r.get("name") or r.get("username"),
+            "username": r.get("username"),
+            "niche": r.get("niche"),
+            "tier": tier if tier else "auto",
+            "follower_count": r.get("instagram_followers_num", 0),
+            "engagement": r.get("instagram_engagement_rate", 0),
+            "base_rate": r.get("base_rate_reel", 0),
+            "notable_brands": r.get("notable_brands", []),
+            "is_on_dealinbox": True,
+        } for r in rows]
+        return jsonify(out)
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/api/crm/brands/discover")
+@require_login
+def api_crm_brand_discover():
+    uid = session["uid"]
+    gate = _enforce_plan_limit(uid, "discover_feature", FREE_DISCOVER_DAILY_LIMIT, period="day")
+    if gate:
+        return gate
+    user = _user_doc(uid)
+    niche = (user.get("niche") or "").strip()
+    try:
+        q = {"user_id": {"$ne": uid}}
+        if niche:
+            q["niche"] = {"$regex": re.escape(niche), "$options": "i"}
+        rows = list(enquiries.find(q, {"brand_name": 1, "budget": 1, "budget_num": 1, "niche": 1, "created_at": 1}).sort("created_at", DESCENDING).limit(30))
+        payload = [{"industry": (r.get("niche") or "General"), "budget_range": r.get("budget") or f"₹{int(r.get('budget_num') or 0):,}", "created_at": fmt_date(r.get("created_at"))} for r in rows]
+        return jsonify(payload)
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/crm/discover")
+@require_login
+def crm_discover_page():
+    return render_template("crm_discover.html")
+
+
+@app.route("/crm/reminders")
+@require_login
+def crm_reminders_page():
+    uid = session["uid"]
+    overdue, due_week, upcoming = [], [], []
+    now_dt = now()
+    try:
+        all_rows = list(followup_reminders_col.find({"uid": uid, "status": {"$in": ["pending", "snoozed"]}}).sort("reminder_date", 1))
+        for r in all_rows:
+            r["id"] = str(r.get("_id"))
+            rd = to_naive(r.get("reminder_date")) or now_dt
+            if rd < now_dt:
+                overdue.append(r)
+            elif rd <= now_dt + timedelta(days=7):
+                due_week.append(r)
+            else:
+                upcoming.append(r)
+    except Exception:
+        pass
+    return render_template("crm_reminders.html", overdue=overdue, due_week=due_week, upcoming=upcoming)
+
+
+@app.route("/crm/reminders/<id>/done", methods=["POST"])
+@require_login
+def crm_reminder_done(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if obj_id:
+        try:
+            followup_reminders_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"status": "done", "updated_at": now()}})
+        except Exception:
+            pass
+    return redirect(url_for("crm_reminders_page"))
+
+
+@app.route("/crm/reminders/<id>/snooze", methods=["POST"])
+@require_login
+def crm_reminder_snooze(id):
+    uid = session["uid"]
+    obj_id = require_valid_oid(id)
+    if obj_id:
+        try:
+            followup_reminders_col.update_one({"_id": obj_id, "uid": uid}, {"$set": {"status": "snoozed", "reminder_date": now() + timedelta(days=3), "updated_at": now()}})
+        except Exception:
+            pass
+    return redirect(url_for("crm_reminders_page"))
+
+
+@app.route("/crm/outreach")
+@require_login
+def crm_outreach_page():
+    uid = session["uid"]
+    status = (request.args.get("status") or "").strip()
+    channel = (request.args.get("channel") or "").strip()
+    target_type = (request.args.get("target_type") or "").strip()
+    q = {"uid": uid}
+    if status: q["status"] = status
+    if channel: q["channel"] = channel
+    if target_type: q["target_type"] = target_type
+    rows = []
+    try:
+        rows = list(outreach_log_col.find(q).sort("sent_at", DESCENDING))
+    except Exception:
+        pass
+    return render_template("crm_outreach.html", outreach=rows)
+
+
+@app.route("/api/crm/dashboard-stats")
+@require_login
+def api_crm_dashboard_stats():
+    uid = session["uid"]
+    now_dt = now()
+    try:
+        total_brand_contacts = brand_contacts_col.count_documents({"uid": uid, "deleted_at": {"$exists": False}})
+        warm_brands = brand_contacts_col.count_documents({"uid": uid, "relationship_status": "warm", "deleted_at": {"$exists": False}})
+        vip_brands = brand_contacts_col.count_documents({"uid": uid, "relationship_status": "vip", "deleted_at": {"$exists": False}})
+        total_influencers = influencer_profiles_col.count_documents({"uid": uid, "deleted_at": {"$exists": False}})
+        prospects = influencer_profiles_col.count_documents({"uid": uid, "relationship_status": "prospect", "deleted_at": {"$exists": False}})
+        contracted = influencer_profiles_col.count_documents({"uid": uid, "relationship_status": "contracted", "deleted_at": {"$exists": False}})
+        sent_30 = outreach_log_col.count_documents({"uid": uid, "direction": "outbound", "sent_at": {"$gte": now_dt - timedelta(days=30)}})
+        replied_30 = outreach_log_col.count_documents({"uid": uid, "status": "replied", "sent_at": {"$gte": now_dt - timedelta(days=30)}})
+        overdue_reminders = followup_reminders_col.count_documents({"uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$lt": now_dt}})
+        followups_this_week = followup_reminders_col.count_documents({"uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$gte": now_dt, "$lte": now_dt + timedelta(days=7)}})
+        pipeline_value_crm = 0
+        for r in brand_contacts_col.find({"uid": uid, "deleted_at": {"$exists": False}}, {"avg_deal_value": 1}):
+            pipeline_value_crm += int(r.get("avg_deal_value") or 0)
+        return jsonify({
+            "total_brand_contacts": total_brand_contacts,
+            "warm_brands": warm_brands,
+            "vip_brands": vip_brands,
+            "total_influencers": total_influencers,
+            "prospects": prospects,
+            "contracted": contracted,
+            "outreach_sent_30d": sent_30,
+            "reply_rate": round((replied_30 / max(1, sent_30)) * 100, 2),
+            "overdue_reminders": overdue_reminders,
+            "followups_this_week": followups_this_week,
+            "pipeline_value_crm": pipeline_value_crm,
+        })
+    except Exception:
+        return jsonify({})
+
+
+@app.route("/api/crm/smart-followups")
+@require_login
+def api_crm_smart_followups():
+    uid = session["uid"]
+    suggestions = []
+    now_dt = now()
+    try:
+        stale = list(brand_contacts_col.find({"uid": uid, "relationship_status": {"$in": ["warm", "active"]}, "$or": [{"last_contacted_at": None}, {"last_contacted_at": {"$lt": now_dt - timedelta(days=14)}}]}).limit(10))
+        for c in stale:
+            suggestions.append({"target": c.get("brand_name"), "reason": "No outreach in 14+ days on a warm relationship."})
+        overdue = list(followup_reminders_col.find({"uid": uid, "status": {"$in": ["pending", "snoozed"]}, "reminder_date": {"$lt": now_dt}}).limit(10))
+        for r in overdue:
+            suggestions.append({"target": r.get("target_name"), "reason": "Follow-up reminder is overdue."})
+    except Exception:
+        pass
+    return jsonify(suggestions[:8])
+
+
+@app.route("/api/notifications")
+@require_login
+def api_notifications():
+    uid = session["uid"]
+    try:
+        rows = list(notifications_col.find({"uid": uid}).sort("created_at", DESCENDING).limit(10))
+        unread = notifications_col.count_documents({"uid": uid, "read": False})
+        return jsonify({"unread": unread, "items": [{"id": str(r.get("_id")), "title": r.get("title"), "body": r.get("body"), "link": r.get("link"), "read": r.get("read", False), "created_at": fmt_dt(r.get("created_at"))} for r in rows]})
+    except Exception:
+        return jsonify({"unread": 0, "items": []})
+
+
+@app.route("/api/notifications/mark-all-read", methods=["POST"])
+@require_login
+def api_notifications_mark_read():
+    uid = session["uid"]
+    try:
+        notifications_col.update_many({"uid": uid, "read": False}, {"$set": {"read": True, "updated_at": now()}})
+    except Exception:
+        pass
+    return jsonify({"ok": True})
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BHARATSTACK SAAS
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    from weasyprint import HTML
+except Exception:
+    HTML = None
+try:
+    from twilio.rest import Client as TwilioClient
+except Exception:
+    TwilioClient = None
+
+TWILIO_SID = os.getenv("TWILIO_SID", "")
+TWILIO_TOKEN = os.getenv("TWILIO_TOKEN", "")
+TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000")
+
+businesses_col = db["businesses"]
+bs_customers_col = db["customers"]
+bs_bookings_col = db["bookings"]
+bs_invoices_col = db["invoices"]
+bs_payments_col = db["payments"]
+bs_reviews_col = db["reviews"]
+bs_staff_col = db["staff"]
+bs_expenses_col = db["expenses"]
+
+def format_inr(v):
+    try:
+        n = int(round(float(v or 0)))
+    except Exception:
+        n = 0
+    s = str(abs(n))
+    if len(s) <= 3:
+        out = s
+    else:
+        out = s[-3:]
+        s = s[:-3]
+        while s:
+            out = s[-2:] + "," + out
+            s = s[:-2]
+    return f"₹{'-' if n < 0 else ''}{out}"
+
+
+def fmt_dd_mmm_yyyy(dt):
+    dt = to_naive(dt) if dt else None
+    return dt.strftime("%d %b %Y") if dt else ""
+
+
+def business_login_required(f):
+    @wraps(f)
+    def dec(*a, **kw):
+        if "bid" not in session:
+            flash("Please login to BharatStack.", "error")
+            return redirect(url_for("login"))
+        return f(*a, **kw)
+    return dec
+
+
+def get_business():
+    if "bid" not in session:
+        return None
+    return businesses_col.find_one({"_id": oid(session["bid"])})
+
+
+def whatsapp_send(to_phone, body):
+    if not (TwilioClient and TWILIO_SID and TWILIO_TOKEN and TWILIO_WHATSAPP_FROM and to_phone):
+        return False
+    try:
+        client = TwilioClient(TWILIO_SID, TWILIO_TOKEN)
+        client.messages.create(from_=TWILIO_WHATSAPP_FROM, to=f"whatsapp:+91{str(to_phone).replace('+91','').strip()}", body=body)
+        return True
+    except Exception:
+        return False
+
+
+def business_slots_for_date(business, date_str, duration_mins):
+    hours = (business or {}).get("working_hours") or {}
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+    except Exception:
+        return []
+    day = ["mon","tue","wed","thu","fri","sat","sun"][d.weekday()]
+    day_hours = hours.get(day) or {"open": "10:00", "close": "19:00"}
+    if not day_hours.get("open") or not day_hours.get("close"):
+        return []
+    start = datetime.strptime(day_hours["open"], "%H:%M")
+    close = datetime.strptime(day_hours["close"], "%H:%M")
+    slots = []
+    cur = start
+    while cur + timedelta(minutes=duration_mins) <= close:
+        slots.append(cur.strftime("%H:%M"))
+        cur += timedelta(minutes=30)
+    booked = set(r.get("time_slot") for r in bs_bookings_col.find({"business_id": str(business.get("_id")), "date": date_str, "status": {"$nin": ["cancelled", "no_show"]}}, {"time_slot": 1}))
+    return [s for s in slots if s not in booked]
+
+
+@app.route("/onboarding", methods=["GET", "POST"])
+@business_login_required
+def bs_onboarding():
+    b = get_business()
+    if request.method == "POST":
+        step = request.form.get("step", "1")
+        if step == "1":
+            working_hours = {}
+            for d in ["mon","tue","wed","thu","fri","sat","sun"]:
+                working_hours[d] = {"open": request.form.get(f"{d}_open") or "", "close": request.form.get(f"{d}_close") or ""}
+            businesses_col.update_one({"_id": b["_id"]}, {"$set": {
+                "tagline": request.form.get("tagline", "").strip(),
+                "address": request.form.get("address", "").strip(),
+                "city": request.form.get("city", "").strip(),
+                "upi_id": request.form.get("upi_id", "").strip(),
+                "working_hours": working_hours,
+            }})
+        elif step == "2":
+            services = []
+            names = request.form.getlist("service_name")
+            durs = request.form.getlist("service_duration")
+            prices = request.form.getlist("service_price")
+            for i, n in enumerate(names[:10]):
+                if n.strip():
+                    services.append({"name": n.strip(), "duration_mins": int(durs[i] or 30), "price": int(prices[i] or 0)})
+            businesses_col.update_one({"_id": b["_id"]}, {"$set": {"services": services}})
+        else:
+            cname = request.form.get("customer_name", "").strip()
+            cphone = request.form.get("customer_phone", "").strip()
+            if cname and cphone:
+                bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": cphone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()})
+            session["onboarded"] = True
+            flash("Welcome to BharatStack!", "success")
+            return redirect(url_for("dashboard"))
+        flash("Saved", "success")
+        return redirect(url_for("bs_onboarding"))
+    return render_template("bs_onboarding.html", business=b)
+
+
+@app.route("/bookings", methods=["GET", "POST"])
+@business_login_required
+def bs_bookings():
+    b = get_business()
+    if request.method == "POST":
+        form = request.form
+        customer_id = form.get("customer_id")
+        customer = bs_customers_col.find_one({"_id": oid(customer_id), "business_id": str(b["_id"])}) if customer_id else None
+        if not customer:
+            cname = form.get("customer_name", "").strip()
+            cphone = form.get("customer_phone", "").strip()
+            if not cname or not cphone:
+                flash("Customer is required", "error")
+                return redirect(url_for("bs_bookings"))
+            cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": cphone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+            customer = bs_customers_col.find_one({"_id": cid})
+        service_name = form.get("service_name", "").strip()
+        service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+        if not service_name or not form.get("date") or not form.get("time_slot"):
+            flash("Date, time and service required", "error")
+            return redirect(url_for("bs_bookings"))
+        doc = {
+            "business_id": str(b["_id"]),
+            "customer_id": str(customer["_id"]),
+            "customer_name": customer.get("name"),
+            "customer_phone": customer.get("phone"),
+            "service_name": service_name,
+            "service_price": int(form.get("service_price") or (service.get("price") if service else 0) or 0),
+            "date": form.get("date"),
+            "time_slot": form.get("time_slot"),
+            "duration_mins": int(form.get("duration_mins") or (service.get("duration_mins") if service else 30) or 30),
+            "status": "confirmed" if form.get("auto_confirm") else "pending",
+            "payment_status": "unpaid",
+            "amount_paid": 0,
+            "payment_method": "",
+            "staff_id": form.get("staff_id") or "",
+            "notes": form.get("notes", "").strip(),
+            "reminder_sent": False,
+            "created_at": now(),
+        }
+        bid = bs_bookings_col.insert_one(doc).inserted_id
+        if form.get("send_whatsapp"):
+            msg = f"Hi {doc['customer_name']}! Your {doc['service_name']} appointment at {b.get('business_name')} is confirmed for {doc['date']} at {doc['time_slot']}. See you then! 🙏"
+            whatsapp_send(doc['customer_phone'], msg)
+            bs_bookings_col.update_one({"_id": bid}, {"$set": {"reminder_sent": True}})
+        flash("Booking created", "success")
+        return redirect(url_for("bs_bookings"))
+    q = {"business_id": str(b["_id"])}
+    if request.args.get("status"):
+        q["status"] = request.args.get("status")
+    if request.args.get("date"):
+        q["date"] = request.args.get("date")
+    rows = list(bs_bookings_col.find(q).sort("date", DESCENDING))
+    customers = list(bs_customers_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING).limit(100))
+    staff = list(bs_staff_col.find({"business_id": str(b["_id"]), "is_active": True}))
+    return render_template("bs_bookings.html", business=b, bookings=rows, customers=customers, staff=staff)
+
+
+def _update_booking_status(booking_id, status):
+    b = get_business()
+    bs_bookings_col.update_one({"_id": oid(booking_id), "business_id": str(b["_id"])}, {"$set": {"status": status}})
+
+@app.route("/api/bookings/create", methods=["POST"])
+@business_login_required
+def api_bs_booking_create():
+    b = get_business()
+    data = json_body() if request.is_json else request.form
+    name = (data.get("customer_name") or "").strip()
+    phone = (data.get("customer_phone") or "").strip()
+    service_name = (data.get("service_name") or "").strip()
+    date = data.get("date")
+    time_slot = data.get("time_slot")
+    if not all([name, phone, service_name, date, time_slot]):
+        return api_error("missing_fields", 400)
+    customer = bs_customers_col.find_one({"business_id": str(b["_id"]), "phone": phone})
+    if not customer:
+        cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": name, "phone": phone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+        customer = bs_customers_col.find_one({"_id": cid})
+    service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+    doc = {
+        "business_id": str(b["_id"]),
+        "customer_id": str(customer["_id"]),
+        "customer_name": name,
+        "customer_phone": phone,
+        "service_name": service_name,
+        "service_price": int(data.get("service_price") or (service.get("price") if service else 0) or 0),
+        "date": date,
+        "time_slot": time_slot,
+        "duration_mins": int(data.get("duration_mins") or (service.get("duration_mins") if service else 30) or 30),
+        "status": "pending",
+        "payment_status": "unpaid",
+        "amount_paid": 0,
+        "payment_method": "",
+        "notes": data.get("notes") or "",
+        "reminder_sent": False,
+        "created_at": now(),
+    }
+    inserted = bs_bookings_col.insert_one(doc)
+    return jsonify({"ok": True, "id": str(inserted.inserted_id)})
+
+@app.route("/api/bookings/<id>/confirm", methods=["POST"])
+@business_login_required
+def api_bs_booking_confirm(id):
+    _update_booking_status(id, "confirmed")
+    return jsonify({"ok": True})
+
+@app.route("/api/bookings/<id>/complete", methods=["POST"])
+@business_login_required
+def api_bs_booking_complete(id):
+    _update_booking_status(id, "completed")
+    return jsonify({"ok": True})
+
+@app.route("/api/bookings/<id>/cancel", methods=["POST"])
+@business_login_required
+def api_bs_booking_cancel(id):
+    _update_booking_status(id, "cancelled")
+    return jsonify({"ok": True})
+
+
+@app.route("/customers", methods=["GET", "POST"])
+@business_login_required
+def bs_customers():
+    b = get_business()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        if not name or not phone:
+            flash("Name and phone required", "error")
+            return redirect(url_for("bs_customers"))
+        bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": name, "phone": phone, "email": request.form.get("email", ""), "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": request.form.get("notes", ""), "tags": [x.strip() for x in (request.form.get("tags") or "").split(",") if x.strip()], "created_at": now()})
+        flash("Customer added", "success")
+        return redirect(url_for("bs_customers"))
+    q = {"business_id": str(b["_id"])}
+    search = request.args.get("q", "").strip()
+    if search:
+        q["$or"] = [{"name": {"$regex": re.escape(search), "$options": "i"}}, {"phone": {"$regex": re.escape(search), "$options": "i"}}]
+    rows = list(bs_customers_col.find(q).sort("created_at", DESCENDING))
+    return render_template("bs_customers.html", customers=rows, business=b)
+
+@app.route("/customers/<cid>", methods=["GET", "POST"])
+@business_login_required
+def bs_customer_detail(cid):
+    b = get_business()
+    customer = bs_customers_col.find_one({"_id": oid(cid), "business_id": str(b["_id"])})
+    if not customer:
+        return redirect(url_for("bs_customers"))
+    if request.method == "POST":
+        bs_customers_col.update_one({"_id": customer["_id"]}, {"$set": {"notes": request.form.get("notes", ""), "tags": [x.strip() for x in (request.form.get("tags") or "").split(",") if x.strip()]}})
+        return redirect(url_for("bs_customer_detail", cid=cid))
+    bookings = list(bs_bookings_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    invoices = list(bs_invoices_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    payments = list(bs_payments_col.find({"business_id": str(b["_id"]), "customer_id": cid}).sort("created_at", DESCENDING))
+    return render_template("bs_customer_detail.html", customer=customer, bookings=bookings, invoices=invoices, payments=payments)
+
+
+@app.route("/invoices", methods=["GET", "POST"])
+@business_login_required
+def bs_invoices():
+    b = get_business()
+    if request.method == "POST":
+        customer_id = request.form.get("customer_id")
+        due = request.form.get("due_date")
+        gst_rate = float(request.form.get("gst_rate") or 0)
+        descs = request.form.getlist("item_desc")
+        qtys = request.form.getlist("item_qty")
+        rates = request.form.getlist("item_rate")
+        line_items=[]; subtotal=0
+        for i,d in enumerate(descs):
+            if not d.strip():
+                continue
+            q = float(qtys[i] or 1); r = float(rates[i] or 0); amt = q*r
+            subtotal += amt
+            line_items.append({"description": d.strip(), "qty": q, "rate": r, "amount": amt})
+        gst_amount = round(subtotal * gst_rate / 100, 2)
+        total = subtotal + gst_amount
+        count = bs_invoices_col.count_documents({"business_id": str(b["_id"])}) + 1
+        inv_no = f"BS-{datetime.utcnow().strftime('%Y')}-{count:05d}"
+        doc = {"business_id": str(b["_id"]), "customer_id": customer_id, "invoice_number": inv_no, "line_items": line_items, "subtotal": subtotal, "gst_rate": gst_rate, "gst_amount": gst_amount, "total": total, "status": request.form.get("status") or "draft", "due_date": due, "paid_at": None, "payment_method": "", "notes": request.form.get("notes", ""), "created_at": now()}
+        iid = bs_invoices_col.insert_one(doc).inserted_id
+        flash("Invoice created", "success")
+        return redirect(url_for("bs_invoice_detail", iid=str(iid)))
+    q = {"business_id": str(b["_id"])}
+    status = request.args.get("status")
+    if status:
+        q["status"] = status
+    invoices = list(bs_invoices_col.find(q).sort("created_at", DESCENDING))
+    customers = list(bs_customers_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_invoices.html", invoices=invoices, customers=customers)
+
+@app.route("/invoices/<iid>")
+@business_login_required
+def bs_invoice_detail(iid):
+    b = get_business()
+    inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv:
+        return redirect(url_for("bs_invoices"))
+    customer = bs_customers_col.find_one({"_id": oid(inv.get("customer_id"))}) if inv.get("customer_id") else None
+    return render_template("bs_invoice_detail.html", invoice=inv, customer=customer, business=b)
+
+@app.route("/api/invoices/<iid>/send", methods=["POST"])
+@business_login_required
+def api_bs_invoice_send(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    bs_invoices_col.update_one({"_id": inv["_id"]}, {"$set": {"status": "sent"}})
+    return jsonify({"ok": True})
+
+@app.route("/api/invoices/<iid>/pay", methods=["POST"])
+@business_login_required
+def api_bs_invoice_pay(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    method = (json_body().get("payment_method") or request.form.get("payment_method") or "online")
+    bs_invoices_col.update_one({"_id": inv["_id"]}, {"$set": {"status": "paid", "paid_at": now(), "payment_method": method}})
+    bs_payments_col.insert_one({"business_id": str(b["_id"]), "customer_id": inv.get("customer_id"), "booking_id": None, "invoice_id": iid, "amount": inv.get("total",0), "method": method, "razorpay_payment_id": "", "status": "completed", "notes": "invoice_payment", "created_at": now()})
+    return jsonify({"ok": True})
+
+@app.route("/api/invoices/<iid>/pdf", methods=["POST"])
+@business_login_required
+def api_bs_invoice_pdf(iid):
+    b=get_business(); inv = bs_invoices_col.find_one({"_id": oid(iid), "business_id": str(b["_id"])})
+    if not inv: return api_error("not_found",404)
+    html = render_template("bs_invoice_pdf.html", invoice=inv, business=b)
+    if HTML:
+        pdf = HTML(string=html, base_url=BASE_URL).write_pdf()
+        resp = make_response(pdf)
+        resp.headers['Content-Type'] = 'application/pdf'
+        resp.headers['Content-Disposition'] = f'attachment; filename={inv.get("invoice_number","invoice")}.pdf'
+        return resp
+    return make_response(html)
+
+
+@app.route("/payments", methods=["GET"])
+@business_login_required
+def bs_payments():
+    b=get_business()
+    rows = list(bs_payments_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    pending = sum(float(r.get("amount",0)) for r in rows if r.get("status") != "completed")
+    received = sum(float(r.get("amount",0)) for r in rows if r.get("status") == "completed")
+    return render_template("bs_payments.html", payments=rows, pending=pending, received=received)
+
+@app.route("/api/payments/record", methods=["POST"])
+@business_login_required
+def api_bs_payment_record():
+    b=get_business(); data = json_body() if request.is_json else request.form
+    amount = float(data.get("amount") or 0)
+    if amount <= 0: return api_error("invalid_amount",400)
+    bs_payments_col.insert_one({"business_id": str(b["_id"]), "customer_id": data.get("customer_id"), "booking_id": data.get("booking_id"), "invoice_id": data.get("invoice_id"), "amount": amount, "method": data.get("method") or "upi", "razorpay_payment_id": data.get("razorpay_payment_id") or "", "status": data.get("status") or "completed", "notes": data.get("notes") or "", "created_at": now()})
+    return jsonify({"ok": True})
+
+@app.route("/analytics")
+@business_login_required
+def bs_analytics():
+    b=get_business()
+    plan = b.get("plan", "free")
+    bookings = list(bs_bookings_col.find({"business_id": str(b["_id"])}))
+    payments = list(bs_payments_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_analytics.html", plan=plan, bookings=bookings, payments=payments)
+
+@app.route("/staff", methods=["GET", "POST"])
+@business_login_required
+def bs_staff():
+    b=get_business()
+    if request.method == "POST":
+        bs_staff_col.insert_one({"business_id": str(b["_id"]), "name": request.form.get("name"), "phone": request.form.get("phone"), "role": request.form.get("role"), "services_offered": [x.strip() for x in (request.form.get("services_offered") or "").split(",") if x.strip()], "commission_percent": float(request.form.get("commission_percent") or 0), "is_active": True, "created_at": now()})
+        flash("Staff added","success")
+        return redirect(url_for("bs_staff"))
+    rows = list(bs_staff_col.find({"business_id": str(b["_id"])}))
+    return render_template("bs_staff.html", staff=rows)
+
+@app.route("/reviews", methods=["GET"])
+@business_login_required
+def bs_reviews():
+    b=get_business(); rows = list(bs_reviews_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    avg = round(sum(r.get("rating",0) for r in rows)/max(1,len(rows)),2)
+    return render_template("bs_reviews.html", reviews=rows, avg=avg)
+
+@app.route("/api/reviews/request", methods=["POST"])
+@business_login_required
+def api_bs_reviews_request():
+    b=get_business(); phone = (json_body().get("phone") if request.is_json else request.form.get("phone"))
+    link = f"{BASE_URL}/r/{b.get('username')}"
+    whatsapp_send(phone, f"Please rate your visit to {b.get('business_name')}: {link}")
+    return jsonify({"ok": True})
+
+@app.route("/api/reviews/<rid>/reply", methods=["POST"])
+@business_login_required
+def api_bs_reviews_reply(rid):
+    b=get_business(); reply = (json_body().get("reply") if request.is_json else request.form.get("reply"))
+    bs_reviews_col.update_one({"_id": oid(rid), "business_id": str(b["_id"])}, {"$set": {"reply": reply, "replied_at": now()}})
+    return jsonify({"ok": True})
+
+@app.route("/expenses", methods=["GET", "POST"])
+@business_login_required
+def bs_expenses():
+    b=get_business()
+    if request.method == "POST":
+        bs_expenses_col.insert_one({"business_id": str(b["_id"]), "category": request.form.get("category"), "description": request.form.get("description"), "amount": float(request.form.get("amount") or 0), "date": request.form.get("date"), "receipt_url": "", "created_at": now()})
+        return redirect(url_for("bs_expenses"))
+    rows = list(bs_expenses_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    return render_template("bs_expenses.html", expenses=rows)
+
+@app.route("/settings", methods=["GET", "POST"])
+@business_login_required
+def bs_settings():
+    b=get_business()
+    if request.method == "POST":
+        services = []
+        for n,d,p in zip(request.form.getlist("service_name"), request.form.getlist("service_duration"), request.form.getlist("service_price")):
+            if n.strip(): services.append({"name": n.strip(), "duration_mins": int(d or 30), "price": int(p or 0)})
+        settings = {
+            "booking_buffer_mins": int(request.form.get("booking_buffer_mins") or 0),
+            "auto_confirm": bool(request.form.get("auto_confirm")),
+            "sms_enabled": bool(request.form.get("sms_enabled")),
+            "whatsapp_enabled": bool(request.form.get("whatsapp_enabled")),
+        }
+        businesses_col.update_one({"_id": b["_id"]}, {"$set": {
+            "business_name": request.form.get("business_name", b.get("business_name")),
+            "business_type": request.form.get("business_type", b.get("business_type")),
+            "address": request.form.get("address", b.get("address")),
+            "tagline": request.form.get("tagline", b.get("tagline")),
+            "upi_id": request.form.get("upi_id", b.get("upi_id")),
+            "services": services or b.get("services", []),
+            "settings": settings,
+        }})
+        flash("Settings updated", "success")
+        return redirect(url_for("bs_settings"))
+    return render_template("bs_settings.html", business=b)
+
+@app.route("/upgrade")
+def bs_upgrade_page():
+    if "bid" in session:
+        b = get_business()
+        return render_template("bs_upgrade.html", business=b, razorpay_key=RAZORPAY_KEY_ID)
+    return upgrade()
+
+@app.route("/book/<username>")
+def bs_public_book(username):
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return render_template("404.html"), 404
+    return render_template("bs_public_book.html", business=b)
+
+@app.route("/api/public/book", methods=["POST"])
+def api_bs_public_book():
+    data = json_body() if request.is_json else request.form
+    username = (data.get("username") or "").strip()
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return api_error("business_not_found", 404)
+    cname = (data.get("name") or "").strip(); phone=(data.get("phone") or "").strip()
+    if not cname or not phone:
+        return api_error("name_phone_required",400)
+    customer = bs_customers_col.find_one({"business_id": str(b["_id"]), "phone": phone})
+    if not customer:
+        cid = bs_customers_col.insert_one({"business_id": str(b["_id"]), "name": cname, "phone": phone, "email": "", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["new"], "created_at": now()}).inserted_id
+        customer = bs_customers_col.find_one({"_id": cid})
+    service = next((s for s in (b.get("services") or []) if s.get("name") == data.get("service_name")), None)
+    doc = {"business_id": str(b["_id"]), "customer_id": str(customer["_id"]), "customer_name": cname, "customer_phone": phone, "service_name": data.get("service_name"), "service_price": int((service or {}).get("price") or data.get("service_price") or 0), "date": data.get("date"), "time_slot": data.get("time_slot"), "duration_mins": int((service or {}).get("duration_mins") or 30), "status": "pending", "payment_status": "unpaid", "amount_paid": 0, "payment_method": "", "notes": "public booking", "reminder_sent": False, "created_at": now()}
+    bs_bookings_col.insert_one(doc)
+    msg = f"Hi {cname}! Your {doc['service_name']} appointment at {b.get('business_name')} is confirmed for {doc['date']} at {doc['time_slot']}. See you then! 🙏"
+    whatsapp_send(phone, msg)
+    return jsonify({"ok": True, "booking": doc})
+
+@app.route("/api/slots")
+def api_bs_slots():
+    username = request.args.get("username", "")
+    b = businesses_col.find_one({"username": username}) if username else get_business()
+    if not b:
+        return jsonify([])
+    service_name = request.args.get("service_name") or request.args.get("service_id")
+    service = next((s for s in (b.get("services") or []) if s.get("name") == service_name), None)
+    duration = int((service or {}).get("duration_mins") or 30)
+    slots = business_slots_for_date(b, request.args.get("date"), duration)
+    return jsonify(slots)
+
+@app.route("/api/customers/search", methods=["POST"])
+def api_bs_customers_search():
+    if "bid" not in session:
+        return jsonify([])
+    q = (json_body().get("q") if request.is_json else request.form.get("q") or "").strip()
+    b = get_business()
+    rows = list(bs_customers_col.find({"business_id": str(b["_id"]), "$or": [{"name": {"$regex": re.escape(q), "$options": "i"}}, {"phone": {"$regex": re.escape(q), "$options": "i"}}]}).limit(20)) if q else []
+    return jsonify([{"id": str(r["_id"]), "name": r.get("name"), "phone": r.get("phone")} for r in rows])
+
+@app.route("/api/dashboard/stats")
+@business_login_required
+def api_bs_dashboard_stats():
+    b = get_business(); today = datetime.utcnow().strftime("%Y-%m-%d")
+    todays = list(bs_bookings_col.find({"business_id": str(b["_id"]), "date": today}))
+    invoices = list(bs_invoices_col.find({"business_id": str(b["_id"])}))
+    customers = bs_customers_col.count_documents({"business_id": str(b["_id"]), "created_at": {"$gte": now() - timedelta(days=30)}})
+    revenue_today = sum(float(x.get("amount_paid",0)) for x in todays)
+    outstanding = sum(float(i.get("total",0)) for i in invoices if i.get("status") in {"sent","overdue"})
+    return jsonify({"todays_revenue": revenue_today, "bookings_today": len(todays), "outstanding": outstanding, "new_customers": customers})
+
+@app.route("/api/analytics/revenue")
+@business_login_required
+def api_bs_revenue():
+    b=get_business(); days=int(request.args.get("days") or 30); start = now() - timedelta(days=days)
+    rows = list(bs_payments_col.find({"business_id": str(b["_id"]), "created_at": {"$gte": start}}))
+    buckets = {}
+    for r in rows:
+        d = fmt_dd_mmm_yyyy(r.get("created_at"))
+        buckets[d] = buckets.get(d, 0) + float(r.get("amount",0))
+    return jsonify({"labels": list(buckets.keys()), "values": list(buckets.values())})
+
+@app.route("/r/<username>")
+def bs_public_reviews(username):
+    b = businesses_col.find_one({"username": username})
+    if not b:
+        return render_template("404.html"), 404
+    rows = list(bs_reviews_col.find({"business_id": str(b["_id"])}).sort("created_at", DESCENDING))
+    avg = round(sum(r.get("rating", 0) for r in rows) / max(1, len(rows)), 2)
+    return render_template("bs_public_reviews.html", business=b, reviews=rows, avg=avg)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+    if not businesses_col.find_one({"email": "demo@bharatstack.in"}):
+        try:
+            bid = businesses_col.insert_one({
+                "owner_name": "Priya Kapoor",
+                "business_name": "Glamour Studio",
+                "business_type": "Salon",
+                "email": "demo@bharatstack.in",
+                "password_hash": generate_password_hash("demo123"),
+                "phone": "9876543210",
+                "city": "Delhi",
+                "address": "Lajpat Nagar, New Delhi",
+                "plan": "pro",
+                "plan_expires": None,
+                "upi_id": "glamour@upi",
+                "razorpay_customer_id": "",
+                "logo_url": "",
+                "tagline": "Luxury salon services for modern India",
+                "currency": "INR",
+                "working_hours": {d: {"open": "10:00", "close": "20:00"} for d in ["mon","tue","wed","thu","fri","sat","sun"]},
+                "services": [
+                    {"name":"Haircut","duration_mins":45,"price":799},
+                    {"name":"Facial","duration_mins":60,"price":1499},
+                    {"name":"Wax","duration_mins":40,"price":699},
+                    {"name":"Hair Color","duration_mins":90,"price":2999},
+                    {"name":"Manicure","duration_mins":35,"price":599},
+                    {"name":"Pedicure","duration_mins":45,"price":799},
+                    {"name":"Cleanup","duration_mins":30,"price":499},
+                    {"name":"Bridal Makeup","duration_mins":120,"price":7999},
+                ],
+                "settings": {"booking_buffer_mins": 15, "auto_confirm": True, "sms_enabled": False, "whatsapp_enabled": True},
+                "created_at": now(),
+                "is_verified": True,
+                "username": "glamour-studio",
+            }).inserted_id
+            indian_names = ["Aarav","Vivaan","Aditya","Riya","Ananya","Ishita","Kabir","Arjun","Meera","Nisha","Rohit","Sanya","Karan","Diya","Neha","Siddharth","Pooja","Manav","Sneha","Aisha","Tanya","Rahul","Vikas","Sonal","Nikhil"]
+            cids = []
+            for i, n in enumerate(indian_names):
+                cid = bs_customers_col.insert_one({"business_id": str(bid), "name": f"{n} Sharma", "phone": f"98{70000000+i:08d}", "email": f"{n.lower()}@example.com", "total_visits": 0, "total_spent": 0, "last_visit": None, "notes": "", "tags": ["loyal" if i % 4 == 0 else "new"], "created_at": now() - timedelta(days=(i % 25))}).inserted_id
+                cids.append(cid)
+            for i in range(60):
+                cust = cids[i % len(cids)]
+                date = (now() - timedelta(days=i % 30)).strftime("%Y-%m-%d")
+                svc = ["Haircut","Facial","Wax","Cleanup","Manicure","Pedicure","Hair Color","Bridal Makeup"][i % 8]
+                price = [799,1499,699,499,599,799,2999,7999][i % 8]
+                bs_bookings_col.insert_one({"business_id": str(bid), "customer_id": str(cust), "customer_name": indian_names[i % len(indian_names)] + " Sharma", "customer_phone": f"98{70000000+i%25:08d}", "service_name": svc, "service_price": price, "date": date, "time_slot": f"{10 + (i % 8)}:00", "duration_mins": 45, "status": ["pending","confirmed","completed","cancelled","no_show"][i % 5], "payment_status": "paid" if i % 3 else "unpaid", "amount_paid": price if i % 3 else 0, "payment_method": ["upi","cash","card"][i % 3], "notes": "", "reminder_sent": i % 2 == 0, "created_at": now() - timedelta(days=i % 30)})
+            for i in range(20):
+                total = 999 + (i * 250)
+                status = ["draft","sent","paid","overdue"][i % 4]
+                iid = bs_invoices_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i % len(cids)]), "invoice_number": f"BS-{now().year}-{i+1:05d}", "line_items": [{"description": "Salon Service", "qty": 1, "rate": total, "amount": total}], "subtotal": total, "gst_rate": 18, "gst_amount": round(total * 0.18, 2), "total": round(total * 1.18, 2), "status": status, "due_date": (now() + timedelta(days=7)).strftime("%Y-%m-%d"), "paid_at": now() if status == "paid" else None, "payment_method": "upi", "notes": "", "created_at": now() - timedelta(days=i)}).inserted_id
+                if status == "paid":
+                    bs_payments_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i % len(cids)]), "booking_id": None, "invoice_id": str(iid), "amount": round(total * 1.18, 2), "method": "upi", "razorpay_payment_id": "", "status": "completed", "notes": "invoice_payment", "created_at": now() - timedelta(days=i)})
+            for i in range(8):
+                bs_reviews_col.insert_one({"business_id": str(bid), "customer_id": str(cids[i]), "customer_name": indian_names[i] + " Sharma", "rating": 4 + (i % 2), "comment": "Great experience and professional service.", "is_verified": True, "reply": "" if i % 2 else "Thank you for your feedback!", "replied_at": now() if not i % 2 else None, "created_at": now() - timedelta(days=i)})
+            for i, name in enumerate(["Asha", "Ravi", "Komal"]):
+                bs_staff_col.insert_one({"business_id": str(bid), "name": name, "phone": f"99{80000000+i:08d}", "role": ["Stylist","Beautician","Manager"][i], "services_offered": ["Haircut","Facial"], "commission_percent": 10 + i * 2, "is_active": True, "created_at": now()})
+            for i in range(30):
+                bs_expenses_col.insert_one({"business_id": str(bid), "category": ["Rent","Salaries","Supplies","Marketing","Utilities","Other"][i % 6], "description": "Monthly expense", "amount": 1500 + (i * 120), "date": (now() - timedelta(days=i)).strftime("%Y-%m-%d"), "receipt_url": "", "created_at": now() - timedelta(days=i)})
+            print("Demo business: demo@bharatstack.in / demo123")
+        except Exception as e:
+            print(f"Demo business seed skipped: {e}")
     if not users_col.find_one({"username": "demo"}):
         try:
             users_col.insert_one({

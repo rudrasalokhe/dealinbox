@@ -35,4 +35,30 @@
   </aside>
 </div>
 <style>@media(max-width:980px){.dash-grid{grid-template-columns:1fr!important}}</style>
+<div class="card" style="margin-top:14px;padding:16px">
+  <div class="card-title" style="margin-bottom:12px">CRM Pulse</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="crm-pulse-grid">
+    <div class="card" style="padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>Brand Relationships</b><a href="/crm/brands" class="btn btn-sm">Open Brand CRM →</a></div>
+      {% for b in dashboard_state.crm_pulse.brands %}
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>{{ b.name }}</b><small style="display:block;color:var(--t3)">Last contacted {{ b.last_contacted }}</small></div>
+      {% else %}
+      <small style="color:var(--t3)">No warm/active brands yet.</small>
+      {% endfor %}
+      {% if dashboard_state.crm_pulse.overdue %}
+      <div style="margin-top:8px;color:var(--red);font-size:12px">{{ dashboard_state.crm_pulse.overdue }} overdue follow-ups</div>
+      {% endif %}
+    </div>
+    <div class="card" style="padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>Influencer Pipeline</b><a href="/crm/influencers" class="btn btn-sm">Open Influencer CRM →</a></div>
+      {% for p in dashboard_state.crm_pulse.prospects %}
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>{{ p.name }}</b><small style="display:block;color:var(--t3)">{{ p.tier }} · {{ p.status }}</small></div>
+      {% else %}
+      <small style="color:var(--t3)">No prospects yet.</small>
+      {% endfor %}
+      <div style="margin-top:8px;color:var(--t2);font-size:12px">{{ dashboard_state.crm_pulse.pitches_week }} pitches sent this week</div>
+    </div>
+  </div>
+</div>
+<style>@media(max-width:980px){.crm-pulse-grid{grid-template-columns:1fr!important}}</style>
 {% endblock %}
