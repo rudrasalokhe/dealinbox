@@ -46,6 +46,15 @@
     </div>
 
     <div class="sb-section">
+      <p>Relationships</p>
+      <a class="sb-item {% if request.path.startswith('/crm/brands') %}active{% endif %}" href="{{ url_for('crm_brands_page') }}">Brand CRM</a>
+      <a class="sb-item {% if request.path.startswith('/crm/influencers') %}active{% endif %}" href="{{ url_for('crm_influencers_page') }}">Influencer CRM</a>
+      <a class="sb-item {% if request.path.startswith('/crm/reminders') %}active{% endif %}" href="{{ url_for('crm_reminders_page') }}">Reminders <em id="reminder-badge" style="display:none"></em></a>
+      <a class="sb-item {% if request.path.startswith('/crm/outreach') %}active{% endif %}" href="{{ url_for('crm_outreach_page') }}">Outreach Log</a>
+      <a class="sb-item {% if request.path.startswith('/crm/discover') %}active{% endif %}" href="{{ url_for('crm_discover_page') }}">✦ DealInbox Match</a>
+    </div>
+
+    <div class="sb-section">
       <p>Growth</p>
       <a class="sb-item {% if request.path == '/positioning' %}active{% endif %}" href="{{ url_for('positioning') }}">Positioning</a>
       <a class="sb-item {% if request.path == '/rate-card' %}active{% endif %}" href="{{ url_for('rate_card_page') }}">Rate Card</a>
@@ -70,9 +79,17 @@
       <button id="menu-btn" class="btn btn-ghost btn-sm menu-btn">☰</button>
       <h1>{% block topbar_title %}DealInbox{% endblock %}</h1>
       <button class="cmd-trigger" onclick="toggleCommandPalette(true)">Search <kbd>⌘K</kbd></button>
+      <button class="btn btn-ghost btn-sm" id="notif-toggle">🔔 <em id="notif-dot" style="display:none;color:var(--red);font-style:normal">●</em></button>
       <span class="plan-pill">{{ session.get('plan','free')|upper }}</span>
       {% if session.get('plan') != 'pro' %}<a href="{{ url_for('upgrade') }}" class="btn btn-gold btn-sm">Upgrade</a>{% endif %}
     </header>
+    <div class="command-palette" id="notif-panel" style="top:62px;left:auto;right:18px;transform:none;max-width:360px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)">
+        <b style="font-size:12px">Notifications</b>
+        <button class="btn btn-sm" onclick="markAllNotificationsRead()">Mark all read</button>
+      </div>
+      <div id="notif-items"></div>
+    </div>
 
     <div class="command-palette" id="command-palette">
       <input type="search" id="globalSearch" placeholder="Search brand, budget, notes..." oninput="runGlobalSearch(this.value)">
@@ -143,6 +160,33 @@ document.addEventListener('keydown', (e) => {
   if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); toggleCommandPalette(true); }
   if(e.key === 'Escape') toggleCommandPalette(false);
 });
+async function loadNotifications(){
+  const r = await fetch('/api/notifications');
+  const d = await r.json();
+  const dot = document.getElementById('notif-dot');
+  const badge = document.getElementById('reminder-badge');
+  if(dot) dot.style.display = (d.unread||0) > 0 ? 'inline' : 'none';
+  const items = document.getElementById('notif-items');
+  if(items){
+    items.innerHTML = (d.items||[]).map(i=>`<a class="gs-item" href="${i.link||'#'}"><strong>${i.title||'Update'}</strong><span>${i.body||''} · ${i.created_at||''}</span></a>`).join('') || '<div class="gs-item"><strong>No notifications</strong></div>';
+  }
+  try{
+    const s = await fetch('/api/crm/dashboard-stats').then(x=>x.json());
+    if(badge && (s.overdue_reminders||0) > 0){ badge.textContent = s.overdue_reminders; badge.style.display='inline-flex'; }
+  }catch(e){}
+}
+async function markAllNotificationsRead(){
+  await fetch('/api/notifications/mark-all-read', {method:'POST'});
+  loadNotifications();
+}
+document.getElementById('notif-toggle')?.addEventListener('click', () => {
+  const panel = document.getElementById('notif-panel');
+  if(!panel) return;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  if(!open) loadNotifications();
+});
+loadNotifications();
 </script>
 </body>
 </html>

@@ -14,3 +14,26 @@
 ### Notes
 - New endpoints and helpers are environment-variable driven (`ANTHROPIC_API_KEY`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`).
 - Existing app behavior remains unchanged for current UI flows.
+
+## 2026-04-04
+
+### Added
+- DealInbox CRM foundation release across creator + brand workflows.
+- Added Mongo collections wiring and indexes for:
+  - `brand_contacts`, `influencer_profiles`, `outreach_log`, `followup_reminders`.
+- Added CRM page routes and templates:
+  - Brand CRM list/detail/new
+  - Influencer CRM list/detail/new
+  - Reminders, Outreach Log, and DealInbox Match discover page.
+- Added API routes for CRM search, wishlist, dashboard stats, smart follow-ups, and discover features.
+- Added SSE AI endpoints for:
+  - Brand cold-pitch generation
+  - Influencer campaign-brief generation.
+- Added CRM plan-gating responses (HTTP 402 with upgrade payload) for free-plan limits.
+- Added notification endpoints (`/api/notifications`, `/api/notifications/mark-all-read`) and topbar bell UI.
+- Added dashboard "CRM Pulse" widget.
+- Added shared CRM UI styles and `static/js/crm.js` interactions.
+
+### Notes
+- AI endpoints use `ANTHROPIC_API_KEY` when configured and gracefully fallback when missing.
+- CRM discover + smart follow-ups are optimized for incremental enrichment without breaking existing flows.
