@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Follow-up Reminders — DealInbox{% endblock %}
+{% block topbar_title %}Follow-up Reminders{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Follow-up Reminders</h1><p class="page-sub">{{ overdue|length }} overdue · {{ due_week|length }} due this week</p></div></div>
+<div class="card" style="padding:14px;border-left:3px solid var(--red)"><div class="card-title">OVERDUE</div>{% for r in overdue %}<div class="crm-rem-item"><b>{{ r.target_name }}</b><small>{{ r.note }} · {{ fmt_date(r.reminder_date) }}</small><div><form method="post" action="/crm/reminders/{{ r.id }}/done" style="display:inline"><button class="btn btn-sm">Done</button></form> <form method="post" action="/crm/reminders/{{ r.id }}/snooze" style="display:inline"><button class="btn btn-sm">Snooze</button></form></div></div>{% else %}<small style="color:var(--t3)">Nothing overdue.</small>{% endfor %}</div>
+<div class="card" style="padding:14px;border-left:3px solid var(--gold);margin-top:12px"><div class="card-title">DUE THIS WEEK</div>{% for r in due_week %}<div class="crm-rem-item"><b>{{ r.target_name }}</b><small>{{ r.note }} · {{ fmt_date(r.reminder_date) }}</small></div>{% else %}<small style="color:var(--t3)">No reminders this week.</small>{% endfor %}</div>
+<details class="card" style="padding:14px;margin-top:12px"><summary class="card-title">UPCOMING</summary>{% for r in upcoming %}<div class="crm-rem-item"><b>{{ r.target_name }}</b><small>{{ r.note }} · {{ fmt_date(r.reminder_date) }}</small></div>{% else %}<small style="color:var(--t3)">No upcoming reminders.</small>{% endfor %}</details>
+{% endblock %}

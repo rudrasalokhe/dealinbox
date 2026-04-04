@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{% block title %}Brand Studio{% endblock %}</title><link rel='stylesheet' href='{{ url_for("static", filename="css/style.css") }}'>{% block extra_head %}{% endblock %}</head><body>
+<div class='shell brand-shell'>
+<aside class='sidebar brand-sidebar' id='sidebar'>
+  <div class='sb-logo'><a class='sb-logo-link' href='/brand/dashboard'><span class='sb-mark' style='background:var(--blue)'>D</span><span><strong>DealInbox</strong><small>for Brands</small></span></a></div>
+  <div class='sb-user'><div class='sb-avatar'>{{ (session.name or 'B')[0] }}</div><div><b>{{ session.name }}</b><span>{{ session.get('plan','free')|upper }}</span></div></div>
+  <div class='sb-section'><p>Overview</p><a class='sb-item {% if request.path=="/brand/dashboard" %}active{% endif %}' href='/brand/dashboard'>🏠 Dashboard</a><a class='sb-item {% if request.path=="/brand/notifications" %}active{% endif %}' href='/brand/notifications'>🔔 Notifications</a></div>
+  <div class='sb-section'><p>Discovery</p><a class='sb-item {% if request.path=="/brand/discover" %}active{% endif %}' href='/brand/discover'>🔍 Find Creators</a><a class='sb-item {% if request.path=="/brand/match" %}active{% endif %}' href='/brand/match'>✦ DealInbox Match</a><a class='sb-item' href='/brand/lists'>📋 Saved Lists</a></div>
+  <div class='sb-section'><p>Campaigns</p><a class='sb-item' href='/brand/campaigns'>📣 Active Campaigns</a><a class='sb-item' href='/brand/briefs/new'>✉️ Send Brief</a><a class='sb-item' href='/brand/analytics'>📊 Campaign Analytics</a></div>
+  <div class='sb-section'><p>Relationships</p><a class='sb-item' href='/brand/crm'>👥 Influencer CRM</a><a class='sb-item' href='/brand/outreach'>📬 Outreach Log</a><a class='sb-item' href='/brand/reminders'>🔔 Reminders</a></div>
+  <div class='sb-section'><p>Finance</p><a class='sb-item' href='/brand/payments'>💳 Payments</a><a class='sb-item' href='/brand/invoices'>🧾 Invoices</a></div>
+  <div class='sb-section'><p>Settings</p><a class='sb-item' href='/brand/settings'>⚙️ Brand Profile</a><a class='sb-item' href='/brand/team'>👥 Team Members</a><a class='sb-item' href='/brand/billing'>📦 Plan & Billing</a><a class='sb-item' href='/logout'>Log out</a></div>
+</aside>
+<main class='main'><header class='topbar'><button id='menu-btn' class='btn btn-ghost btn-sm menu-btn'>☰</button><h1>{% block topbar_title %}Brand Studio{% endblock %}</h1></header><section class='content'>{% block content %}{% endblock %}</section></main>
+</div>
+<script src='{{ url_for("static", filename="js/main.js") }}'></script>{% block extra_js %}{% endblock %}
+</body></html>
