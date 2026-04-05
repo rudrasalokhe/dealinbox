@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DealsInbox{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' rx='12' fill='%232563EB'/><text x='12' y='40' fill='white' font-size='24' font-family='Arial'>DI</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo"><span>Deals</span><strong>Inbox</strong><small>{{ tagline }}</small></div>
+      <nav>
+        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/orders" class="nav-link {% if request.path == '/orders' %}active{% endif %}">Orders</a>
+        <a href="/inventory" class="nav-link {% if request.path == '/inventory' %}active{% endif %}">Inventory</a>
+        <a href="/customers" class="nav-link {% if request.path == '/customers' %}active{% endif %}">Customers</a>
+        <a href="/calculator" class="nav-link {% if request.path == '/calculator' %}active{% endif %}">Profit Calculator</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <p class="muted">{{ g.user_email or '' }}</p>
+        <a href="/auth/logout" class="btn btn-ghost">Logout</a>
+      </div>
+    </aside>
+    <main class="content">{% block content %}{% endblock %}</main>
+  </div>
+  <div class="mobile-nav">
+    <a href="/dashboard">Home</a><a href="/orders">Orders</a><a href="/inventory">Stock</a><a href="/customers">Customers</a><a href="/calculator">Profit</a>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

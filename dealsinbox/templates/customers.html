@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}Customers{% endblock %}{% block content %}
+<h1>Customers</h1>
+<div class="card"><table id="customersTable"><thead><tr><th>Name</th><th>City</th><th>Orders</th><th>Total Spend</th><th>Last Order</th></tr></thead><tbody></tbody></table><div id="customersEmpty" class="empty">No customer activity yet.</div></div>
+{% endblock %}{% block scripts %}<script>window.loadCustomers && window.loadCustomers();</script>{% endblock %}
