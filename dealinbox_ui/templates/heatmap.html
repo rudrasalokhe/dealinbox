@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Deal Urgency Heatmap — DealInbox{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🔥 Deal Urgency Heatmap</h1>
+    <p class="page-sub">Prioritise your open deals. Act on the right ones first.</p>
+  </div>
+  <a href="{{ url_for('enquiries_page') }}" class="btn">All enquiries →</a>
+</div>
+
+<!-- Legend -->
+<div class="hm-legend">
+  <div class="hml-item"><span class="hm-dot hm-high"></span> High urgency — act now</div>
+  <div class="hml-item"><span class="hm-dot hm-medium"></span> Moderate — respond soon</div>
+  <div class="hml-item"><span class="hm-dot hm-low"></span> Relaxed — no rush</div>
+  <div class="hml-sep"></div>
+  <div style="font-size:11px;color:var(--t3)">Score based on timeline signals, brief language, budget, and deal age</div>
+</div>
+
+<!-- Heatmap grid -->
+<div id="hmLoader" style="text-align:center;padding:50px;color:var(--t3)">
+  <div class="spinner"></div>
+  <div style="margin-top:12px;font-size:13px">Scanning open deals…</div>
+</div>
+<div id="hmEmpty" style="display:none" class="empty-state" style="padding:60px 20px">
+  <div class="es-icon">🎉</div>
+  <h3>No open deals to track</h3>
+  <p>All caught up! New deals will appear here.</p>
+</div>
+<div id="hmGrid" class="hm-grid" style="display:none"></div>
+
+<!-- Details panel -->
+<div id="hmPanel" class="hm-panel" style="display:none">
+  <div class="hmp-head">
+    <div>
+      <div class="hmp-brand" id="hmpBrand"></div>
+      <div class="hmp-meta" id="hmpMeta"></div>
+    </div>
+    <button class="modal-close" onclick="document.getElementById('hmPanel').style.display='none'">×</button>
+  </div>
+  <div class="hmp-score-row">
+    <div class="hmp-score-wrap">
+      <div class="hmp-score-num" id="hmpScore"></div>
+      <div class="hmp-score-label">Urgency score</div>
+    </div>
+    <div class="hmp-reasons" id="hmpReasons"></div>
+  </div>
+  <a id="hmpLink" href="#" class="btn btn-primary btn-full" style="margin-top:12px">Open enquiry →</a>
+</div>
+
+<style>
+.hm-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--t2)}
+.hml-item{display:flex;align-items:center;gap:6px}
+.hm-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
+.hm-high{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)}
+.hm-medium{background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,.4)}
+.hm-low{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,.3)}
+.hml-sep{flex:1}
+.hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.hm-card{border-radius:12px;padding:16px;cursor:pointer;border:2px solid transparent;transition:all .2s;position:relative;overflow:hidden}
+.hm-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.15)}
+.hm-card-high{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25)}
+.hm-card-medium{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)}
+.hm-card-low{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.2)}
+.hm-card-high:hover{border-color:rgba(239,68,68,.5)}
+.hm-card-medium:hover{border-color:rgba(245,158,11,.5)}
+.hm-card-low:hover{border-color:rgba(16,185,129,.5)}
+.hmc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.hmc-brand{font-size:14px;font-weight:700;color:var(--t1)}
+.hmc-badge{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700;white-space:nowrap}
+.badge-high{background:rgba(239,68,68,.2);color:#ef4444}
+.badge-medium{background:rgba(245,158,11,.2);color:#f59e0b}
+.badge-low{background:rgba(16,185,129,.2);color:#10b981}
+.hmc-meta{font-size:12px;color:var(--t3);margin-bottom:8px}
+.hmc-bar-track{height:5px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.hmc-bar-fill{height:100%;border-radius:99px;transition:width .6s ease}
+.fill-high{background:#ef4444}
+.fill-medium{background:#f59e0b}
+.fill-low{background:#10b981}
+.hmc-score{font-size:11px;font-weight:700;margin-top:5px}
+.score-high{color:#ef4444}
+.score-medium{color:#f59e0b}
+.score-low{color:#10b981}
+.hmc-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.15;pointer-events:none}
+.glow-high{background:radial-gradient(circle,#ef4444,transparent)}
+.glow-medium{background:radial-gradient(circle,#f59e0b,transparent)}
+.glow-low{background:radial-gradient(circle,#10b981,transparent)}
+.hm-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:16px}
+.hmp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.hmp-brand{font-size:18px;font-weight:800;color:var(--t1)}
+.hmp-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.hmp-score-row{display:flex;gap:16px;align-items:flex-start}
+.hmp-score-wrap{text-align:center;min-width:80px}
+.hmp-score-num{font-size:36px;font-weight:900;color:var(--t1)}
+.hmp-score-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+.hmp-reasons{flex:1}
+.hmp-reason{font-size:12px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.hmp-reason:last-child{border-bottom:none}
+.hmp-reason::before{content:'→';color:var(--t3);flex-shrink:0}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<script>
+let allDeals = [];
+
+(async function loadHeatmap(){
+  const res = await fetch('/api/urgency-heatmap');
+  const d = await res.json();
+  document.getElementById('hmLoader').style.display='none';
+  allDeals = d.deals;
+
+  if(!d.deals||!d.deals.length){
+    document.getElementById('hmEmpty').style.display='block';
+    return;
+  }
+
+  const grid = document.getElementById('hmGrid');
+  grid.style.display='grid';
+
+  grid.innerHTML = d.deals.map(deal=>{
+    const u = deal.urgency;
+    const emoji = u.level==='high'?'🔴':u.level==='medium'?'🟡':'🟢';
+    const label = u.level==='high'?'Urgent':u.level==='medium'?'Moderate':'Relaxed';
+    return `
+      <div class="hm-card hm-card-${u.level}" onclick="showPanel('${deal.id}')">
+        <div class="hmc-glow glow-${u.level}"></div>
+        <div class="hmc-top">
+          <div class="hmc-brand">${deal.brand}</div>
+          <span class="hmc-badge badge-${u.level}">${emoji} ${label}</span>
+        </div>
+        <div class="hmc-meta">${deal.platform||'—'} · ${deal.budget||'Budget TBD'} · ${deal.created}</div>
+        <div class="hmc-bar-track">
+          <div class="hmc-bar-fill fill-${u.level}" style="width:${u.score}%"></div>
+        </div>
+        <div class="hmc-score score-${u.level}">Score: ${u.score}/100</div>
+      </div>
+    `;
+  }).join('');
+})();
+
+function showPanel(id){
+  const deal = allDeals.find(d=>d.id===id);
+  if(!deal) return;
+  const u = deal.urgency;
+  const emoji = u.level==='high'?'🔴':u.level==='medium'?'🟡':'🟢';
+  document.getElementById('hmpBrand').textContent = deal.brand;
+  document.getElementById('hmpMeta').textContent = `${deal.platform||'—'} · ${deal.budget||'Budget TBD'} · ${deal.status} · Received ${deal.created}`;
+  document.getElementById('hmpScore').textContent = u.score;
+  document.getElementById('hmpScore').style.color = u.level==='high'?'#ef4444':u.level==='medium'?'#f59e0b':'#10b981';
+  document.getElementById('hmpReasons').innerHTML = u.reasons.map(r=>`<div class="hmp-reason">${r}</div>`).join('') || '<div class="hmp-reason">No specific urgency signals.</div>';
+  document.getElementById('hmpLink').href = '/enquiries/'+id;
+  document.getElementById('hmPanel').style.display='block';
+  document.getElementById('hmPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+</script>
+{% endblock %}

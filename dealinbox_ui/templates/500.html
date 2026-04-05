@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}500 — DealInbox{% endblock %}
+{% block content %}
+<div style="min-height:70vh;display:grid;place-items:center;text-align:center"><div><div style="font:900 120px var(--mono);color:var(--surface-3)">500</div><h2>Something went wrong</h2><p style="color:var(--t2)">Please refresh in a few seconds.</p><a href="{{ url_for('index') }}" class="btn btn-gold">Back home</a></div></div>
+{% endblock %}
