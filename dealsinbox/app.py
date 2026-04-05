@@ -62,7 +62,12 @@ def create_indexes():
 
 def create_app():
     env = os.getenv("FLASK_ENV", "development")
-    app = Flask(__name__)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(base_dir, "templates"),
+        static_folder=os.path.join(base_dir, "static"),
+    )
     app.config.from_object(config_by_name.get(env, config_by_name["development"]))
 
     CORS(app)
