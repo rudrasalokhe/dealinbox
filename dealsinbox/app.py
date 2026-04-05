@@ -8,9 +8,9 @@ from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, current_user
 from pymongo import ASCENDING, DESCENDING
 
-from config import config_by_name
-from db import mongo
-from routes import register_blueprints
+from dealsinbox.config import config_by_name
+from dealsinbox.db import mongo
+from dealsinbox.routes import register_blueprints
 
 load_dotenv()
 

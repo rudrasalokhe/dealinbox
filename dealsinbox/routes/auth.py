@@ -3,8 +3,8 @@ from bson import ObjectId
 from flask import Blueprint, request, jsonify, redirect, url_for, render_template, flash
 from flask_login import login_user, logout_user, current_user
 
-from db import mongo
-from app import bcrypt, User
+from dealsinbox.db import mongo
+from dealsinbox.app import bcrypt, User
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 

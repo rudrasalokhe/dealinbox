@@ -3,7 +3,7 @@ from bson import ObjectId
 from flask import Blueprint, jsonify, request, render_template
 from flask_login import login_required, current_user
 
-from db import mongo
+from dealsinbox.db import mongo
 
 inventory_bp = Blueprint("inventory", __name__)
 

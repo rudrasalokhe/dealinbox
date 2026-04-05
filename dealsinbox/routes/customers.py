@@ -2,7 +2,7 @@ from bson import ObjectId
 from flask import Blueprint, jsonify, render_template
 from flask_login import login_required, current_user
 
-from db import mongo
+from dealsinbox.db import mongo
 
 customers_bp = Blueprint("customers", __name__)
 
