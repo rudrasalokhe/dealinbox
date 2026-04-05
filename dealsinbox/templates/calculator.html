@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Profit Calculator{% endblock %}{% block content %}
+<h1>Profit Calculator</h1>
+<form id="profitForm" class="card grid form-grid">
+  <input name="selling_price" placeholder="Selling price" type="number" required>
+  <input name="cogs" placeholder="COGS" type="number" required>
+  <input name="shipping_cost" placeholder="Shipping cost" type="number" required>
+  <input name="ad_spend" placeholder="Ad spend / order" type="number" required>
+  <input name="return_rate" placeholder="Return rate %" type="number" required>
+  <input name="monthly_volume" placeholder="Monthly target volume" type="number" required>
+  <button class="btn">Calculate</button>
+</form>
+<div class="grid metrics"><div class="metric"><div id="rMargin" class="num">0%</div><div class="label">Net Margin</div></div><div class="metric"><div id="rProfit" class="num">₹0</div><div class="label">Profit / Order</div></div><div class="metric"><div id="rBreak" class="num">0</div><div class="label">Break-even Units</div></div><div class="metric"><div id="rMonthly" class="num">₹0</div><div class="label">Monthly Profit</div></div></div>
+{% endblock %}

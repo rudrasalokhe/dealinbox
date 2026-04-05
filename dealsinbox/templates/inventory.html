@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}Inventory{% endblock %}{% block content %}
+<h1>Inventory</h1>
+<div class="card"><table id="inventoryTable"><thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Cost</th><th>Selling</th><th>Stock</th></tr></thead><tbody></tbody></table><div id="inventoryEmpty" class="empty">No products yet. Add products to track stock.</div></div>
+{% endblock %}{% block scripts %}<script>window.loadInventory && window.loadInventory();</script>{% endblock %}
