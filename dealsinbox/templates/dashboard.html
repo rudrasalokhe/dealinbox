@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid metrics">
+  <div class="metric"><div id="mRevenue" class="num">₹0</div><div class="label">Today's Revenue</div></div>
+  <div class="metric"><div id="mOrders" class="num">0</div><div class="label">Order Count</div></div>
+  <div class="metric"><div id="mAov" class="num">₹0</div><div class="label">Avg Order Value</div></div>
+  <div class="metric"><div id="mMargin" class="num">0%</div><div class="label">Gross Margin</div></div>
+  <div class="metric"><div id="mLow" class="num">0</div><div class="label">Low Stock Alerts</div></div>
+</div>
+<div class="card"><canvas id="sparkline" height="80"></canvas></div>
+{% endblock %}
+{% block scripts %}<script>window.loadDashboard && window.loadDashboard();</script>{% endblock %}
