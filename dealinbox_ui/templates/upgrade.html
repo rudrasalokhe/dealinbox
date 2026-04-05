@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Upgrade — DealInbox{% endblock %}
+{% block topbar_title %}Upgrade{% endblock %}
+{% block extra_head %}{% if use_razorpay %}<script src="https://checkout.razorpay.com/v1/checkout.js"></script>{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Upgrade to Pro</h1><p class="page-sub">Unlock advanced creator workflows.</p></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="up-grid">
+  <div class="card" style="padding:24px"><h3>Free</h3><div class="kpi-val">₹0</div><p style="color:var(--t2)">Core tools with monthly limits.</p></div>
+  <div class="card" style="padding:24px;border-color:rgba(255,255,255,.16)"><h3>Pro</h3><div class="kpi-val">₹{{ pro_price }}</div><p style="color:var(--t2)">Unlimited deals, analytics, exports.</p><div style="margin:12px 0"><button class="btn btn-gold" onclick="setMonths(this,1)">1 mo</button><button class="btn" onclick="setMonths(this,3)">3 mo</button><button class="btn" onclick="setMonths(this,6)">6 mo</button></div>{% if use_razorpay %}<button id="rzpBtn" class="btn btn-primary btn-full" onclick="startRazorpay()">Pay via Razorpay</button>{% endif %}<a id="upiDeepLink" class="btn btn-full" target="_blank" href="#" style="margin-top:8px">Open in UPI app →</a><form method="POST" action="{{ url_for('upgrade_submit') }}" style="margin-top:10px"><input type="hidden" name="months" id="monthsInput" value="1"><div class="fg"><label>UPI transaction ID</label><input name="txn_id" required></div><button class="btn btn-full" type="submit">Submit manual payment</button></form></div>
+</div>
+<script>
+const UPI_ID="{{ upi_id }}",UPI_NAME="{{ upi_name }}",PRICE={{ pro_price }},USER_EMAIL="{{ session.email }}",USER_NAME="{{ session.name }}";let currentMonths=1;
+function setMonths(_,m){currentMonths=m;document.getElementById('monthsInput').value=m;updateUPI();}
+function updateUPI(){const amount=(PRICE*currentMonths).toFixed(2);document.getElementById('upiDeepLink').href='upi://pay?pa='+encodeURIComponent(UPI_ID)+'&pn='+encodeURIComponent(UPI_NAME)+'&am='+amount+'&cu=INR';}
+{% if use_razorpay %}
+function startRazorpay(){fetch('/upgrade/create-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({months:currentMonths})}).then(r=>r.json()).then(data=>{if(data.error) throw new Error(data.error);const rzp=new Razorpay({key:data.key,amount:data.amount,currency:data.currency,name:'DealInbox',order_id:data.order_id,prefill:{name:USER_NAME,email:USER_EMAIL},handler:(resp)=>fetch('/upgrade/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(resp)}).then(x=>x.json()).then(v=>{if(v.ok)window.location='/dashboard';})});rzp.open();});}
+{% endif %}
+window.addEventListener('load',updateUPI);
+</script>
+<style>@media(max-width:900px){.up-grid{grid-template-columns:1fr!important}}</style>
+<div class="card" style="padding:20px;margin-top:14px">
+  <h3 style="margin-bottom:8px">Brand Studio Plans</h3>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" class="brand-plan-grid">
+    <div class="card" style="padding:12px"><b>Free</b><p style="color:var(--t2);font-size:12px">3 campaigns · 10 creator searches/day</p></div>
+    <div class="card" style="padding:12px;border-color:var(--blue)"><b>Growth — ₹2,999/mo</b><p style="color:var(--t2);font-size:12px">Unlimited campaigns · AI matching (20/mo)</p></div>
+    <div class="card" style="padding:12px"><b>Scale — ₹7,999/mo</b><p style="color:var(--t2);font-size:12px">Unlimited AI · GST invoices · priority support</p></div>
+  </div>
+</div>
+<style>@media(max-width:900px){.brand-plan-grid{grid-template-columns:1fr!important}}</style>
+{% endblock %}

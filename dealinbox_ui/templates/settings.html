@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Settings — DealInbox{% endblock %}
+{% block topbar_title %}Settings{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:200px 1fr;gap:14px" class="set-grid">
+  <aside class="card fade-in" style="padding:12px">
+    <a class="btn btn-full btn-sm" href="#profile">Profile</a>
+    <a class="btn btn-full btn-sm" href="#notifications" style="margin-top:6px">Notifications</a>
+    <a class="btn btn-full btn-sm" href="{{ url_for('integrations_hub') }}" style="margin-top:6px">Integrations</a>
+    <a class="btn btn-full btn-sm" href="#plan" style="margin-top:6px">Plan</a>
+  </aside>
+  <div style="display:grid;gap:14px">
+    <form method="POST" class="card fade-in" id="profile" style="padding:18px">
+      <h3>Profile</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Name</label><input name="name" value="{{ user.name or '' }}"></div>
+        <div class="fg"><label>Username</label><input value="{{ user.username }}" disabled></div>
+      </div>
+      <div class="fg"><label>Bio</label><textarea name="bio">{{ user.bio or '' }}</textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Niche</label><input name="niche" value="{{ user.niche or '' }}"></div>
+        <div class="fg"><label>Platform</label><select name="platform"><option value="">Select</option>{% for p in platforms %}<option {% if user.platform==p %}selected{% endif %} value="{{ p }}">{{ p }}</option>{% endfor %}</select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Instagram</label><input name="instagram" value="{{ user.instagram or '' }}"></div>
+        <div class="fg"><label>YouTube</label><input name="youtube" value="{{ user.youtube or '' }}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Followers</label><input name="followers" value="{{ user.followers or '' }}"></div>
+        <div class="fg"><label>Collab email</label><input name="collab_email" value="{{ user.collab_email or user.email or '' }}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Base rate</label><select name="min_budget"><option value="">No minimum</option>{% for b in budgets %}<option {% if user.min_budget==b %}selected{% endif %} value="{{ b }}">{{ b }}</option>{% endfor %}</select></div>
+        <div class="fg"><label>Response time</label><select name="response_time">{% for rt in ['24 hours','48 hours','3 days','1 week'] %}<option value="{{ rt }}" {% if user.response_time == rt %}selected{% endif %}>{{ rt }}</option>{% endfor %}</select></div>
+      </div>
+      <button class="btn btn-gold" type="submit">Save settings</button>
+    </form>
+
+    <section id="plan" class="card fade-in" style="padding:18px">
+      <h3>Plan</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        <div class="card" style="padding:14px"><b>Free</b><p style="color:var(--t2)">Core pipeline tools</p></div>
+        <div class="card" style="padding:14px;border-color:rgba(255,255,255,.16)"><b style="color:var(--gold)">Pro</b><p style="color:var(--t2)">Advanced analytics & export</p>{% if user.plan != 'pro' %}<a class="btn btn-gold btn-sm" href="{{ url_for('upgrade') }}">Upgrade</a>{% endif %}</div>
+      </div>
+    </section>
+  </div>
+</div>
+<style>@media(max-width:900px){.set-grid{grid-template-columns:1fr!important}}</style>
+{% endblock %}
