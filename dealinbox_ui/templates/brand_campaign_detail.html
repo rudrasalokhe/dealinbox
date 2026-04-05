@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Campaign Detail — DealInbox{% endblock %}
+{% block topbar_title %}{{ campaign.title }}{% endblock %}
+{% block content %}
+<div class="card" style="padding:16px">
+  <h3>{{ campaign.title }}</h3>
+  <p style="color:var(--t2)">{{ campaign.brief }}</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px" id="kanban">
+  {% for col in ['applied','shortlisted','approved','rejected'] %}
+    <section class="card" style="padding:12px">
+      <h4 style="text-transform:capitalize">{{ col }}</h4>
+      {% for a in applicants if a.status == col %}
+        <div class="card" style="padding:10px;margin-top:8px">
+          <div>@{{ a.creator_username or 'creator' }}</div>
+          <small style="color:var(--t2)">{{ a.source or '' }}</small>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="move('{{ loop.index0 if false else '' }}', '{{ col }}')" style="display:none"></button>
+          </div>
+        </div>
+      {% else %}
+        <div style="color:var(--t2);font-size:12px">No applicants</div>
+      {% endfor %}
+    </section>
+  {% endfor %}
+</div>
+
+<div class="card" style="padding:12px;margin-top:12px">
+  <h4>All applicants</h4>
+  {% for a in applicants %}
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:8px 0">
+      <span>@{{ a.creator_username or 'creator' }} · {{ a.status }}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="setStatus({{ loop.index0 }},'shortlisted')">Shortlist</button>
+        <button class="btn btn-sm" onclick="setStatus({{ loop.index0 }},'approved')">Approve</button>
+        <button class="btn btn-sm" onclick="setStatus({{ loop.index0 }},'rejected')">Reject</button>
+      </div>
+    </div>
+  {% else %}<p style="color:var(--t2)">No applicants yet.</p>{% endfor %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+async function setStatus(idx,status){
+  const r=await fetch('/api/brand/campaign/{{ campaign._id }}/applicants/'+idx+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  const d=await r.json(); if(!d.ok){showToast(d.error||'Failed');return;} location.reload();
+}
+</script>
+{% endblock %}

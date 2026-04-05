@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ meta_title }}</title>
+  <meta name="description" content="{{ meta_desc }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="wrap" style="max-width:960px;padding:40px 20px">
+  <section class="card" style="padding:20px">
+    <h1>{{ user.name or user.username }}</h1>
+    <p style="color:var(--t2)">{{ user.bio or 'Available for brand collaborations.' }}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <span class="pill">{{ user.platform or 'Creator' }}</span>
+      <span class="pill">{{ user.niche or 'General' }}</span>
+      <span class="pill">{{ user.followers or 'Audience' }}</span>
+    </div>
+    <div style="margin-top:8px;color:var(--t2)">{{ wins }} wins out of {{ total }} enquiries</div>
+    <a class="btn btn-gold" style="margin-top:12px" href="/{{ '@' }}{{ user.username }}">Book a Deal</a>
+  </section>
+
+  <section class="card" style="padding:20px;margin-top:14px">
+    <h3>Rate card</h3>
+    {% for r in rates %}
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span>{{ r.format }}</span><b>₹{{ '{:,}'.format(r.base_rate or 0) }}</b>
+      </div>
+    {% else %}
+      <p style="color:var(--t2)">Rate card will be shared on request.</p>
+    {% endfor %}
+  </section>
+
+  {% if badges %}
+  <section class="card" style="padding:20px;margin-top:14px">
+    <h3>Badges</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% for b in badges %}
+        <span class="pill">{{ b.badge_type }}</span>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+</body>
+</html>

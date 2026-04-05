@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Deal Marketplace — DealInbox{% endblock %}
+{% block topbar_title %}Deal Marketplace{% endblock %}
+{% block content %}
+<div class="card" style="padding:16px">
+  <h3>Available Creator Slots</h3>
+  <p style="color:var(--t2)">Brands can book these slots directly. Booking auto-creates a pipeline deal.</p>
+</div>
+<div style="display:grid;gap:10px;margin-top:12px">
+  {% for s in slots %}
+    {% set c = creators.get(s.creator_id, {}) %}
+    <article class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+        <div>
+          <b>{{ s.format }}</b> · ₹{{ '{:,}'.format(s.price or 0) }}
+          <div style="color:var(--t2)">{{ c.name or c.username or 'Creator' }} · {{ s.niche or 'General' }}</div>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="bookSlot('{{ s._id }}')">Book Slot</button>
+      </div>
+    </article>
+  {% else %}
+    <div class="card" style="padding:14px;color:var(--t2)">No slots are open right now.</div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+async function bookSlot(slotId){
+  const brand_name=prompt('Brand name'); if(!brand_name) return;
+  const contact_name=prompt('Contact name')||'';
+  const email=prompt('Work email'); if(!email) return;
+  const brief=prompt('Campaign brief'); if(!brief) return;
+  const r=await fetch(`/api/marketplace/slots/${slotId}/book`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand_name,contact_name,email,brief})});
+  const d=await r.json();
+  if(!d.ok){alert(d.error||'Failed');return;}
+  showToast('Booked. Deal created.');
+  location.reload();
+}
+</script>
+{% endblock %}
