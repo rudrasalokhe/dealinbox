@@ -1,10 +1,9 @@
 services:
   - type: web
-    name: bharatstack
+    name: dealsinbox
     env: python
-    rootDir: dealinbox
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT run:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT dealsinbox.app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -13,7 +12,7 @@ services:
       - key: MONGO_URI
         sync: false
       - key: DB_NAME
-        value: bharatstack
+        value: dealsinbox
       - key: BASE_URL
         sync: false
       - key: TWILIO_ACCOUNT_SID

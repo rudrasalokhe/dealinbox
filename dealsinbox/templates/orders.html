@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Orders{% endblock %}{% block content %}
+<h1>Orders</h1>
+<div class="toolbar"><input id="searchOrder" placeholder="Search order/customer"><select id="statusFilter"><option value="">All</option><option>pending</option><option>shipped</option><option>delivered</option><option>returned</option><option>cancelled</option></select><button id="exportCsv" class="btn btn-ghost">Export CSV</button></div>
+<div class="card"><table id="ordersTable"><thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead><tbody></tbody></table><div id="ordersEmpty" class="empty">No orders yet. Add your first order.</div></div>
+<div class="pagination"><button id="prevPage" class="btn btn-ghost">Prev</button><span id="pageMeta">1</span><button id="nextPage" class="btn btn-ghost">Next</button></div>
+{% endblock %}{% block scripts %}<script>window.loadOrders && window.loadOrders();</script>{% endblock %}
