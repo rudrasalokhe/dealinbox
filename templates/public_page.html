@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partner with {{ user.name }} — DealInbox</title>
+  <meta name="description" content="{{ user.bio or 'Send a brand collaboration enquiry to ' + user.name + '.' }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=Instrument+Sans:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="pp-nav">
+  <a href="{{ url_for('index') }}">DealInbox</a>
+</nav>
+
+<div class="pp-shell">
+  <div class="pp-header">
+    <div class="pp-avatar">{{ user.name[0].upper() if user.name else 'C' }}</div>
+    <div>
+      <h1 class="pp-name">{{ user.name }}</h1>
+      <div class="pp-meta">@{{ user.username }}{% if user.niche %} · {{ user.niche }}{% endif %}{% if user.followers %} · {{ user.followers }} followers{% endif %}</div>
+    </div>
+  </div>
+
+  {% if user.bio %}<p class="pp-bio">{{ user.bio }}</p>{% endif %}
+
+  {% if user.response_time or user.min_budget %}
+  <div class="pp-stats">
+    {% if user.response_time %}<div class="pp-stat"><strong>{{ user.response_time }}</strong><span>Typical response</span></div>{% endif %}
+    {% if user.min_budget %}<div class="pp-stat"><strong>₹{{ user.min_budget }}</strong><span>Minimum budget</span></div>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if inbox_full %}
+  <div class="pp-form-card" style="margin-top:26px;text-align:center">
+    <h2>Inbox is at capacity this month</h2>
+    <p style="margin-top:8px;font-size:13.5px">{{ user.name.split()[0] if user.name else 'This creator' }} has reached their monthly enquiry limit. Please check back next month or reach out directly if you have their contact details.</p>
+  </div>
+  {% else %}
+  <div class="pp-form-card" style="margin-top:26px">
+    <h2 style="font-size:17px">Send a brand collaboration request</h2>
+    <p style="font-size:13px;margin-top:5px;margin-bottom:22px">Share your campaign goals, budget, and deliverables. {{ user.name.split()[0] if user.name else 'The creator' }} reviews serious opportunities fast.</p>
+
+    <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}">
+      <div class="form-row-2">
+        <div class="fg"><label>Brand / Agency name *</label><input type="text" name="brand_name" placeholder="Mamaearth" required></div>
+        <div class="fg"><label>Your name</label><input type="text" name="contact_name" placeholder="Rahul Sharma"></div>
+      </div>
+      <div class="fg"><label>Work email *</label><input type="email" name="email" placeholder="rahul@mamaearth.in" required></div>
+      <div class="form-row-2">
+        <div class="fg">
+          <label>Platform</label>
+          <select name="platform">
+            <option value="">Select platform</option>
+            {% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Budget range</label>
+          <select name="budget">
+            <option value="">Select budget</option>
+            {% for b in budgets %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Timeline</label><input type="text" name="timeline" placeholder="e.g. This month, Q4 2026"></div>
+      <div class="fg">
+        <label>Campaign overview *</label>
+        <textarea name="brief" rows="5" placeholder="Tell {{ user.name.split()[0] if user.name else 'them' }} about your brand, what you're promoting, and what you need..." required></textarea>
+      </div>
+      <div class="fg">
+        <label>Deliverables</label>
+        <textarea name="deliverables" rows="3" placeholder="e.g. 1 Instagram Reel + 3 Stories, product tagged, link in bio."></textarea>
+      </div>
+      <button type="submit" class="g-btn-primary btn-full">Send collaboration request →</button>
+      <p style="text-align:center;margin-top:12px;font-size:11.5px;color:var(--t4)">Goes directly to {{ user.name.split()[0] if user.name else 'creator' }}'s DealInbox. No spam, ever.</p>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="bp-powered">Powered by <a href="{{ url_for('index') }}">DealInbox</a></div>
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

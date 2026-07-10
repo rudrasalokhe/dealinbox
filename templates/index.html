@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealInbox — Every brand deal, finally organised.</title>
+  <meta name="description" content="One link for brand deals. Structured briefs, a clean pipeline, and real earnings tracking — built for creators.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=Instrument+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="landing">
+
+<nav class="lp-nav">
+  <a href="{{ url_for('index') }}" class="lp-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" alt="">DealInbox</a>
+  <div class="lp-nav-links">
+    <a href="#features">Features</a>
+    <a href="#testimonials">Creators</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="lp-nav-right">
+    <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Log in</a>
+    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign up free</a>
+  </div>
+</nav>
+
+<section class="lp-hero">
+  <span class="lp-eyebrow reveal-up"><i></i>Now live for Indian creators</span>
+  <h1 class="reveal-up">Every brand deal,<br>finally <span class="accent">organised.</span></h1>
+  <p class="reveal-up">One link for every collab request. Brands submit a proper brief — budget, timeline, deliverables — and you track it from first message to paid invoice.</p>
+  <div class="lp-hero-cta reveal-up">
+    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl">Create your free page →</a>
+    <a href="{{ url_for('login') }}" class="btn btn-ghost btn-xl">See a live example</a>
+  </div>
+  <div class="lp-trust reveal-up">
+    <div class="lp-avatars">
+      <span class="lp-av" style="background:#c2410c">P</span>
+      <span class="lp-av" style="background:#7c3aed">R</span>
+      <span class="lp-av" style="background:#0e7490">N</span>
+      <span class="lp-av" style="background:#15803d">A</span>
+      <span class="lp-av" style="background:#a9781f">S</span>
+    </div>
+    <span><strong style="color:var(--t1)">{{ "{:,}".format(total) }}+</strong> creators on DealInbox</span>
+  </div>
+
+  <div class="lp-mock reveal-up">
+    <div class="lp-mock-bar"><i style="background:#e5605a"></i><i style="background:#e8b23c"></i><i style="background:#48b566"></i></div>
+    <div class="lp-mock-body">
+      <aside class="lp-mock-side">
+        <div class="lp-mock-item active">Dashboard</div>
+        <div class="lp-mock-item">Brand Opportunities</div>
+        <div class="lp-mock-item">Priority Board</div>
+        <div class="lp-mock-item">Creator Earnings</div>
+        <div class="lp-mock-item">My Page</div>
+      </aside>
+      <div class="lp-mock-content">
+        <div class="lp-mock-stats">
+          <div class="lp-mock-stat"><b>Active deals</b><span>8</span></div>
+          <div class="lp-mock-stat"><b>This month</b><span>₹1.2L</span></div>
+          <div class="lp-mock-stat"><b>Avg deal</b><span>₹22.5K</span></div>
+        </div>
+        <div class="lp-mock-deals">
+          <div class="lp-deal-row"><span class="lp-deal-av" style="background:#178a4c">M</span><strong>Mamaearth</strong><span class="amt">₹25,000</span></div>
+          <div class="lp-deal-row"><span class="lp-deal-av" style="background:#2b64e0">B</span><strong>boAt</strong><span class="amt">₹45,000</span></div>
+          <div class="lp-deal-row"><span class="lp-deal-av" style="background:#b3286b">N</span><strong>Nykaa</strong><span class="amt">₹18,000</span></div>
+          <div class="lp-deal-row"><span class="lp-deal-av" style="background:#5a4fcf">My</span><strong>Myntra</strong><span class="amt">₹60,000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-social reveal-up">
+  <p>Creators from these platforms use DealInbox</p>
+  <div class="lp-platforms"><span>YouTube</span><span>Instagram</span><span>Moj</span><span>Josh</span><span>LinkedIn</span></div>
+</section>
+
+<section class="lp-section" id="features">
+  <div class="lp-section-head reveal-up">
+    <span class="lp-section-eyebrow">Features</span>
+    <h2>Built for how creators actually work</h2>
+    <p>No spreadsheets. No forgotten follow-ups. Just a clean, high-clarity pipeline.</p>
+  </div>
+  <div class="lp-feature-grid">
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M3 11h18v8H3z"/><path d="M7 11l2-4h6l2 4"/></svg></div><h3>One link, zero chaos</h3><p>Share your DealInbox link. Brands fill a proper brief — budget, timeline, deliverables — instead of a DM thread.</p></article>
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v4H3zM3 10h18v4H3zM3 14h18v4H3z"/></svg></div><h3>Track every deal's journey</h3><p>A pipeline from first contact to paid. See exactly where every collaboration stands.</p></article>
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 12h5M9 16h6"/></svg></div><h3>Know exactly what you've earned</h3><p>Monthly breakdown, pending payments, lifetime value — numbers you can actually show anyone.</p></article>
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 018 0v4l2 3H6l2-3z"/><circle cx="18" cy="6" r="2"/></svg></div><h3>Never miss a deadline</h3><p>A priority board flags urgent replies and payment follow-ups before anything falls through.</p></article>
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><path d="M3 8h18v10H3z"/><path d="M8 8V6h8v2"/></svg></div><h3>Look premium to every brand</h3><p>A structured submission form signals you're serious. Better briefs mean better deals.</p></article>
+    <article class="lp-feature reveal-up"><div class="lp-feature-icon"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 17h4"/></svg></div><h3>Manage from anywhere</h3><p>Fully responsive. Review briefs, update statuses, and check earnings from your phone.</p></article>
+  </div>
+</section>
+
+<section class="lp-section" id="testimonials">
+  <div class="lp-section-head reveal-up">
+    <span class="lp-section-eyebrow">Creators love it</span>
+    <h2>Real creators, real results</h2>
+    <p>Built from actual creator workflows, not generic productivity theory.</p>
+  </div>
+  <div class="lp-test-grid">
+    <article class="lp-test-card reveal-up">
+      <div class="lp-stars">★★★★★</div>
+      <p class="lp-test-text">Before DealInbox I had a Notion doc, a spreadsheet, and forty unread DMs all tracking the same deals. First month in, I found a ₹18K deal I'd completely forgotten about.</p>
+      <div class="lp-test-user"><div class="lp-test-av" style="background:#c2410c">PS</div><div><strong>Priya S.</strong><span>890K · Beauty</span></div></div>
+    </article>
+    <article class="lp-test-card reveal-up">
+      <div class="lp-stars">★★★★★</div>
+      <p class="lp-test-text">Brands fill in their budget upfront now, so I've stopped having the awkward money conversation. My average deal value went up 30% in three months.</p>
+      <div class="lp-test-user"><div class="lp-test-av" style="background:#2b52e0">RK</div><div><strong>Rohan K.</strong><span>1.2M · Tech</span></div></div>
+    </article>
+    <article class="lp-test-card reveal-up">
+      <div class="lp-stars">★★★★★</div>
+      <p class="lp-test-text">I sent my DealInbox link to a top FMCG brand's marketing team. They called it the most professional outreach they'd seen from an indie creator — closed the deal that week.</p>
+      <div class="lp-test-user"><div class="lp-test-av" style="background:#178a4c">NM</div><div><strong>Neha M.</strong><span>450K · Lifestyle</span></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="lp-section" id="pricing">
+  <div class="lp-section-head reveal-up">
+    <span class="lp-section-eyebrow">Pricing</span>
+    <h2>Simple pricing</h2>
+    <p>Start for free, upgrade when your pipeline scales.</p>
+  </div>
+  <div class="lp-pricing-grid">
+    <article class="lp-price-card reveal-up">
+      <span class="badge badge-green"><i></i>Free</span>
+      <div class="lp-price">₹0 <small>/forever</small></div>
+      <p style="margin-top:6px;font-size:13px">Everything to get started</p>
+      <hr class="divider">
+      <ul class="lp-price-list">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>1 public DealInbox link</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Up to {{ free_limit if free_limit else 20 }} active deals</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Basic earnings tracker</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Brand submission form</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="btn btn-full" style="margin-top:20px">Start for free</a>
+    </article>
+
+    <article class="lp-price-card pro reveal-up">
+      <span class="badge badge-gold"><i></i>Most popular</span>
+      <div class="lp-price">₹{{ pro_price if pro_price else 199 }} <small>/month</small></div>
+      <p style="margin-top:6px;font-size:13px">Everything in Free, plus</p>
+      <hr class="divider">
+      <ul class="lp-price-list">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold-strong)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Unlimited active deals</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold-strong)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Advanced earnings analytics</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold-strong)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Priority board &amp; positioning tools</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold-strong)"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Priority support</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-full" style="margin-top:20px">Start with Pro →</a>
+      <p style="text-align:center;margin-top:10px;font-size:11.5px">No credit card required to sign up</p>
+    </article>
+  </div>
+</section>
+
+<section class="lp-final">
+  <div class="reveal-up">
+    <h2>Your next brand deal is waiting.</h2>
+    <p>Join {{ "{:,}".format(total) }}+ Indian creators who actually know what's in their inbox.</p>
+    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-xl" style="margin-top:24px">Create your free page →</a>
+    <small>No credit card · Free forever plan · Set up in 2 minutes</small>
+  </div>
+</section>
+
+<footer class="lp-footer">
+  <div class="lp-footer-inner">
+    <div class="lp-footer-left">
+      <span class="lp-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" alt="">DealInbox</span>
+      <span>© 2026 DealInbox. Made for Indian creators.</span>
+    </div>
+    <div class="lp-footer-right">
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="{{ url_for('login') }}">For Brands</a>
+    </div>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}404 — DealInbox{% endblock %}{% block content %}
+<div class="error-shell">
+  <div class="error-code">ERROR 404</div>
+  <h1>Page not found</h1>
+  <p>This creator doesn't exist or their page is unavailable.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">← Go home</a>
+</div>
+{% endblock %}

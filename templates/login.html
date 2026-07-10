@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Log In — DealInbox{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+{% block content %}
+<div class="auth-split">
+  <section class="auth-left">
+    <a href="{{ url_for('index') }}" class="auth-logo">DealInbox</a>
+    <h1>Welcome back.</h1>
+    <p>Pick up where you left off — every brand deal, right where you tracked it.</p>
+    <div class="auth-highlight-grid">
+      <article><strong>Deal pipeline</strong><span>See every brand opportunity at a glance.</span></article>
+      <article><strong>Earnings tracker</strong><span>Know exactly what you've made and what's pending.</span></article>
+      <article><strong>Brand submissions</strong><span>Structured briefs — no more DM chaos.</span></article>
+    </div>
+  </section>
+
+  <section class="auth-right">
+    <div class="auth-card">
+      <h2>Log in</h2>
+      <p>Enter your details to continue.</p>
+      <form method="POST" class="auth-form">
+        <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required autofocus></div>
+        <div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required></div>
+        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Continue →</button>
+      </form>
+      <div class="auth-foot">No account? <a href="{{ url_for('signup') }}">Create one free →</a></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — DealInbox{% endblock %}
+{% block content %}
+<div class="dbx-wrap">
+  <div class="dbx-top">
+    <div>
+      <h1>Welcome back, {{ dashboard_state.name.split()[0] if dashboard_state.name else 'there' }}.</h1>
+      <p>Track active deals, pending payments, and everything in your pipeline.</p>
+    </div>
+    <a href="{{ dashboard_state.urls.enquiries }}" class="dbx-add">View opportunities</a>
+  </div>
+
+  {% for n in dashboard_state.notifications %}
+  <div class="{% if n.type == 'usage' %}notification-banner{% else %}insight-banner{% endif %}">{{ n.text }}</div>
+  {% endfor %}
+
+  <section class="dbx-grid">
+    <article class="dbx-kpi gold"><label>Active deals</label><strong data-count="{{ dashboard_state.stats.total }}">{{ dashboard_state.stats.total }}</strong><p>{{ dashboard_state.stats.new_count }} new this week</p></article>
+    <article class="dbx-kpi green"><label>Pipeline value</label><strong>₹{{ "{:,}".format(dashboard_state.stats.total_val) }}</strong><p>From negotiating &amp; signed deals</p></article>
+    <article class="dbx-kpi blue"><label>Avg deal value</label><strong>₹{{ "{:,}".format(dashboard_state.stats.avg_value or 0) }}</strong><p>{{ dashboard_state.stats.conversion }}% close rate</p></article>
+    <article class="dbx-kpi red"><label>Reminders due</label><strong>{{ dashboard_state.pending_tasks|length }}</strong><p>Within the next 7 days</p></article>
+  </section>
+
+  <section class="dbx-main">
+    <div class="dbx-card">
+      <div class="dbx-card-head"><h3>Recent deals</h3><a href="{{ dashboard_state.urls.enquiries }}" class="btn btn-ghost btn-sm">View all →</a></div>
+      {% if dashboard_state.recent %}
+      <table class="dbx-table">
+        <thead><tr><th>Brand</th><th>Budget</th><th>Status</th><th>Received</th><th></th></tr></thead>
+        <tbody>
+        {% for r in dashboard_state.recent %}
+          {% set st = r.status %}
+          <tr onclick="window.location='{{ dashboard_state.urls.status_base }}{{ r.id }}'">
+            <td><div class="dbx-brand"><div class="dbx-av">{{ r.brand_name[0] if r.brand_name else '?' }}</div><div><b>{{ r.brand_name }}</b><small>{{ r.platform }}</small></div></div></td>
+            <td>{{ r.budget }}</td>
+            <td><span class="dbx-status {% if st == 'new' %}dbx-s-new{% elif st in ['reviewing','negotiating'] %}dbx-s-review{% elif st in ['accepted','closed'] %}dbx-s-ok{% else %}dbx-s-bad{% endif %}">{{ r.status_label }}</span></td>
+            <td class="td-time">{{ r.created_at_fmt }}</td>
+            <td><a class="btn btn-ghost dbx-view" href="{{ dashboard_state.urls.status_base }}{{ r.id }}">View →</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="premium-empty" style="margin:18px;border:1px dashed var(--border-strong)">
+        <h3>No brand opportunities yet</h3>
+        <p>Share your public collaboration page to start receiving campaign requests.</p>
+        <a href="{{ dashboard_state.urls.public_page }}" target="_blank" class="btn btn-primary">Open public collab page ↗</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="dbx-side">
+      <div class="dbx-card dbx-mini dbx-pipe">
+        <div class="dbx-mini-head"><h3>Deal pipeline</h3></div>
+        {% set total = dashboard_state.stats.total or 1 %}
+        {% for s in dashboard_state.pipeline %}
+          {% set pct = ((s.count/total)*100)|round(0,'floor') %}
+          <div class="row"><div class="meta"><span>{{ s.label }}</span><b>{{ s.count }}</b></div><div class="dbx-track"><div class="dbx-fill" style="width:{{ pct }}%;background:{{ s.color }}"></div></div></div>
+        {% endfor %}
+      </div>
+
+      <div class="dbx-card dbx-mini">
+        <div class="dbx-mini-head"><h3>Reminders</h3><span>{{ dashboard_state.pending_tasks|length }} due soon</span></div>
+        {% if dashboard_state.pending_tasks %}
+        <div class="dbx-list">
+          {% for t in dashboard_state.pending_tasks %}
+          <a href="{{ dashboard_state.urls.status_base }}{{ t.id }}" class="dbx-list-item">
+            <span class="dot" style="background:var(--amber)"></span>
+            <div><strong>{{ t.brand_name }}</strong><small>Due {{ t.reminder_due_fmt }}</small></div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-small">Nothing due this week.</p>
+        {% endif %}
+      </div>
+
+      <div class="dbx-card dbx-mini">
+        <div class="dbx-mini-head"><h3>Top channels</h3></div>
+        {% if dashboard_state.top_platforms %}
+        <div class="dbx-list">
+          {% for p in dashboard_state.top_platforms %}
+          <div class="dbx-list-item"><span class="dot" style="background:var(--accent)"></span><div><strong>{{ p.name }}</strong><small>{{ p.count }} enquir{{ 'y' if p.count == 1 else 'ies' }}</small></div></div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-small">No data yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="dbx-card dbx-mini">
+        <div class="dbx-mini-head"><h3>Getting set up</h3></div>
+        <div class="dbx-list">
+          {% for c in dashboard_state.checklist %}
+          <a href="{{ c.link }}" class="dbx-list-item">
+            <span class="dot" style="background:{{ 'var(--green)' if c.done else 'var(--border-strong)' }}"></span>
+            <div><strong style="{% if c.done %}color:var(--t3);text-decoration:line-through{% endif %}">{{ c.title }}</strong></div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  {% if dashboard_state.insights %}
+  <section class="dbx-card" style="padding:18px 20px">
+    <h3 style="font-size:14px;margin-bottom:10px">Insights</h3>
+    <ul style="display:flex;flex-direction:column;gap:8px">
+      {% for i in dashboard_state.insights %}<li style="font-size:13px;color:var(--t2);display:flex;gap:8px"><span style="color:var(--t4)">→</span>{{ i }}</li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

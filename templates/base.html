@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}DealInbox{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=Instrument+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{% if session.uid %}
+<div class="os-shell">
+  <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
+
+  <aside class="os-sidebar sidebar">
+    <div class="os-brand">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="logo">
+      <div>
+        <strong>DealInbox</strong>
+        <span>Deal workspace for creators</span>
+      </div>
+    </div>
+
+    <div class="os-user">
+      <div class="os-av">{{ session.name[0].upper() if session.name else 'U' }}</div>
+      <div>
+        <p>{{ session.name }}</p>
+        <small>@{{ session.username }}</small>
+      </div>
+    </div>
+
+    <div class="os-nav-group">
+      <p class="os-nav-label">Workspace</p>
+      <nav class="os-nav">
+        <a href="{{ url_for('dashboard') }}" class="os-link {% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('enquiries_page') }}" class="os-link {% if '/enquir' in request.path %}active{% endif %}">Brand Opportunities{% set new_c = new_enquiry_count() %}{% if new_c %}<span>{{ new_c }}</span>{% endif %}</a>
+        <a href="{{ url_for('heatmap_page') }}" class="os-link {% if request.path == '/heatmap' %}active{% endif %}">Priority Board</a>
+        <a href="{{ url_for('analytics') }}" class="os-link {% if request.path == '/analytics' %}active{% endif %}">Creator Earnings</a>
+      </nav>
+    </div>
+
+    <div class="os-nav-group">
+      <p class="os-nav-label">Growth</p>
+      <nav class="os-nav">
+        <a href="{{ url_for('positioning') }}" class="os-link {% if request.path == '/positioning' %}active{% endif %}">Positioning</a>
+        <a href="{{ url_for('settings') }}" class="os-link {% if request.path == '/settings' %}active{% endif %}">Profile &amp; Settings</a>
+        {% if session.get('plan','free') != 'pro' %}
+        <a href="{{ url_for('upgrade') }}" class="os-link os-link-upgrade {% if request.path == '/upgrade' %}active{% endif %}">Upgrade to Pro</a>
+        {% endif %}
+      </nav>
+    </div>
+
+    <div class="os-sidebar-foot">
+      <a href="{{ url_for('public_page', username=session.username) }}" target="_blank" class="os-link">↗ Public collab page</a>
+      <a href="{{ url_for('logout') }}" class="os-link">→ Log out</a>
+    </div>
+  </aside>
+
+  <main class="os-main">
+    <header class="os-topbar">
+      <button class="cmd-btn" onclick="toggleCommandBar()">⌘K &nbsp; Jump to brands, deals, reminders</button>
+      <div class="os-top-actions">
+        <a class="os-pill" href="{{ url_for('settings') }}">{{ session.get("plan", "free")|upper }} PLAN</a>
+        {% if session.get('plan','free') != 'pro' %}<a href="{{ url_for('upgrade') }}" class="btn btn-primary btn-sm">Upgrade</a>{% endif %}
+      </div>
+    </header>
+
+    <div class="command-overlay" id="commandOverlay" onclick="toggleCommandBar(false)"></div>
+    <div class="command-palette" id="commandPalette">
+      <input type="search" id="globalSearch" placeholder="Search brand, campaign, budget, or note..." oninput="runGlobalSearch(this.value)">
+      <div id="globalSearchResults" class="gs-results"></div>
+    </div>
+
+    <section class="os-content">
+{% else %}
+{% block public_nav %}
+<nav class="pub-nav pub-nav-rebuild">
+  <a href="{{ url_for('index') }}" class="nav-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:8px;">DealInbox</a>
+  <div class="pub-nav-center">
+    <a href="{{ url_for('index') }}#features">Features</a>
+    <a href="{{ url_for('index') }}#pricing">Pricing</a>
+  </div>
+  <div class="pub-nav-right">
+    <a href="{{ url_for('login') }}" class="pub-nav-login">Log in</a>
+    <a href="{{ url_for('signup') }}" class="pub-nav-cta">Launch workspace</a>
+  </div>
+</nav>
+{% endblock %}
+{% endif %}
+
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}<button class="flash-close" onclick="this.parentElement.remove()">×</button></div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+{% block content %}{% endblock %}
+
+{% if session.uid %}
+    </section>
+  </main>
+</div>
+{% else %}
+<footer class="g-footer">
+  <div class="g-footer-inner">
+    <span class="g-footer-logo"><img src="{{ url_for('static', filename='logo.jpeg') }}" height="18" style="border-radius:4px;object-fit:cover;vertical-align:middle;margin-right:5px;">DealInbox</span>
+    <span>From collab request to signed campaign — run your creator business like a pro.</span>
+    <span>© 2026</span>
+  </div>
+</footer>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+<script>
+function toggleCommandBar(force){
+  const p=document.getElementById('commandPalette');
+  const o=document.getElementById('commandOverlay');
+  if(!p||!o)return;
+  const open = typeof force === 'boolean' ? force : !p.classList.contains('open');
+  p.classList.toggle('open', open); o.classList.toggle('open', open);
+  if(open){setTimeout(()=>document.getElementById('globalSearch')?.focus(),50);}
+}
+async function runGlobalSearch(q){
+  const box=document.getElementById('globalSearchResults');
+  if(!box)return;
+  if(!q || q.length<2){box.innerHTML='<p class="empty-small">Type at least 2 characters…</p>';return;}
+  const res=await fetch('/api/search?q='+encodeURIComponent(q));
+  const data=await res.json();
+  if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching opportunities.</p>';return;}
+  box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
+}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});
+</script>
+
+</body>
+</html>
