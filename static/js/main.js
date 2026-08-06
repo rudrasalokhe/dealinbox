@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
   initFlash();
   initSidebar();
+  initGrain();
   if (window.DealAnimations) {
     window.DealAnimations.initReveal();
     window.DealAnimations.initCounters();
+    window.DealAnimations.initKPIGlow();
+    window.DealAnimations.init3DTilt();
   }
 });
 
@@ -33,6 +36,14 @@ function initSidebar() {
   });
 }
 
+function initGrain() {
+  if (document.querySelector('.grain-overlay')) return;
+  var grain = document.createElement('div');
+  grain.className = 'grain-overlay';
+  grain.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(grain);
+}
+
 function showToast(msg) {
   var t = document.createElement('div');
   t.className = 'toast';
@@ -44,3 +55,4 @@ function showToast(msg) {
     setTimeout(function () { t.remove(); }, 300);
   }, 2200);
 }
+

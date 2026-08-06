@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08080e">
   <title>Partner with {{ user.name }} — DealInbox</title>
   <meta name="description" content="{{ user.bio or 'Send a brand collaboration enquiry to ' + user.name + '.' }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +41,7 @@
   {% else %}
   <div class="pp-form-card" style="margin-top:26px">
     <h2 style="font-size:17px">Send a brand collaboration request</h2>
-    <p style="font-size:13px;margin-top:5px;margin-bottom:22px">Share your campaign goals, budget, and deliverables. {{ user.name.split()[0] if user.name else 'The creator' }} reviews serious opportunities fast.</p>
+    <p style="font-size:13px;margin-top:5px;margin-bottom:22px;color:var(--t3)">Share your campaign goals, budget, and deliverables. {{ user.name.split()[0] if user.name else 'The creator' }} reviews serious opportunities fast.</p>
 
     <form method="POST" action="{{ url_for('submit_enquiry', username=user.username) }}">
       <div class="form-row-2">

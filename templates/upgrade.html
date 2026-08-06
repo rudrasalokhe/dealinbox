@@ -119,7 +119,7 @@ function startRazorpay() {
     if (data.error) throw new Error(data.error);
     const rzp = new Razorpay({
       key: data.key, amount: data.amount, currency: data.currency, name: 'DealInbox', description: 'Pro Plan',
-      order_id: data.order_id, prefill: {name: USER_NAME, email: USER_EMAIL}, theme: {color: '#2b52e0'},
+      order_id: data.order_id, prefill: {name: USER_NAME, email: USER_EMAIL}, theme: {color: '#4f6ef7'},
       handler: function(response) {
         msg.style.display = 'block'; msg.textContent = 'Verifying payment…';
         fetch('/upgrade/verify', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(response)})

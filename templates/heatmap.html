@@ -95,11 +95,10 @@ function showPanel(id){
   const deal = allDeals.find(d=>d.id===id);
   if(!deal) return;
   const u = deal.urgency;
-  const emoji = u.level==='high'?'🔴':u.level==='medium'?'🟡':'🟢';
   document.getElementById('hmpBrand').textContent = deal.brand;
   document.getElementById('hmpMeta').textContent = `${deal.platform||'—'} · ${deal.budget||'Budget TBD'} · ${deal.status} · Received ${deal.created}`;
   document.getElementById('hmpScore').textContent = u.score;
-  document.getElementById('hmpScore').style.color = u.level==='high'?'#ef4444':u.level==='medium'?'#f59e0b':'#10b981';
+  document.getElementById('hmpScore').style.color = u.level==='high'?'var(--red)':u.level==='medium'?'var(--amber)':'var(--green)';
   document.getElementById('hmpReasons').innerHTML = u.reasons.map(r=>`<div class="hmp-reason">${r}</div>`).join('') || '<div class="hmp-reason">No specific urgency signals.</div>';
   document.getElementById('hmpLink').href = '/enquiries/'+id;
   document.getElementById('hmPanel').style.display='block';

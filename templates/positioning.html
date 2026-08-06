@@ -21,7 +21,7 @@
         </div>
         <div class="pos-score-ring" id="posRingWrap">
           <svg viewBox="0 0 80 80" width="72" height="72">
-            <circle cx="40" cy="40" r="32" fill="none" stroke="var(--bg3)" stroke-width="8"/>
+            <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
             <circle cx="40" cy="40" r="32" fill="none" stroke="var(--green)" stroke-width="8"
                     stroke-dasharray="201" stroke-dashoffset="201"
                     id="posArc" stroke-linecap="round" transform="rotate(-90 40 40)"/>
@@ -118,8 +118,8 @@
 .pos-score-ring{position:relative;width:72px;height:72px;flex-shrink:0}
 .pos-score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--t1)}
 .pos-bar-row{margin-top:14px}
-.pos-bar-track{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px}
-.pos-bar-fill{height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981);border-radius:99px;transition:width .8s ease}
+.pos-bar-track{height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.pos-bar-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--amber),var(--green));border-radius:99px;transition:width .8s ease}
 .pos-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
 .sugg-item{padding:14px 0;border-bottom:1px solid var(--border)}
 .sugg-item:last-child{border-bottom:none}
@@ -127,25 +127,25 @@
 .sugg-icon{font-size:18px}
 .sugg-area{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:600;flex:1}
 .sugg-severity{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
-.sev-high{background:rgba(239,68,68,.12);color:#ef4444}
-.sev-medium{background:rgba(245,158,11,.12);color:#f59e0b}
-.sev-low{background:rgba(16,185,129,.12);color:#10b981}
+.sev-high{background:rgba(248,113,113,.12);color:var(--red)}
+.sev-medium{background:rgba(251,191,36,.12);color:var(--amber)}
+.sev-low{background:rgba(52,211,153,.12);color:var(--green)}
 .sugg-problem{font-size:13px;color:var(--t1);font-weight:500;margin-bottom:5px}
-.sugg-fix{font-size:12px;color:var(--t2);line-height:1.5;background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px}
-.sugg-bio-tweak{font-size:11px;color:var(--blue);font-style:italic}
-.profile-preview{background:var(--bg3);border-radius:10px;padding:16px;text-align:center}
-.pp-mock-av{width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 10px}
+.sugg-fix{font-size:12px;color:var(--t2);line-height:1.5;background:rgba(255,255,255,.03);border-radius:7px;padding:8px 10px;margin-bottom:6px}
+.sugg-bio-tweak{font-size:11px;color:var(--accent-hover);font-style:italic}
+.profile-preview{background:rgba(255,255,255,.03);border-radius:10px;padding:16px;text-align:center}
+.pp-mock-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7c5ef7);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 10px}
 .pp-mock-name{font-size:16px;font-weight:700;color:var(--t1)}
 .pp-mock-handle{font-size:12px;color:var(--t3);margin-bottom:8px}
 .pp-mock-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:8px}
-.pp-mock-tag{font-size:11px;background:var(--bg2);border:1px solid var(--border);padding:3px 8px;border-radius:99px;color:var(--t2)}
+.pp-mock-tag{font-size:11px;background:rgba(255,255,255,.04);border:1px solid var(--border);padding:3px 8px;border-radius:99px;color:var(--t2)}
 .pp-mock-bio{font-size:12px;color:var(--t2);font-style:italic;margin-bottom:8px}
-.pp-mock-bio.empty,.pp-mock-budget.empty{color:#ef4444;font-style:normal;font-size:11px}
+.pp-mock-bio.empty,.pp-mock-budget.empty{color:var(--red);font-style:normal;font-size:11px}
 .pp-mock-budget{font-size:12px;color:var(--t2)}
-.bio-result{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);line-height:1.6}
+.bio-result{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);line-height:1.6}
 .posstat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
 .posstat-row:last-child{border-bottom:none}
-.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+.spinner{width:24px;height:24px;border:2px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
@@ -167,9 +167,9 @@
 
   // Color arc by score
   const arcEl = document.getElementById('posArc');
-  if(d.score < 40) arcEl.style.stroke = '#ef4444';
-  else if(d.score < 70) arcEl.style.stroke = '#f59e0b';
-  else arcEl.style.stroke = '#10b981';
+  if(d.score < 40) arcEl.style.stroke = 'var(--red)';
+  else if(d.score < 70) arcEl.style.stroke = 'var(--amber)';
+  else arcEl.style.stroke = 'var(--green)';
 
   // Bar
   document.getElementById('posBarRow').style.display='block';
@@ -179,7 +179,7 @@
   document.getElementById('posStats').innerHTML = `
     <div class="posstat-row"><span style="color:var(--t3)">Total enquiries</span><span style="font-weight:600;color:var(--t1)">${d.total_enqs}</span></div>
     <div class="posstat-row"><span style="color:var(--t3)">Avg budget</span><span style="font-weight:600;color:var(--t1)">₹${(d.avg_budget||0).toLocaleString('en-IN')}</span></div>
-    <div class="posstat-row"><span style="color:var(--t3)">Low-budget %</span><span style="font-weight:600;color:${d.pct_low>60?'#ef4444':'var(--green)'}">${d.pct_low}%</span></div>
+    <div class="posstat-row"><span style="color:var(--t3)">Low-budget %</span><span style="font-weight:600;color:${d.pct_low>60?'var(--red)':'var(--green)'}">${d.pct_low}%</span></div>
     <div class="posstat-row"><span style="color:var(--t3)">Top platform</span><span style="font-weight:600;color:var(--t1)">${d.top_platform}</span></div>
   `;
 

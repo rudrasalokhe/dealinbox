@@ -88,7 +88,7 @@ def to_naive(dt):
 def oid(v):
     try:    return ObjectId(v)
     except: return None
-
+    
 def json_body():
     data = request.get_json(silent=True)
     return data if isinstance(data, dict) else {}

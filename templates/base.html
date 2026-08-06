@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08080e">
   <title>{% block title %}DealInbox{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,6 +104,26 @@
 {% block content %}{% endblock %}
 
 {% if session.uid %}
+    {% if session.uid %}
+    <div class="ai-copilot-fab" onclick="toggleCopilot()">
+      <i></i> ✨ AI Deal Copilot
+    </div>
+    <div class="copilot-modal" id="copilotModal">
+      <div class="copilot-head">
+        <h4>✨ Deal Copilot</h4>
+        <button class="modal-close" onclick="toggleCopilot(false)">×</button>
+      </div>
+      <div class="copilot-tip">
+        <strong>💡 Pitch Pro Tip</strong>
+        Always clarify deliverable timelines &amp; usage rights before confirming rates.
+      </div>
+      <div class="copilot-tip">
+        <strong>📈 Rate Calculator Rule</strong>
+        Baseline: ~₹1,000 per 10,000 follower impressions for dedicated Reels.
+      </div>
+      <a href="{{ url_for('positioning') }}" class="btn btn-primary btn-sm btn-full">Open Positioning Engine →</a>
+    </div>
+    {% endif %}
     </section>
   </main>
 </div>
@@ -137,7 +158,13 @@ async function runGlobalSearch(q){
   if(!data.results?.length){box.innerHTML='<p class="empty-small">No matching opportunities.</p>';return;}
   box.innerHTML=data.results.map(r=>`<a href="/enquiries/${r.id}" class="gs-item"><strong>${r.brand}</strong><span>${r.status} · ${r.budget || 'Budget TBD'} · ${r.date}</span></a>`).join('');
 }
-document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape')toggleCommandBar(false);});
+function toggleCopilot(force){
+  const m=document.getElementById('copilotModal');
+  if(!m)return;
+  const open = typeof force === 'boolean' ? force : !m.classList.contains('open');
+  m.classList.toggle('open', open);
+}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggleCommandBar(true);} if(e.key==='Escape'){toggleCommandBar(false);toggleCopilot(false);}});
 </script>
 
 </body>
