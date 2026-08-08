@@ -10,7 +10,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from dotenv import load_dotenv
-import os, re, csv, io, json
+import os, re, csv, io, json, secrets, hashlib, hmac, urllib.parse
+try:
+    import requests as http_requests
+except ImportError:
+    http_requests = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
 app = Flask(__name__,
@@ -30,6 +34,18 @@ def get_razorpay_client():
         except ImportError:
             return None
     return None
+# ── OAuth config ──────────────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GITHUB_CLIENT_ID     = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+# ── SMTP config (for password reset) ─────────────────────────────────────────
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+# ── Login rate limiting (in-memory) ──────────────────────────────────────────
+_login_attempts = {}  # ip -> {count, last_attempt}
 def build_client():
     try:
         primary = MongoClient(
@@ -279,36 +295,344 @@ def signup():
             "niche": niche, "platform": platform,
             "bio": "", "collab_email": email,
             "min_budget": "", "response_time": "48 hours",
-            "plan": "free", "created_at": now()
+            "plan": "free", "created_at": now(),
+            "auth_provider": "email",
         }).inserted_id
         session.update({"uid": str(uid), "email": email,
                         "username": username, "name": name, "plan": "free"})
         log(str(uid), "Signed up", "Welcome to DealInbox!")
         flash(f"Welcome, {name}! Your DealInbox is ready.","success")
         return redirect(url_for("dashboard"))
+    google_enabled = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    github_enabled = bool(GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET)
     return render_template("signup.html",
                            platforms=PLATFORMS,
                            creator_count=users_col.count_documents({}),
+                           google_enabled=google_enabled,
+                           github_enabled=github_enabled,
                            niches=["Beauty","Fashion","Fitness","Food","Tech",
                                    "Gaming","Travel","Finance","Lifestyle","Comedy","Other"])
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
+        ip = request.remote_addr or "unknown"
+        attempt = _login_attempts.get(ip, {"count": 0, "last": now()})
+        if attempt["count"] >= 5 and (now() - to_naive(attempt["last"])).seconds < 300:
+            flash("Too many login attempts. Please wait 5 minutes.", "error")
+            return redirect(url_for("login"))
         email    = request.form.get("email","").strip().lower()
         password = request.form.get("password","")
         user     = users_col.find_one({"email": email})
-        if not user or not check_password_hash(user["password_hash"], password):
+        if not user or not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
+            attempt["count"] = attempt.get("count", 0) + 1
+            attempt["last"] = now()
+            _login_attempts[ip] = attempt
             flash("Invalid email or password.","error"); return redirect(url_for("login"))
+        _login_attempts.pop(ip, None)
         session.update({"uid": str(user["_id"]), "email": user["email"],
                         "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free")})
+        log(str(user["_id"]), "Logged in", "Email/password")
         flash(f"Welcome back, {user.get('name','')}!","success")
         return redirect(url_for("dashboard"))
-    return render_template("login.html")
+    google_enabled = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    github_enabled = bool(GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET)
+    return render_template("login.html", google_enabled=google_enabled, github_enabled=github_enabled)
 @app.route("/logout")
 def logout():
     session.clear()
     flash("Logged out.","success")
     return redirect(url_for("index"))
+# ═══════════════════════════════════════════════════════════════════════════════
+# SOCIAL AUTH — Google & GitHub OAuth 2.0
+# ═══════════════════════════════════════════════════════════════════════════════
+def _generate_username(name, email):
+    """Generate a unique username from name or email."""
+    base = ""
+    if name:
+        base = re.sub(r'[^a-z0-9_]', '', name.lower().replace(' ', '_'))[:20]
+    if not base and email:
+        base = re.sub(r'[^a-z0-9_]', '', email.split('@')[0].lower())[:20]
+    if not base:
+        base = "creator"
+    candidate = base
+    counter = 1
+    while users_col.find_one({"username": candidate}):
+        candidate = f"{base}_{counter}"
+        counter += 1
+    return candidate
+
+def _social_login_or_create(email, name, provider, provider_id=""):
+    """Handle social login: find existing user by email or create new one."""
+    user = users_col.find_one({"email": email})
+    if user:
+        # Existing user — link provider if not already
+        update = {}
+        if provider == "google" and not user.get("google_id"):
+            update["google_id"] = provider_id
+        elif provider == "github" and not user.get("github_id"):
+            update["github_id"] = provider_id
+        if update:
+            users_col.update_one({"_id": user["_id"]}, {"$set": update})
+        session.update({"uid": str(user["_id"]), "email": user["email"],
+                        "username": user["username"], "name": user.get("name",""),
+                        "plan": user.get("plan","free")})
+        log(str(user["_id"]), f"Logged in via {provider.title()}", email)
+        flash(f"Welcome back, {user.get('name','')}!", "success")
+        return redirect(url_for("dashboard"))
+    # New user — auto create
+    username = _generate_username(name, email)
+    doc = {
+        "name": name or username,
+        "email": email,
+        "username": username,
+        "password_hash": "",
+        "niche": "", "platform": "",
+        "bio": "", "collab_email": email,
+        "min_budget": "", "response_time": "48 hours",
+        "plan": "free", "created_at": now(),
+        f"{provider}_id": provider_id,
+        "auth_provider": provider,
+    }
+    uid = users_col.insert_one(doc).inserted_id
+    session.update({"uid": str(uid), "email": email,
+                    "username": username, "name": name or username, "plan": "free"})
+    log(str(uid), f"Signed up via {provider.title()}", f"Welcome! ({email})")
+    flash(f"Welcome, {name or username}! Your DealInbox is ready.", "success")
+    return redirect(url_for("dashboard"))
+
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+def get_google_redirect_uri():
+    if GOOGLE_REDIRECT_URI:
+        return GOOGLE_REDIRECT_URI
+    return url_for("google_callback", _external=True)
+
+@app.route("/auth/google")
+def google_auth():
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        flash("Logged in via Google! (Demo Mode — add GOOGLE_CLIENT_ID to .env for live Google OAuth)", "info")
+        return _social_login_or_create("google.creator@dealinbox.in", "Google Creator", "google", "demo_google_id")
+    state = secrets.token_urlsafe(32)
+    session["oauth_state"] = state
+    params = urllib.parse.urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": get_google_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "select_account",
+    })
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+
+@app.route("/auth/google/callback")
+def google_callback():
+    if not http_requests:
+        flash("OAuth library not installed.", "error")
+        return redirect(url_for("login"))
+    error = request.args.get("error")
+    if error:
+        flash(f"Google sign-in cancelled: {error}", "error")
+        return redirect(url_for("login"))
+    code = request.args.get("code", "")
+    state = request.args.get("state", "")
+    if not code or state != session.pop("oauth_state", ""):
+        flash("Invalid OAuth state. Please try again.", "error")
+        return redirect(url_for("login"))
+    try:
+        # Exchange code for token
+        token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": get_google_redirect_uri(),
+            "grant_type": "authorization_code",
+        }, timeout=10)
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            flash("Failed to get Google token.", "error")
+            return redirect(url_for("login"))
+        # Get user info
+        user_resp = http_requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}, timeout=10)
+        user_info = user_resp.json()
+        email = user_info.get("email", "").strip().lower()
+        name = user_info.get("name", "")
+        google_id = user_info.get("id", "")
+        if not email:
+            flash("Could not get email from Google.", "error")
+            return redirect(url_for("login"))
+        return _social_login_or_create(email, name, "google", google_id)
+    except Exception as e:
+        print(f"Google OAuth error: {e}")
+        flash("Google sign-in failed. Please try again.", "error")
+        return redirect(url_for("login"))
+
+# ── GitHub OAuth ──────────────────────────────────────────────────────────────
+@app.route("/auth/github")
+def github_auth():
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        flash("Logged in via GitHub! (Demo Mode — add GITHUB_CLIENT_ID to .env for live GitHub OAuth)", "info")
+        return _social_login_or_create("github.creator@dealinbox.in", "GitHub Creator", "github", "demo_github_id")
+    state = secrets.token_urlsafe(32)
+    session["oauth_state"] = state
+    params = urllib.parse.urlencode({
+        "client_id": GITHUB_CLIENT_ID,
+        "redirect_uri": url_for("github_callback", _external=True),
+        "scope": "user:email",
+        "state": state,
+    })
+    return redirect(f"https://github.com/login/oauth/authorize?{params}")
+
+@app.route("/auth/github/callback")
+def github_callback():
+    if not http_requests:
+        flash("OAuth library not installed.", "error")
+        return redirect(url_for("login"))
+    error = request.args.get("error")
+    if error:
+        flash(f"GitHub sign-in cancelled.", "error")
+        return redirect(url_for("login"))
+    code = request.args.get("code", "")
+    state = request.args.get("state", "")
+    if not code or state != session.pop("oauth_state", ""):
+        flash("Invalid OAuth state. Please try again.", "error")
+        return redirect(url_for("login"))
+    try:
+        token_resp = http_requests.post("https://github.com/login/oauth/access_token", data={
+            "client_id": GITHUB_CLIENT_ID,
+            "client_secret": GITHUB_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": url_for("github_callback", _external=True),
+        }, headers={"Accept": "application/json"}, timeout=10)
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            flash("Failed to get GitHub token.", "error")
+            return redirect(url_for("login"))
+        user_resp = http_requests.get("https://api.github.com/user",
+            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"}, timeout=10)
+        user_info = user_resp.json()
+        email = (user_info.get("email") or "").strip().lower()
+        # GitHub may hide email — fetch from emails endpoint
+        if not email:
+            emails_resp = http_requests.get("https://api.github.com/user/emails",
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"}, timeout=10)
+            for em in emails_resp.json():
+                if em.get("primary") and em.get("verified"):
+                    email = em["email"].strip().lower()
+                    break
+        name = user_info.get("name") or user_info.get("login", "")
+        github_id = str(user_info.get("id", ""))
+        if not email:
+            flash("Could not get email from GitHub. Please make your email public or use another sign-in method.", "error")
+            return redirect(url_for("login"))
+        return _social_login_or_create(email, name, "github", github_id)
+    except Exception as e:
+        print(f"GitHub OAuth error: {e}")
+        flash("GitHub sign-in failed. Please try again.", "error")
+        return redirect(url_for("login"))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FORGOT / RESET PASSWORD
+# ═══════════════════════════════════════════════════════════════════════════════
+def _send_reset_email(to_email, reset_url):
+    """Send password reset email via SMTP."""
+    if not SMTP_USER or not SMTP_PASS:
+        print("SMTP not configured — cannot send reset email.")
+        return False
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        msg = MIMEMultipart("alternative")
+        msg["From"] = f"DealInbox <{SMTP_USER}>"
+        msg["To"] = to_email
+        msg["Subject"] = "Reset your DealInbox password"
+        html = f"""
+        <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0d0d14;color:#eee;border-radius:12px">
+            <h2 style="color:#fff;margin-bottom:8px">Reset your password</h2>
+            <p style="color:#9a9ab0;font-size:14px">Click the button below to set a new password for your DealInbox account.</p>
+            <a href="{reset_url}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#4f6ef7;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">Reset Password →</a>
+            <p style="color:#6b6b80;font-size:12px">This link expires in 1 hour. If you didn't request this, ignore this email.</p>
+            <hr style="border:1px solid #1a1a26;margin:24px 0">
+            <p style="color:#44445a;font-size:11px">DealInbox — Deal workspace for creators</p>
+        </div>
+        """
+        msg.attach(MIMEText(html, "html"))
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_USER, to_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return False
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        if not email:
+            flash("Please enter your email.", "error")
+            return redirect(url_for("forgot_password"))
+        user = users_col.find_one({"email": email})
+        if user:
+            # Generate reset token (valid 1 hour)
+            token = secrets.token_urlsafe(48)
+            users_col.update_one({"_id": user["_id"]}, {"$set": {
+                "reset_token": token,
+                "reset_token_expires": now() + timedelta(hours=1),
+            }})
+            reset_url = url_for("reset_password", token=token, _external=True)
+            _send_reset_email(email, reset_url)
+        # Always show success to prevent email enumeration
+        flash("If an account with that email exists, we've sent a password reset link.", "success")
+        return render_template("forgot_password.html", sent=True)
+    return render_template("forgot_password.html", sent=False)
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    user = users_col.find_one({
+        "reset_token": token,
+        "reset_token_expires": {"$gt": now()}
+    })
+    if not user:
+        flash("Invalid or expired reset link. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+            return render_template("reset_password.html", token=token)
+        if password != confirm:
+            flash("Passwords don't match.", "error")
+            return render_template("reset_password.html", token=token)
+        users_col.update_one({"_id": user["_id"]}, {"$set": {
+            "password_hash": generate_password_hash(password),
+            "reset_token": None,
+            "reset_token_expires": None,
+        }})
+        log(str(user["_id"]), "Password reset", "Via email link")
+        flash("Password updated! Please log in with your new password.", "success")
+        return redirect(url_for("login"))
+    return render_template("reset_password.html", token=token)
+
+# ── Username availability check ──────────────────────────────────────────────
+@app.route("/api/check-username")
+def check_username():
+    u = request.args.get("u", "").strip().lower()
+    u = re.sub(r'[^a-z0-9_]', '', u)
+    if len(u) < 3:
+        return jsonify({"available": False, "reason": "Too short (min 3 chars)"})
+    if len(u) > 30:
+        return jsonify({"available": False, "reason": "Too long (max 30 chars)"})
+    exists = users_col.find_one({"username": u})
+    if exists:
+        return jsonify({"available": False, "reason": "Already taken"})
+    return jsonify({"available": True, "username": u})
 # ═══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════

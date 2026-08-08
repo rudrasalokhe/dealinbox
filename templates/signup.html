@@ -4,33 +4,233 @@
 {% block content %}
 <div class="auth-split">
   <section class="auth-left">
-    <a href="{{ url_for('index') }}" class="auth-logo">DealInbox CreatorOS</a>
-    <h1>Launch your premium brand collaboration workspace.</h1>
+    <!-- Floating particles -->
+    <div class="auth-particles" aria-hidden="true">
+      <span class="particle p1"></span><span class="particle p2"></span>
+      <span class="particle p3"></span><span class="particle p4"></span>
+      <span class="particle p5"></span><span class="particle p6"></span>
+      <span class="particle p7"></span><span class="particle p8"></span>
+    </div>
+
+    <a href="{{ url_for('index') }}" class="auth-logo">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" height="22" style="border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:8px;">DealInbox CreatorOS
+    </a>
+    <h1 class="typing-headline" data-phrases='["Launch your premium brand collaboration workspace.", "Stop losing deals in DMs.", "Your creator business, organized."]'>Launch your premium brand collaboration workspace.</h1>
     <p>Join {{ creator_count }}+ creators building a reliable deal pipeline instead of losing opportunities in DMs.</p>
+
+    <!-- Trust stats -->
+    <div class="auth-trust-stats">
+      <div class="trust-stat">
+        <span class="trust-num" data-count="{{ creator_count }}">0</span><span class="trust-suffix">+</span>
+        <span class="trust-label">Creators joined</span>
+      </div>
+      <div class="trust-divider"></div>
+      <div class="trust-stat">
+        <span class="trust-num" data-count="60">0</span><span class="trust-suffix">s</span>
+        <span class="trust-label">To go live</span>
+      </div>
+      <div class="trust-divider"></div>
+      <div class="trust-stat">
+        <span class="trust-num" data-count="100">0</span><span class="trust-suffix">%</span>
+        <span class="trust-label">Free to start</span>
+      </div>
+    </div>
+
     <div class="auth-highlight-grid">
-      <article><strong>Public collab page</strong><span>Capture structured brand requests in minutes.</span></article>
-      <article><strong>Deal pipeline</strong><span>Move opportunities from inquiry to signed collab.</span></article>
-      <article><strong>Upgrade-ready</strong><span>Scale to Pro workflows as volume grows.</span></article>
+      <article><strong>🔗 Public collab page</strong><span>Capture structured brand requests in minutes.</span></article>
+      <article><strong>📊 Deal pipeline</strong><span>Move opportunities from inquiry to signed collab.</span></article>
+      <article><strong>🚀 Upgrade-ready</strong><span>Scale to Pro workflows as volume grows.</span></article>
     </div>
   </section>
 
   <section class="auth-right">
     <div class="auth-card auth-card-rebuild">
+      <!-- Progress indicator -->
+      <div class="signup-progress">
+        <div class="sp-step active"><span>1</span> Account</div>
+        <div class="sp-connector"></div>
+        <div class="sp-step"><span>2</span> Profile</div>
+      </div>
+
       <h2>Create your workspace</h2>
       <p>Go live in under a minute.</p>
-      <form method="POST" class="auth-form">
-        <div class="fg"><label>Full name</label><input type="text" name="name" placeholder="Priya Sharma" required autofocus></div>
+
+      <!-- Social signup buttons -->
+      <div class="social-login-group">
+        <a href="{{ url_for('google_auth') }}" class="social-btn social-btn-google" id="signupGoogleBtn">
+          <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Sign up with Google
+        </a>
+        <a href="{{ url_for('github_auth') }}" class="social-btn social-btn-github" id="signupGithubBtn">
+          <svg class="social-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+          Sign up with GitHub
+        </a>
+      </div>
+      <div class="or-row"><span>or sign up with email</span></div>
+
+      <form method="POST" class="auth-form" id="signupForm">
+        <div class="fg">
+          <label>Full name</label>
+          <input type="text" name="name" placeholder="Priya Sharma" required autofocus id="signupName">
+        </div>
         <div class="fg">
           <label>Username</label>
-          <div class="input-prefix"><span class="iprefix">@</span><input type="text" name="username" placeholder="yourname" required></div>
-          <div class="hint">Public URL: dealinbox.in/@yourname</div>
+          <div class="input-prefix">
+            <span class="iprefix">@</span>
+            <input type="text" name="username" placeholder="yourname" required id="signupUsername" autocomplete="off">
+            <span class="username-check" id="usernameCheck"></span>
+          </div>
+          <div class="hint" id="usernameHint">Public URL: dealinbox.in/@yourname</div>
         </div>
-        <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" required></div>
-        <div class="fg"><label>Password</label><input type="password" name="password" placeholder="Min. 6 characters" required minlength="6"></div>
-        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px">Create free account →</button>
+        <div class="fg">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="you@email.com" required id="signupEmail">
+        </div>
+        <div class="fg">
+          <label>Password</label>
+          <div class="password-wrapper">
+            <input type="password" name="password" placeholder="Min. 6 characters" required minlength="6" id="signupPassword">
+            <button type="button" class="pwd-toggle" onclick="togglePassword('signupPassword', this)" aria-label="Toggle password visibility">
+              <svg class="eye-open" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-closed" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <!-- Password strength meter -->
+          <div class="pwd-strength" id="pwdStrength">
+            <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwdStrengthFill"></div></div>
+            <span class="pwd-strength-label" id="pwdStrengthLabel"></span>
+          </div>
+        </div>
+        <button type="submit" class="g-btn-primary" style="width:100%;margin-top:8px" id="signupSubmitBtn">
+          <span class="btn-text">Create free account →</span>
+          <span class="btn-loader" style="display:none"></span>
+        </button>
       </form>
       <div class="auth-foot">Already have an account? <a href="{{ url_for('login') }}">Log in →</a></div>
     </div>
   </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Typing headline animation
+(function(){
+  const el = document.querySelector('.typing-headline');
+  if(!el) return;
+  const phrases = JSON.parse(el.dataset.phrases || '[]');
+  if(!phrases.length) return;
+  let pi=0, ci=0, deleting=false;
+  function tick(){
+    const phrase = phrases[pi];
+    if(!deleting){
+      el.textContent = phrase.substring(0, ci+1);
+      ci++;
+      if(ci >= phrase.length){ setTimeout(()=>{deleting=true;tick();}, 2200); return; }
+      setTimeout(tick, 50 + Math.random()*30);
+    } else {
+      el.textContent = phrase.substring(0, ci-1);
+      ci--;
+      if(ci <= 0){ deleting=false; pi=(pi+1)%phrases.length; setTimeout(tick, 400); return; }
+      setTimeout(tick, 25);
+    }
+  }
+  setTimeout(tick, 1200);
+})();
+
+// Animated trust counters
+document.querySelectorAll('.trust-num').forEach(el=>{
+  const target = parseInt(el.dataset.count);
+  const dur = 1800;
+  const start = performance.now();
+  function step(now){
+    const p = Math.min((now-start)/dur, 1);
+    const ease = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(ease * target).toLocaleString();
+    if(p<1) requestAnimationFrame(step);
+  }
+  const obs = new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting){ requestAnimationFrame(step); obs.disconnect(); }
+  });
+  obs.observe(el);
+});
+
+// Real-time username availability check
+(function(){
+  const input = document.getElementById('signupUsername');
+  const check = document.getElementById('usernameCheck');
+  const hint = document.getElementById('usernameHint');
+  if(!input) return;
+  let timer = null;
+  input.addEventListener('input', function(){
+    const v = this.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    this.value = v;
+    clearTimeout(timer);
+    check.className = 'username-check';
+    check.textContent = '';
+    hint.textContent = v ? `Public URL: dealinbox.in/@${v}` : 'Public URL: dealinbox.in/@yourname';
+    if(v.length < 3){ check.textContent = ''; return; }
+    check.className = 'username-check loading';
+    check.innerHTML = '<span class="ucheck-spinner"></span>';
+    timer = setTimeout(async()=>{
+      try{
+        const res = await fetch('/api/check-username?u='+encodeURIComponent(v));
+        const data = await res.json();
+        if(data.available){
+          check.className = 'username-check available';
+          check.innerHTML = '✓';
+          hint.textContent = `dealinbox.in/@${v} — Available!`;
+          hint.style.color = '#34d399';
+        } else {
+          check.className = 'username-check taken';
+          check.innerHTML = '✗';
+          hint.textContent = data.reason || 'Username taken';
+          hint.style.color = '#f87171';
+        }
+      } catch(e){
+        check.className = 'username-check';
+        check.textContent = '';
+      }
+    }, 400);
+  });
+})();
+
+// Password strength meter
+(function(){
+  const input = document.getElementById('signupPassword');
+  const fill = document.getElementById('pwdStrengthFill');
+  const label = document.getElementById('pwdStrengthLabel');
+  const meter = document.getElementById('pwdStrength');
+  if(!input) return;
+  input.addEventListener('input', function(){
+    const v = this.value;
+    if(!v){ meter.style.opacity='0'; return; }
+    meter.style.opacity='1';
+    let score = 0;
+    if(v.length >= 6) score++;
+    if(v.length >= 10) score++;
+    if(/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+    if(/\d/.test(v)) score++;
+    if(/[^a-zA-Z0-9]/.test(v)) score++;
+    const levels = [
+      { pct: 20, color: '#ef4444', text: 'Weak' },
+      { pct: 40, color: '#f97316', text: 'Fair' },
+      { pct: 60, color: '#eab308', text: 'Good' },
+      { pct: 80, color: '#22c55e', text: 'Strong' },
+      { pct: 100, color: '#10b981', text: 'Excellent' },
+    ];
+    const lv = levels[Math.min(score, levels.length-1)];
+    fill.style.width = lv.pct + '%';
+    fill.style.background = `linear-gradient(90deg, ${lv.color}, ${lv.color}dd)`;
+    label.textContent = lv.text;
+    label.style.color = lv.color;
+  });
+})();
+
+// Signup form loading state
+document.getElementById('signupForm')?.addEventListener('submit', function(){
+  const btn = document.getElementById('signupSubmitBtn');
+  if(btn){ btn.querySelector('.btn-text').style.display='none'; btn.querySelector('.btn-loader').style.display='inline-block'; btn.disabled=true; }
+});
+</script>
 {% endblock %}
