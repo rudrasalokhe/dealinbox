@@ -3,7 +3,7 @@ DealInbox — Never lose a brand deal again.
 Run: pip install flask pymongo werkzeug python-dotenv razorpay && python app.py
 """
 from flask import (Flask, render_template, request, redirect,
-                   session, flash, url_for, jsonify, make_response)
+                   session, flash, url_for, jsonify, make_response, send_from_directory)
 from pymongo import MongoClient, DESCENDING
 from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -21,6 +21,16 @@ app = Flask(__name__,
             template_folder=os.path.join(BASE_DIR, "templates"),
             static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.getenv("SECRET_KEY", "fallback-secret")
+
+@app.after_request
+def after_request_cors(response):
+    origin = request.headers.get("Origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
 # ── Razorpay config ───────────────────────────────────────────────────────────
@@ -243,8 +253,384 @@ def instagram_sync():
     return jsonify({"ok": True})
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# LANDING
+# REST API ENDPOINTS FOR REACT SPA FRONTEND
 # ═══════════════════════════════════════════════════════════════════════════════
+@app.route("/api/me")
+def api_me():
+    if "uid" not in session:
+        return jsonify({"authenticated": False, "user": None})
+    user = users_col.find_one({"_id": oid(session["uid"])})
+    if not user:
+        session.clear()
+        return jsonify({"authenticated": False, "user": None})
+    return jsonify({
+        "authenticated": True,
+        "user": {
+            "uid": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "username": user.get("username", ""),
+            "plan": user.get("plan", "free"),
+            "niche": user.get("niche", ""),
+            "platform": user.get("platform", ""),
+            "bio": user.get("bio", ""),
+            "collab_email": user.get("collab_email", ""),
+            "min_budget": user.get("min_budget", ""),
+            "response_time": user.get("response_time", "48 hours"),
+            "followers": user.get("followers", ""),
+            "instagram": user.get("instagram", ""),
+            "youtube": user.get("youtube", ""),
+            "is_pro": is_pro(user),
+            "profile_completion": profile_completion(user)
+        }
+    })
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_login():
+    data = json_body()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+    ip = request.remote_addr or "unknown"
+    attempt = _login_attempts.get(ip, {"count": 0, "last": now()})
+    if attempt["count"] >= 5 and (now() - to_naive(attempt["last"])).seconds < 300:
+        return jsonify({"ok": False, "error": "Too many login attempts. Please wait 5 minutes."}), 429
+    user = users_col.find_one({"email": email})
+    if not user or not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
+        attempt["count"] = attempt.get("count", 0) + 1
+        attempt["last"] = now()
+        _login_attempts[ip] = attempt
+        return jsonify({"ok": False, "error": "Invalid email or password."}), 400
+    _login_attempts.pop(ip, None)
+    session.update({"uid": str(user["_id"]), "email": user["email"],
+                    "username": user["username"], "name": user.get("name",""), "plan": user.get("plan","free")})
+    log(str(user["_id"]), "Logged in", "Email/password")
+    return jsonify({
+        "ok": True,
+        "user": {
+            "uid": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user["email"],
+            "username": user["username"],
+            "plan": user.get("plan", "free")
+        }
+    })
+
+@app.route("/api/auth/signup", methods=["POST"])
+def api_signup():
+    data = json_body()
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip().lower()
+    username = re.sub(r'[^a-z0-9_]', '', data.get("username", "").strip().lower())
+    password = data.get("password", "")
+    niche = data.get("niche", "").strip()
+    platform = data.get("platform", "")
+    if not all([name, email, username, password]):
+        return jsonify({"ok": False, "error": "All fields are required."}), 400
+    if len(username) < 3:
+        return jsonify({"ok": False, "error": "Username must be at least 3 characters."}), 400
+    if len(password) < 6:
+        return jsonify({"ok": False, "error": "Password must be at least 6 characters."}), 400
+    if users_col.find_one({"email": email}):
+        return jsonify({"ok": False, "error": "Email already registered."}), 400
+    if users_col.find_one({"username": username}):
+        return jsonify({"ok": False, "error": "Username taken. Try another."}), 400
+    uid = users_col.insert_one({
+        "name": name, "email": email, "username": username,
+        "password_hash": generate_password_hash(password),
+        "niche": niche, "platform": platform,
+        "bio": "", "collab_email": email,
+        "min_budget": "", "response_time": "48 hours",
+        "plan": "free", "created_at": now(),
+        "auth_provider": "email",
+    }).inserted_id
+    session.update({"uid": str(uid), "email": email,
+                    "username": username, "name": name, "plan": "free"})
+    log(str(uid), "Signed up", "Welcome to DealInbox!")
+    return jsonify({
+        "ok": True,
+        "user": {
+            "uid": str(uid), "name": name, "email": email,
+            "username": username, "plan": "free"
+        }
+    })
+
+@app.route("/api/auth/logout", methods=["POST", "GET"])
+def api_logout():
+    session.clear()
+    return jsonify({"ok": True})
+
+@app.route("/api/dashboard-data")
+@login_required
+def api_dashboard_data():
+    uid = session["uid"]
+    user = users_col.find_one({"_id": oid(uid)})
+    plan = user.get("plan","free") if user else "free"
+    all_enq = list(enquiries.find({"user_id": uid}).sort("created_at", DESCENDING))
+    new_count = sum(1 for e in all_enq if e.get("status") == "new")
+    accepted = sum(1 for e in all_enq if e.get("status") in ["accepted","closed"])
+    total_val = sum(e.get("budget_num", 0) for e in all_enq if e.get("status") in ["accepted","closed","negotiating"])
+    recent = all_enq[:6]
+    activity = list(activity_col.find({"user_id": uid}).sort("created_at", DESCENDING).limit(8))
+    pipeline = {s: sum(1 for e in all_enq if e.get("status") == s) for s in STATUSES}
+
+    month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    enq_this_month = enquiries.count_documents({"user_id": uid, "created_at": {"$gte": month_start}})
+    pending_tasks = list(enquiries.find({
+        "user_id": uid,
+        "reminder_due": {"$lte": now() + timedelta(days=7)},
+        "reminder_done": {"$ne": True}
+    }).sort("reminder_due", 1).limit(5))
+
+    completion = profile_completion(user)
+    checklist = [
+        {"title": "Build your creator profile", "done": completion >= 80, "link": "/settings"},
+        {"title": "Publish your collaboration intake page", "done": len(all_enq) > 0, "link": f"/@{session.get('username', '')}"},
+        {"title": "Sign your first collaboration", "done": accepted > 0, "link": "/enquiries"},
+    ]
+
+    conversion = round((accepted / len(all_enq)) * 100, 1) if all_enq else 0
+    avg_value = round(total_val / accepted) if accepted else 0
+    response_samples = []
+    for e in all_enq:
+        c_at = to_naive(e.get("created_at"))
+        u_at = to_naive(e.get("updated_at"))
+        if c_at and u_at and u_at > c_at:
+            response_samples.append((u_at - c_at).total_seconds() / 3600)
+    avg_response_hours = round(sum(response_samples) / len(response_samples), 1) if response_samples else None
+
+    notifications = []
+    if new_count:
+        notifications.append({"type": "new", "text": f"{new_count} new enquiry{'ies' if new_count != 1 else ''} needs your attention."})
+    if pending_tasks:
+        notifications.append({"type": "reminder", "text": f"{len(pending_tasks)} reminder{'s are' if len(pending_tasks) != 1 else ' is'} due within 7 days."})
+    if not is_pro(user) and enq_this_month >= max(1, int(FREE_ENQUIRY_LIMIT * 0.8)):
+        notifications.append({"type": "usage", "text": f"You've used {enq_this_month}/{FREE_ENQUIRY_LIMIT} free enquiries this month."})
+
+    top_platforms = {}
+    for e in all_enq:
+        p = (e.get("platform") or "Unknown").strip()
+        top_platforms[p] = top_platforms.get(p, 0) + 1
+    top_platform_rows = sorted(top_platforms.items(), key=lambda x: x[1], reverse=True)[:4]
+
+    actionable_insights = []
+    if conversion < 20 and len(all_enq) >= 5:
+        actionable_insights.append("Win rate is below 20% — tighten intake qualification for better-fit brand opportunities.")
+    if avg_response_hours and avg_response_hours > 24:
+        actionable_insights.append("Average response is above 24h — faster replies improve creator close rates.")
+    if not actionable_insights:
+        actionable_insights.append("Deal pipeline is stable — keep a daily review rhythm for consistent signed collaborations.")
+
+    return jsonify({
+        "name": (session.get("name") or "Creator"),
+        "username": session.get("username", ""),
+        "stats": {
+            "total_val": total_val,
+            "conversion": conversion,
+            "new_count": new_count,
+            "profile_completion_pct": completion,
+            "accepted": accepted,
+            "total": len(all_enq),
+            "avg_value": avg_value,
+        },
+        "pipeline": [{"key": s, "label": info["label"], "color": info["color"], "count": pipeline.get(s, 0)} for s, info in STATUSES.items()],
+        "recent": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "platform": e.get("platform") or "Platform TBD",
+            "budget": e.get("budget") or "Budget TBD",
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+        } for e in recent],
+        "activity": [{
+            "action": a.get("action", ""),
+            "detail": a.get("detail", ""),
+            "created_at_fmt": fmt_dt(a.get("created_at")),
+        } for a in activity],
+        "checklist": checklist,
+        "pending_tasks": [{
+            "id": str(r.get("_id")),
+            "brand_name": r.get("brand_name", ""),
+            "reminder_due_fmt": fmt_date(r.get("reminder_due")) if r.get("reminder_due") else "Soon",
+        } for r in pending_tasks],
+        "notifications": notifications,
+        "top_platforms": [{"name": k, "count": v} for k, v in top_platform_rows],
+        "avg_response_hours": avg_response_hours,
+        "insights": actionable_insights,
+        "is_pro_user": is_pro(user),
+        "FREE_ENQUIRY_LIMIT": FREE_ENQUIRY_LIMIT,
+        "enq_this_month": enq_this_month,
+    })
+
+@app.route("/api/enquiries-data")
+@login_required
+def api_enquiries_data():
+    uid = session["uid"]
+    status_f = request.args.get("status","")
+    q = {"user_id": uid}
+    if status_f: q["status"] = status_f
+    enqs = list(enquiries.find(q).sort("created_at", DESCENDING))
+    counts = {s: enquiries.count_documents({"user_id": uid, "status": s}) for s in STATUSES}
+    counts["all"] = enquiries.count_documents({"user_id": uid})
+    return jsonify({
+        "status_f": status_f,
+        "counts": counts,
+        "statuses": [{"key": s, "label": info["label"], "color": info["color"]} for s, info in STATUSES.items()],
+        "enquiries": [{
+            "id": str(e.get("_id")),
+            "brand_name": e.get("brand_name", ""),
+            "contact_name": e.get("contact_name", ""),
+            "email": e.get("email", ""),
+            "platform": e.get("platform") or "—",
+            "budget": e.get("budget") or "—",
+            "budget_num": e.get("budget_num", 0) or 0,
+            "status": e.get("status", "new"),
+            "status_label": STATUSES.get(e.get("status", "new"), {}).get("label", e.get("status", "new")),
+            "created_at_fmt": fmt_dt(e.get("created_at")),
+            "timeline": e.get("timeline", ""),
+            "brief": e.get("brief", ""),
+            "note": e.get("note", ""),
+            "starred": e.get("starred", False)
+        } for e in enqs],
+        "saved_views": {
+            "high": sum(1 for e in enqs if (e.get("budget_num", 0) or 0) >= 25000),
+            "new": sum(1 for e in enqs if e.get("status") in ["new", "reviewing"]),
+            "closing": sum(1 for e in enqs if e.get("status") in ["negotiating", "accepted"]),
+        }
+    })
+
+@app.route("/api/enquiry-detail-data/<eid>")
+@login_required
+def api_enquiry_detail_data(eid):
+    uid = session["uid"]
+    enquiry_id = require_valid_oid(eid)
+    if not enquiry_id:
+        return jsonify({"error": "Invalid ID"}), 400
+    enq = enquiries.find_one({"_id": enquiry_id, "user_id": uid})
+    if not enq:
+        return jsonify({"error": "Not found"}), 404
+    if enq.get("status") == "new":
+        enquiries.update_one({"_id": enquiry_id}, {"$set": {"status": "reviewing"}})
+        enq["status"] = "reviewing"
+        log(uid, "Opened enquiry", f"From {enq.get('brand_name','')}")
+    enq["_id"] = str(enq["_id"])
+    enq["created_at_fmt"] = fmt_dt(enq.get("created_at"))
+    enq["updated_at_fmt"] = fmt_dt(enq.get("updated_at"))
+    if enq.get("reminder_due"):
+        enq["reminder_due_fmt"] = fmt_date(enq.get("reminder_due"))
+    return jsonify({
+        "enquiry": enq,
+        "statuses": [{"key": s, "label": info["label"], "color": info["color"]} for s, info in STATUSES.items()]
+    })
+
+@app.route("/api/public-creator/<username>")
+def api_public_creator(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return jsonify({"found": False}), 404
+    return jsonify({
+        "found": True,
+        "name": user.get("name", ""),
+        "username": user.get("username", ""),
+        "bio": user.get("bio", ""),
+        "niche": user.get("niche", ""),
+        "platform": user.get("platform", ""),
+        "followers": user.get("followers", ""),
+        "response_time": user.get("response_time", "48 hours"),
+        "min_budget": user.get("min_budget", ""),
+        "platforms": PLATFORMS,
+        "budgets": BUDGETS
+    })
+
+@app.route("/api/public-creator/<username>/submit", methods=["POST"])
+def api_public_submit(username):
+    user = users_col.find_one({"username": username})
+    if not user:
+        return jsonify({"ok": False, "error": "Creator not found"}), 404
+    if not is_pro(user):
+        month_start = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        count_this_month = enquiries.count_documents({
+            "user_id": str(user["_id"]),
+            "created_at": {"$gte": month_start}
+        })
+        if count_this_month >= FREE_ENQUIRY_LIMIT:
+            return jsonify({"ok": False, "inbox_full": True, "error": "Creator's inbox is currently full."}), 429
+    data = json_body()
+    brand_name = data.get("brand_name", "").strip()
+    contact_name = data.get("contact_name", "").strip()
+    email = data.get("email", "").strip()
+    platform = data.get("platform", "")
+    budget = data.get("budget", "")
+    timeline = data.get("timeline", "").strip()
+    brief = data.get("brief", "").strip()
+    deliverables = data.get("deliverables", "").strip()
+    if not all([brand_name, email, brief]):
+        return jsonify({"ok": False, "error": "Brand name, email and brief are required."}), 400
+    budget_map = {"Under Rs.5,000":2500,"Rs.5,000-Rs.10,000":7500,
+                  "Rs.10,000-Rs.25,000":17500,"Rs.25,000-Rs.50,000":37500,
+                  "Rs.50,000-Rs.1,00,000":75000,"Rs.1,00,000+":100000}
+    budget_num = budget_map.get(budget, 0)
+    tracking_token = secrets.token_urlsafe(24)
+    enquiries.insert_one({
+        "user_id": str(user["_id"]),
+        "brand_name": brand_name,
+        "contact_name": contact_name,
+        "email": email,
+        "platform": platform,
+        "budget": budget,
+        "budget_num": budget_num,
+        "timeline": timeline,
+        "brief": brief,
+        "deliverables": deliverables,
+        "status": "new",
+        "note": "",
+        "tracking_token": tracking_token,
+        "created_at": now(),
+        "updated_at": now()
+    })
+    log(str(user["_id"]), "New enquiry received", f"From {brand_name}")
+    tracking_url = request.host_url.rstrip("/") + "/track/" + tracking_token
+    return jsonify({
+        "ok": True,
+        "tracking_token": tracking_token,
+        "tracking_url": tracking_url,
+        "creator_name": user.get("name",""),
+        "resp_time": user.get("response_time","48 hours")
+    })
+
+@app.route("/api/track-data/<token>")
+def api_track_data(token):
+    enq = enquiries.find_one({"tracking_token": token})
+    if not enq:
+        return jsonify({"found": False}), 404
+    creator = users_col.find_one({"_id": oid(enq["user_id"])})
+    if not creator:
+        return jsonify({"found": False}), 404
+    BRAND_STEPS = [
+        {"key":"submitted","title":"Enquiry submitted","sub":"Your enquiry is in their inbox.",
+         "statuses":["new","reviewing","negotiating","accepted","closed","declined"]},
+        {"key":"reviewing","title":"Under review","sub":f"{(creator.get('name') or 'Creator').split()[0]} is looking at your brief.",
+         "statuses":["reviewing","negotiating","accepted","closed","declined"]},
+        {"key":"negotiating","title":"In discussion","sub":"Details are being worked out.",
+         "statuses":["negotiating","accepted","closed"]},
+        {"key":"accepted","title":"Deal accepted","sub":"The collaboration is confirmed.",
+         "statuses":["accepted","closed"]},
+        {"key":"closed","title":"Deal closed","sub":"All done - great collaboration!",
+         "statuses":["closed"]},
+    ]
+    return jsonify({
+        "found": True,
+        "brand_name": enq.get("brand_name", ""),
+        "status": enq.get("status", "new"),
+        "status_label": STATUSES.get(enq.get("status","new"), {}).get("label", enq.get("status","new")),
+        "creator_name": creator.get("name", ""),
+        "creator_username": creator.get("username", ""),
+        "created_at_fmt": fmt_dt(enq.get("created_at")),
+        "brand_steps": BRAND_STEPS,
+        "timeline": enq.get("timeline", ""),
+        "budget": enq.get("budget", "")
+    })
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LANDING
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1729,6 +2115,18 @@ def heatmap_page():
     uid  = session["uid"]
     user = users_col.find_one({"_id": oid(uid)})
     return render_template("heatmap.html", is_pro_user=is_pro(user))
+# ── Vite React SPA Static Bundle Fallback ────────────────────────────────────
+@app.route("/app", defaults={"path": ""})
+@app.route("/spa", defaults={"path": ""})
+@app.route("/spa/<path:path>")
+def serve_spa(path):
+    dist_dir = os.path.join(BASE_DIR, "static", "dist")
+    if path and os.path.exists(os.path.join(dist_dir, path)):
+        return send_from_directory(dist_dir, path)
+    if os.path.exists(os.path.join(dist_dir, "index.html")):
+        return send_from_directory(dist_dir, "index.html")
+    return "DealInbox React SPA built in static/dist", 200
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
