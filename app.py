@@ -31,6 +31,31 @@ def after_request_cors(response):
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     return response
+
+@app.before_request
+def intercept_for_spa():
+    if request.method != "GET":
+        return
+    path = request.path
+    # Allow API, auth, and static files to pass through
+    if path.startswith("/api/") or path.startswith("/auth/") or path.startswith("/enquiries/export") or path.startswith("/admin/") or path.startswith("/static/"):
+        return
+    
+    dist_dir = os.path.join(app.static_folder, "dist")
+    
+    # Serve specific static files from dist (like Vite assets)
+    if "." in path.split("/")[-1]:
+        file_path = os.path.join(dist_dir, path.lstrip("/"))
+        if os.path.exists(file_path):
+            return send_from_directory(dist_dir, path.lstrip("/"))
+            
+    # Fallback to index.html for SPA routing
+    index_path = os.path.join(dist_dir, "index.html")
+    if os.path.exists(index_path):
+        return send_from_directory(dist_dir, "index.html")
+        
+    # If React build is missing, fall through to old routes
+    return
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 DB_NAME   = os.getenv("DB_NAME", "dealinbox")
 # ── Razorpay config ───────────────────────────────────────────────────────────
