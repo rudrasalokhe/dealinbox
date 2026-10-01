@@ -83,14 +83,34 @@ curl "https://yourapp.onrender.com/admin/pending?secret=YOUR_SECRET_KEY"
 
 ---
 
-## Features
+---
 
-- Public enquiry page at `/@username`
-- Deal dashboard with pipeline view
-- Status tracking (New → Reviewing → Negotiating → Accepted → Closed)
-- Brand tracking portal (brands track their own enquiry)
-- Analytics dashboard (Pro)
-- CSV export (Pro)
-- AI quick reply templates
-- Razorpay payments (UPI, GPay, PhonePe, Paytm, cards)
-- Mobile responsive
+## 🤖 AI Features & Deal Intelligence
+
+- **AI Brief & Scope Parser**: Paste unstructured brand emails or DMs; extracts deliverables, timelines, brand entity, and budget.
+- **Contract Risk Radar**: Scans sponsorship agreements for predatory clauses (perpetual copyright usage, paid whitelisting/Spark ads without fees, extreme Net-60/90 payout delays, uncompensated category exclusivity) and outputs legal counter-clauses.
+- **Dynamic CPM & Rate Benchmark**: Calculates creator fair-market valuations based on deliverable formats and audience reach.
+- **Multi-Strategy Pitch Generator**: Generates 3 tactical responses in 1 click (Value Upsell, Scope Boundary, and Professional Close).
+- **Interactive AI Deal Copilot**: Floating conversational assistant providing high-stakes negotiation scripts and rate guidance.
+
+## 🚀 Core Features
+
+- **Public Intake Page** at `dealsinbox.in/@username` (eliminates chaotic DMs)
+- **Visual Deal Pipeline** (New → Reviewing → Negotiating → Accepted → Closed)
+- **Brand Tracking Portal** (`/track/<token>`) for agencies and sponsors to follow deliverable status
+- **1-Click Instant Demo** for recruiters and evaluators (login: `demo@dealinbox.in` / `demo123` or 1-click button)
+- **Earnings Studio & Analytics** with conversion rates, average deal size, and CSV export
+- **Payment Processing**: Integrated with Razorpay & UPI for advance deposits
+- **Modern Obsidian & Glass UI**: High-craft dark mode design system built for desktop and mobile
+
+---
+
+## 🛠️ Stack & Architecture
+
+- **Frontend**: React 19, Vite, Framer Motion, Lucide Icons, Modern Glassmorphism Design System
+- **Backend**: Python, Flask, REST APIs, Session Auth
+- **AI Engine**: Google Gemini API integration with zero-downtime deterministic fallback engine
+- **Database**: MongoDB Atlas (Connection pooling & index optimization)
+- **Payments**: Razorpay SDK (UPI, Netbanking, Cards)
+- **Deployment**: Render (Static SPA + Python Web Service)
+

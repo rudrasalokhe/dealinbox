@@ -54,7 +54,7 @@ function useAnimatedCounter(target, duration = 1800) {
 }
 
 export const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,8 +64,8 @@ export const LoginPage = () => {
 
   const headline = useTypingHeadline([
     'Welcome back, Creator.',
-    'Your deals are waiting.',
-    'Pick up where you left off.',
+    'Your deal pipeline awaits.',
+    'Never leave money on the table.',
   ]);
 
   const [creators, creatorsRef] = useAnimatedCounter(2400);
@@ -82,6 +82,15 @@ export const LoginPage = () => {
     else setError(res.error);
   };
 
+  const handleDemoLogin = async () => {
+    setError('');
+    setSubmitting(true);
+    const res = await demoLogin();
+    setSubmitting(false);
+    if (res.success) navigate('/dashboard');
+    else setError(res.error);
+  };
+
   return (
     <div className="auth-split">
       <section className="auth-left">
@@ -93,13 +102,15 @@ export const LoginPage = () => {
           <span className="particle" style={{ width: 90, height: 90, top: '50%', left: '10%' }} />
         </div>
 
-        <Link to="/" style={{ fontSize: 18, fontFamily: 'var(--font-display)', fontWeight: 800, textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
-          <img src="/static/logo.jpeg" alt="logo" style={{ width: 28, height: 28, borderRadius: 0 }} /> DealInbox
+        <Link to="/" style={{ fontSize: 20, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+          <img src="/static/logo.jpeg" alt="logo" style={{ width: 32, height: 32, borderRadius: 8 }} /> DealInbox
         </Link>
 
-        <h1 className="typing-cursor" style={{ fontFamily: 'var(--font-display)', fontSize: 64, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', marginBottom: 12, lineHeight: 0.95, minHeight: '2.4em' }}>{headline}</h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 13, textTransform: 'uppercase', maxWidth: 420, marginBottom: 0 }}>
-          Every brand deal, negotiation, and opportunity — right where you tracked it.
+        <h1 className="typing-cursor" style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', marginBottom: 16, lineHeight: 1.1, minHeight: '2.4em' }}>
+          {headline}
+        </h1>
+        <p style={{ color: 'var(--t2)', fontSize: 15, maxWidth: 440, lineHeight: 1.6, marginBottom: 32 }}>
+          Structured brand briefs, AI negotiation intelligence, and automated pipeline tracking in one place.
         </p>
 
         {/* Trust stats */}
@@ -108,35 +119,60 @@ export const LoginPage = () => {
             <span style={{ display: 'flex', alignItems: 'baseline' }}>
               <span className="trust-num">{creators.toLocaleString()}</span><span className="trust-suffix">+</span>
             </span>
-            <span className="trust-label">Creators</span>
+            <span className="trust-label">Active Creators</span>
           </div>
           <div className="trust-divider" />
           <div className="trust-stat" ref={dealValRef}>
             <span style={{ display: 'flex', alignItems: 'baseline' }}>
-              <span className="trust-num">{dealVal}</span><span className="trust-suffix">L+ tracked</span>
+              <span className="trust-num">{dealVal}</span><span className="trust-suffix">L+</span>
             </span>
-            <span className="trust-label">Deal value</span>
+            <span className="trust-label">Deal Value Processed</span>
           </div>
           <div className="trust-divider" />
           <div className="trust-stat" ref={uptimeRef}>
             <span style={{ display: 'flex', alignItems: 'baseline' }}>
               <span className="trust-num">{uptime}</span><span className="trust-suffix">%</span>
             </span>
-            <span className="trust-label">Uptime</span>
+            <span className="trust-label">Win Rate Uplift</span>
           </div>
         </div>
 
-        <div className="auth-highlight-grid">
-          <article><strong>🎯 Deal pipeline</strong><span>See every brand opportunity at a glance.</span></article>
-          <article><strong>💰 Earnings tracker</strong><span>Know exactly what you've made and what's pending.</span></article>
-          <article><strong>📋 Brand submissions</strong><span>Structured briefs — no more DM chaos.</span></article>
+        <div className="auth-highlight-grid" style={{ marginTop: 32 }}>
+          <article><strong>🎯 Deal Pipeline</strong><span>Track opportunities from first inbound to paid.</span></article>
+          <article><strong>🤖 AI Deal Copilot</strong><span>Detect scope creep and draft winning counter-offers.</span></article>
+          <article><strong>⚡ Structured Bio Intake</strong><span>Eliminate lowball DM chaos with a custom intake link.</span></article>
         </div>
       </section>
 
       <section className="auth-right">
         <div className="auth-card">
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 4 }}>Log in</h2>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 24 }}>Enter your details to continue.</p>
+          <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', marginBottom: 6 }}>Log in</h2>
+          <p style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 20 }}>Welcome back! Sign in or launch the instant demo.</p>
+
+          {/* 1-Click Instant Demo Login */}
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={submitting}
+            className="btn btn-full"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.35))',
+              border: '1.5px solid #6366f1',
+              color: '#fff',
+              padding: '12px 16px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              borderRadius: 'var(--r-md)',
+              marginBottom: '18px',
+              boxShadow: '0 4px 18px rgba(99, 102, 241, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            ⚡ Instant 1-Click Demo (Demo Creator)
+          </button>
 
           {error && (
             <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', color: '#f87171', fontSize: 13, marginBottom: 16 }}>
@@ -159,11 +195,11 @@ export const LoginPage = () => {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="fg" style={{ marginBottom: 0 }}>
-              <label>Email</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t2)', display: 'block', marginBottom: '6px' }}>Email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" required autoFocus />
             </div>
             <div className="fg" style={{ marginBottom: 0 }}>
-              <label>Password</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--t2)', display: 'block', marginBottom: '6px' }}>Password</label>
               <div style={{ position: 'relative' }}>
                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required style={{ paddingRight: 40 }} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)' }}>
@@ -175,15 +211,16 @@ export const LoginPage = () => {
               </div>
             </div>
             <button type="submit" className="btn btn-primary btn-full" disabled={submitting} style={{ marginTop: 8 }}>
-              {submitting ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Logging in...</> : 'Continue →'}
+              {submitting ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Logging in...</> : 'Log in to DealInbox →'}
             </button>
           </form>
 
           <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--t3)', marginTop: 20 }}>
-            No account? <Link to="/signup" style={{ color: 'var(--accent-hover)', fontWeight: 600 }}>Create one free →</Link>
+            Don't have an account? <Link to="/signup" style={{ color: 'var(--accent)', fontWeight: 600 }}>Create one free →</Link>
           </p>
         </div>
       </section>
     </div>
   );
 };
+

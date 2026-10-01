@@ -236,6 +236,8 @@ def login_required(f):
     @wraps(f)
     def dec(*a, **kw):
         if "uid" not in session:
+            if request.path.startswith("/api/"):
+                return jsonify({"ok": False, "error": "Unauthorized"}), 401
             flash("Please log in.", "error")
             return redirect(url_for("login"))
         return f(*a, **kw)
@@ -244,10 +246,14 @@ def pro_required(f):
     @wraps(f)
     def dec(*a, **kw):
         if "uid" not in session:
+            if request.path.startswith("/api/"):
+                return jsonify({"ok": False, "error": "Unauthorized"}), 401
             flash("Please log in.", "error")
             return redirect(url_for("login"))
         user = users_col.find_one({"_id": oid(session["uid"])})
         if not is_pro(user):
+            if request.path.startswith("/api/"):
+                return jsonify({"ok": False, "error": "Pro plan required"}), 403
             flash("This feature requires a Pro plan.", "error")
             return redirect(url_for("upgrade"))
         return f(*a, **kw)
@@ -383,6 +389,346 @@ def api_signup():
 def api_logout():
     session.clear()
     return jsonify({"ok": True})
+
+# ── 1-Click Demo Login ───────────────────────────────────────────────────────
+@app.route("/api/auth/demo-login", methods=["POST", "GET"])
+def api_demo_login():
+    demo_user = users_col.find_one({"email": "demo@dealinbox.in"})
+    if not demo_user:
+        demo_uid = users_col.insert_one({
+            "name": "Demo Creator",
+            "email": "demo@dealinbox.in",
+            "username": "demo",
+            "password_hash": generate_password_hash("demo123"),
+            "niche": "Tech & Creator Economy",
+            "platform": "Instagram",
+            "followers": "65,000",
+            "bio": "Tech, AI & lifestyle creator. Partnering with forward-thinking consumer brands and tech products.",
+            "collab_email": "demo@dealinbox.in",
+            "min_budget": "Rs.25,000",
+            "response_time": "24 hours",
+            "plan": "pro",
+            "created_at": now(),
+            "auth_provider": "demo",
+        }).inserted_id
+        demo_user = users_col.find_one({"_id": demo_uid})
+
+    # Ensure demo user has realistic deals so the dashboard is alive
+    existing_deals = enquiries.count_documents({"user_id": str(demo_user["_id"])})
+    if existing_deals == 0:
+        sample_deals = [
+            {
+                "user_id": str(demo_user["_id"]),
+                "brand_name": "Dream11",
+                "contact_name": "Kunal Sharma (Sports Marketing)",
+                "email": "partnerships@dream11.com",
+                "platform": "Instagram",
+                "budget": "Rs.75,000",
+                "budget_num": 75000,
+                "deliverables": "1 Dedicated Matchday Reel + 3 Interactive Story Frames",
+                "timeline": "Next Weekend (IPL Matchday)",
+                "brief": "We're launching our new SuperFan Fantasy League campaign. Need a high-energy Reel breaking down fantasy squad picks and challenging your followers to join your private contest. Must include swipe-up link and referral code.",
+                "status": "new",
+                "created_at": now() - timedelta(hours=3),
+                "updated_at": now() - timedelta(hours=3),
+                "starred": True,
+                "notes_thread": [
+                    {"author": "AI Copilot", "text": "High-value sports campaign detected. Recommended counter: Anchor at ₹85,000 with dedicated link in bio for 7 days.", "created_at": now() - timedelta(hours=3)}
+                ]
+            },
+            {
+                "user_id": str(demo_user["_id"]),
+                "brand_name": "Boat Lifestyle",
+                "contact_name": "Rhea Kapoor",
+                "email": "collabs@boat-lifestyle.com",
+                "platform": "Instagram",
+                "budget": "Rs.45,000",
+                "budget_num": 45000,
+                "deliverables": "1 Product Reel + 2 Stories",
+                "timeline": "Within 10 days",
+                "brief": "Airdopes 800 launch featuring active noise cancellation. Need aesthetic unboxing and commute audio test. Brand requests 30-day Spark Ads whitelisting.",
+                "status": "negotiating",
+                "created_at": now() - timedelta(hours=14),
+                "updated_at": now() - timedelta(hours=2),
+                "starred": True,
+                "notes_thread": [
+                    {"author": "Creator", "text": "Countered at ₹55,000 for ad usage rights. Awaiting agency reply.", "created_at": now() - timedelta(hours=2)}
+                ]
+            },
+            {
+                "user_id": str(demo_user["_id"]),
+                "brand_name": "Myntra",
+                "contact_name": "Aakash Mehta",
+                "email": "campaigns@myntra.com",
+                "platform": "Instagram",
+                "budget": "Rs.90,000",
+                "budget_num": 90000,
+                "deliverables": "2 Festive Lookbook Reels",
+                "timeline": "Diwali Sale Kickoff",
+                "brief": "Curate top 5 ethnic styles for festive season with direct product affiliate links.",
+                "status": "accepted",
+                "created_at": now() - timedelta(days=3),
+                "updated_at": now() - timedelta(hours=8),
+                "starred": True,
+                "notes_thread": [
+                    {"author": "Creator", "text": "Brand approved ₹90,000 deal. 50% advance invoice submitted.", "created_at": now() - timedelta(hours=8)}
+                ]
+            },
+            {
+                "user_id": str(demo_user["_id"]),
+                "brand_name": "Mamaearth",
+                "contact_name": "Sneha Roy",
+                "email": "sneha@mamaearth.in",
+                "platform": "YouTube",
+                "budget": "Rs.30,000",
+                "budget_num": 30000,
+                "deliverables": "60-sec Mid-roll Integration",
+                "timeline": "Within 2 weeks",
+                "brief": "Organic integration of Onion Hair Serum during regular tech workspace routine.",
+                "status": "reviewing",
+                "created_at": now() - timedelta(days=1),
+                "updated_at": now() - timedelta(days=1),
+                "starred": False,
+                "notes_thread": []
+            }
+        ]
+        enquiries.insert_many(sample_deals)
+
+    session.update({
+        "uid": str(demo_user["_id"]),
+        "email": demo_user["email"],
+        "username": demo_user["username"],
+        "name": demo_user.get("name", "Demo Creator"),
+        "plan": "pro"
+    })
+    log(str(demo_user["_id"]), "Demo login", "1-Click instant demo accessed")
+    return jsonify({
+        "ok": True,
+        "user": {
+            "uid": str(demo_user["_id"]),
+            "name": demo_user.get("name", "Demo Creator"),
+            "email": demo_user["email"],
+            "username": demo_user["username"],
+            "plan": "pro"
+        }
+    })
+
+# ── Generative AI Engine & Copilot Endpoints ─────────────────────────────────
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+def call_gemini_raw(prompt_text, system_instruction=None):
+    """Calls Gemini REST API if configured, else returns None to invoke fallback."""
+    if not GEMINI_API_KEY or not http_requests:
+        return None
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt_text}]}],
+            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 800}
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+        resp = http_requests.post(url, json=payload, timeout=6)
+        if resp.status_code == 200:
+            data = resp.json()
+            candidates = data.get("candidates", [])
+            if candidates:
+                return candidates[0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        print(f"Gemini API request failed: {e}")
+    return None
+
+@app.route("/api/ai/analyze-brief", methods=["POST"])
+def api_ai_analyze_brief():
+    data = json_body()
+    brief_raw = (data.get("brief") or "").strip()
+    if not brief_raw:
+        return jsonify({"ok": False, "error": "Brief text is required."}), 400
+
+    # Extract entities & heuristics
+    text_lower = brief_raw.lower()
+    
+    # Detect brand
+    brand_match = re.search(r'(?:from|with|team|at|for)\s+([A-Z][a-zA-Z0-9_\-\s]{2,20})', brief_raw)
+    brand_name = data.get("brand_name") or (brand_match.group(1).strip() if brand_match else "Brand Partner")
+
+    # Detect budget
+    budget_match = re.search(r'(?:rs\.?|inr|₹|\$)\s*([\d,]+(?:\s*(?:k|lakh|lac))?)', text_lower)
+    offered_budget = 0
+    if budget_match:
+        val_str = budget_match.group(1).replace(",", "").strip()
+        if "k" in val_str:
+            try: offered_budget = int(float(val_str.replace("k", "")) * 1000)
+            except: pass
+        elif "lakh" in val_str or "lac" in val_str:
+            try: offered_budget = int(float(re.sub(r'lakh|lac', '', val_str).strip()) * 100000)
+            except: pass
+        else:
+            try: offered_budget = int(val_str)
+            except: pass
+
+    # Deliverables extraction
+    delivs = []
+    if "reel" in text_lower or "short" in text_lower:
+        count = 1
+        m = re.search(r'(\d+)\s*(?:reels?|shorts?)', text_lower)
+        if m: count = int(m.group(1))
+        delivs.append(f"{count}x Dedicated Instagram Reel" if "reel" in text_lower else f"{count}x YouTube Short")
+    if "story" in text_lower or "stories" in text_lower:
+        count = 2
+        m = re.search(r'(\d+)\s*(?:stories|story)', text_lower)
+        if m: count = int(m.group(1))
+        delivs.append(f"{count}x Story Amplification Frames")
+    if "youtube" in text_lower or "video" in text_lower or "integration" in text_lower:
+        delivs.append("1x YouTube Integration / Showcase")
+    if not delivs:
+        delivs.append("1x Social Deliverable (Scope TBD)")
+
+    # Contract Risk Radar
+    risks = []
+    if any(k in text_lower for k in ["perpetual", "forever", "in perpetuity", "unlimited usage"]):
+        risks.append({
+            "severity": "high",
+            "flag": "Perpetual Copyright & Usage Rights",
+            "warning": "The brand is requesting perpetual/indefinite ownership of your likeness and footage. Standard creator contracts license content for 30 to 90 days only.",
+            "counter_clause": "Replace with: '30-day non-exclusive digital ad usage rights. Extension available at +25% monthly retainer.'"
+        })
+    if any(k in text_lower for k in ["whitelisting", "spark ad", "paid ad", "dark post", "meta ads"]):
+        risks.append({
+            "severity": "medium",
+            "flag": "Paid Whitelisting / Spark Ads Access",
+            "warning": "Brand wants to run paid ads through your account/handle. This drives direct sales for them and exhausts your audience without proper compensation.",
+            "counter_clause": "Add paid amplification fee: 'Paid ads access billed at +₹10,000–₹15,000 per 30-day window.'"
+        })
+    if any(k in text_lower for k in ["exclusiv", "sole partner", "lockout"]):
+        risks.append({
+            "severity": "high",
+            "flag": "Category Exclusivity Lockout",
+            "warning": "Exclusivity prevents you from taking paid deals from any competitors in this vertical for the term.",
+            "counter_clause": "Charge a 50% to 100% exclusivity premium or limit exclusivity strictly to 14 days post-posting."
+        })
+    if any(k in text_lower for k in ["net 60", "net 90", "90 days", "after 60 days"]):
+        risks.append({
+            "severity": "high",
+            "flag": "Extreme Payment Delay (Net-60/90)",
+            "warning": "Payment scheduled 2 to 3 months after work completion carries high non-payment risk for creators.",
+            "counter_clause": "Insist on 50% advance on brief signoff, remaining 50% Net-15 upon live draft delivery."
+        })
+    if not risks:
+        risks.append({
+            "severity": "low",
+            "flag": "Standard Campaign Terms",
+            "warning": "No predatory copyright or extended lockout clauses detected in initial brief text.",
+            "counter_clause": "Maintain standard terms: 50% advance deposit and 2 rounds of creative revisions max."
+        })
+
+    # Rate benchmark & leverage
+    base_calc = max(offered_budget or 20000, 25000)
+    fair_min = round(base_calc * 1.25 / 1000) * 1000
+    fair_max = round(base_calc * 1.6 / 1000) * 1000
+
+    # Urgency detection
+    urgency_score = 45
+    urgent_keywords = ["asap", "urgent", "immediate", "tomorrow", "this week", "rush", "friday", "monday"]
+    if any(k in text_lower for k in urgent_keywords):
+        urgency_score = 88
+        urgency_label = "High Urgency (Tight Deadline)"
+        urgency_desc = "Brand has an imminent launch date. Creator has strong leverage to charge a 15–20% rush fee."
+    else:
+        urgency_label = "Normal / Planned Timeline"
+        urgency_desc = "Timeline allows standard review, script approvals, and revision rounds."
+
+    counter_pitch = (
+        f"Hi {brand_name} Team,\n\n"
+        f"Thank you for reaching out! The campaign scope aligns well with my audience demographic and engagement style.\n\n"
+        f"For the requested package ({', '.join(delivs)}) with high-resolution production and organic engagement analytics, my rate is ₹{fair_min:,}.\n\n"
+        f"If you'd like to include 30-day paid ad usage rights, I can bundle that in as an all-inclusive package for ₹{fair_max:,}.\n\n"
+        f"Let me know if this works so we can lock in dates on my production calendar!\n\n"
+        f"Best regards,\nDemo Creator"
+    )
+
+    return jsonify({
+        "ok": True,
+        "brand_name": brand_name,
+        "deliverables": delivs,
+        "offered_budget": offered_budget,
+        "fair_market_value": {
+            "min": fair_min,
+            "max": fair_max,
+            "currency": "INR",
+            "rationale": f"Benchmark calculated for ~50k-100k creator reach across {', '.join(delivs)}."
+        },
+        "urgency": {
+            "score": urgency_score,
+            "label": urgency_label,
+            "description": urgency_desc
+        },
+        "risk_radar": risks,
+        "counter_draft": counter_pitch,
+        "strategies": [
+            {"title": "🚀 Value Bundle Upsell", "proposed_rate": fair_max, "benefit": "Packages deliverables + 30-day ad rights to maximize total payout."},
+            {"title": "🎯 Precision Counter", "proposed_rate": fair_min, "benefit": "Maintains exact scope while upgrading compensation to fair market tier."},
+            {"title": "🛡️ Scope Boundary", "proposed_rate": offered_budget or 25000, "benefit": "Accepts budget but limits scope strictly to 1 Reel (no ad rights/exclusivity)."}
+        ]
+    })
+
+@app.route("/api/ai/copilot-chat", methods=["POST"])
+def api_ai_copilot_chat():
+    data = json_body()
+    user_msg = (data.get("message") or "").strip()
+    history = data.get("history") or []
+    if not user_msg:
+        return jsonify({"ok": False, "error": "Message is required."}), 400
+
+    # Try Gemini if key is active
+    gemini_reply = call_gemini_raw(
+        prompt_text=f"You are the DealInbox AI Copilot, a high-stakes sponsorship negotiator and deal strategist for top digital creators in India and globally. Give tactical, crisp, direct advice with actionable numbers (INR ₹) and scripts. User asks: {user_msg}",
+        system_instruction="Be concise, punchy, strategic, and protective of creators' rates and rights. Avoid generic fluff."
+    )
+    if gemini_reply:
+        return jsonify({"ok": True, "reply": gemini_reply.strip()})
+
+    # High-intelligence local assistant fallback
+    msg_low = user_msg.lower()
+    if "advance" in msg_low or "payment" in msg_low or "deposit" in msg_low:
+        reply = (
+            "💡 **Payment Policy Golden Rule**: Never post final deliverables without at least a 50% advance deposit.\n\n"
+            "**Recommended Script to Brand**:\n"
+            "\"Our studio policy for all brand productions requires a 50% advance deposit to schedule the shoot dates and begin script prep, with the balance 50% due within 7 days of live link delivery. Let me know where to send the advance invoice!\""
+        )
+    elif "lowball" in msg_low or "budget is low" in msg_low or "increase rate" in msg_low:
+        reply = (
+            "⚡ **How to Handle Lowball Offers**:\n"
+            "1. **Never apologize for your pricing** — re-anchor to your audience engagement metrics.\n"
+            "2. **De-scope rather than discounting**: If they offer ₹15k instead of ₹30k, offer 1 Reel without Stories or ad rights.\n\n"
+            "**Negotiation Script**:\n"
+            "\"I'd love to collaborate with your team! While my full Reel + Story package is ₹35,000, I can accommodate your ₹15,000 budget for a dedicated Story sequence with link sticker instead. Would that format suit your campaign targets?\""
+        )
+    elif "usage" in msg_low or "rights" in msg_low or "whitelisting" in msg_low:
+        reply = (
+            "🚨 **Usage Rights & Whitelisting Alert**:\n"
+            "Organic posting reach is only 1x value. When brands run paid Meta/Spark Ads through your handle, they make 5–10x returns.\n\n"
+            "• **Standard rate**: Base rate + 30% for 30-day paid usage.\n"
+            "• **Never agree to 'In Perpetuity'**: It locks your face to their brand forever for free.\n"
+            "• **Script**: \"Happy to grant 30-day paid digital ad usage rights for an additional ₹12,000 licensing fee.\""
+        )
+    elif "exclusiv" in msg_low:
+        reply = (
+            "🔒 **Exclusivity Clause Strategy**:\n"
+            "Every month of exclusivity stops you from taking deals from competing brands in that industry.\n\n"
+            "• **1-Month Exclusivity**: Add +40% to +50% of the total deal value.\n"
+            "• **3-Month Retainer**: Require a guaranteed minimum retainer and +100% exclusivity fee."
+        )
+    else:
+        reply = (
+            f"🎯 **Deal Strategy for your enquiry**:\n\n"
+            f"1. **Anchor High**: State your rate with confidence before asking about their budget limits.\n"
+            f"2. **Package Add-ons**: Include a secondary deliverable (e.g. 2 Story frames or link sticker) as value proof.\n"
+            f"3. **Clear Revisions**: Limit free creative revisions to 2 rounds max.\n\n"
+            f"Need a custom counter-offer email drafted? Ask me: *'Draft counter-offer for ₹45k for Mamaearth'*!"
+        )
+
+    return jsonify({"ok": True, "reply": reply})
 
 @app.route("/api/dashboard-data")
 @login_required

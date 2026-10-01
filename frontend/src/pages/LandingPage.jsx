@@ -1,54 +1,159 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HeroEditorialStagger } from '../components/HeroEditorialStagger';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { CheckCircle2, ArrowRight, Sparkles, AlertTriangle, ShieldCheck, Zap, TrendingUp, DollarSign, Copy, Check } from 'lucide-react';
 
 const CheckIcon = ({ color = 'var(--green)' }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={{ width: 18, height: 18, flexShrink: 0 }}>
+  <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" style={{ width: 16, height: 16, flexShrink: 0 }}>
     <circle cx="12" cy="12" r="9" /><path d="M8 12l3 3 5-6" />
   </svg>
 );
 
 export const LandingPage = () => {
+  const { demoLogin } = useAuth();
+  const navigate = useNavigate();
+  const [submittingDemo, setSubmittingDemo] = useState(false);
+
+  // Interactive Live AI Brief Demo state
+  const [liveBrief, setLiveBrief] = useState(
+    "Hi Rudra! We love your content. We are launching our new Vitamin C skincare range and would love to partner for 1 dedicated Instagram Reel and 2 Stories before next Friday. Our budget for this campaign is Rs.25,000. We also request 30 days Spark Ads whitelisting."
+  );
+  const [liveResult, setLiveResult] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [copiedPitch, setCopiedPitch] = useState(false);
+
+  const presets = [
+    {
+      name: 'Mamaearth Launch',
+      text: 'Hi Rudra! We love your content. We are launching our new Vitamin C skincare range and would love to partner for 1 dedicated Instagram Reel and 2 Stories before next Friday. Our budget for this campaign is Rs.25,000. We also request 30 days Spark Ads whitelisting.',
+    },
+    {
+      name: 'Noise Smartwatch (High Risk)',
+      text: 'Hey Rudra, Noise team here! We need 1 unboxing reel for our ColorFit Pro 5 smartwatch. We require perpetual digital ad usage rights and Spark Ads access for Meta. Budget is INR 18,000 with payment on Net-60 terms.',
+    },
+    {
+      name: 'Dream11 Sports Collab',
+      text: 'Hi there, reaching out from Dream11 Sports Marketing. We want to collaborate for an IPL matchday preview reel + 3 interactive quiz stories encouraging followers to create fantasy teams. Campaign timeline is next weekend. Budget allocated is Rs.75,000.',
+    },
+  ];
+
+  const handleRunLiveDemo = async (customText) => {
+    const textToRun = customText || liveBrief;
+    if (!textToRun.trim()) return;
+    setLiveLoading(true);
+    setLiveResult(null);
+
+    try {
+      const res = await fetch('/api/ai/analyze-brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: textToRun }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLiveResult(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  const handleDemoClick = async () => {
+    setSubmittingDemo(true);
+    const res = await demoLogin();
+    setSubmittingDemo(false);
+    if (res.success) navigate('/dashboard');
+    else navigate('/login');
+  };
+
   const tickerItems = [
-    { dot: '', text: <><strong>@priyasharma</strong> signed a ₹45,000 campaign with Mamaearth</> },
-    { dot: 'gold', text: <><strong>boAt</strong> sent a ₹75,000 brief to @techrohan</> },
-    { dot: 'green', text: <><strong>₹1.48 Cr+</strong> total deal volume processed on DealInbox this month</> },
-    { dot: '', text: <><strong>@nehamukherjee</strong> closed a 3-month retainer with Nykaa</> },
-    { dot: 'gold', text: <><strong>Myntra</strong> requested 4 Reels from @lifestyle_arav</> },
+    { dot: 'green', text: <><strong>@priyasharma</strong> signed a ₹55,000 Reel deal with Mamaearth</> },
+    { dot: 'gold', text: <><strong>Dream11</strong> initiated a ₹75,000 IPL brief on DealInbox</> },
+    { dot: '', text: <><strong>₹1.8 Cr+</strong> creator sponsorship volume tracked this quarter</> },
+    { dot: 'green', text: <><strong>@techrohan</strong> countered Boat at ₹65,000 with AI Copilot</> },
+    { dot: 'gold', text: <><strong>Nykaa</strong> booked 4 Reels with @nehamukherjee</> },
   ];
 
   const features = [
-    { icon: '🔗', title: 'One link, zero chaos', desc: 'Share your DealInbox link. Brands fill a proper brief — budget, timeline, deliverables — instead of a DM thread.' },
-    { icon: '📊', title: "Track every deal's journey", desc: 'A pipeline from first contact to paid. See exactly where every collaboration stands.' },
-    { icon: '💰', title: "Know exactly what you've earned", desc: 'Monthly breakdown, pending payments, lifetime value — numbers you can actually show anyone.' },
-    { icon: '🔔', title: 'Never miss a deadline', desc: 'A priority board flags urgent replies and payment follow-ups before anything falls through.' },
-    { icon: '✨', title: 'Look premium to every brand', desc: "A structured submission form signals you're serious. Better briefs mean better deals." },
-    { icon: '📱', title: 'Manage from anywhere', desc: 'Fully responsive. Review briefs, update statuses, and check earnings from your phone.' },
+    {
+      icon: '🤖',
+      title: 'AI Contract Risk Radar',
+      desc: 'Never give away perpetual ad rights or sign predatory Net-90 payment terms. DealInbox flags red-flag clauses and generates protective legal addendums.',
+    },
+    {
+      icon: '💰',
+      title: 'Dynamic Rate Benchmarks',
+      desc: 'Know your exact market rate. Calculate fair compensation for Reels, YouTube integrations, usage rights, and category exclusivity based on reach.',
+    },
+    {
+      icon: '⚡',
+      title: 'Multi-Strategy AI Negotiator',
+      desc: 'One click generates 3 tactical responses: Value Upsell, Scope Boundary, and Professional Close. Stop guessing what to reply to brand budget offers.',
+    },
+    {
+      icon: '🔗',
+      title: 'One Link for Your Bio',
+      desc: 'Share dealsinbox.in/@username. Brands fill a structured intake brief — budget, deliverables, timeline — instead of chaotic Instagram DMs.',
+    },
+    {
+      icon: '📊',
+      title: 'Visual Deal Pipeline',
+      desc: 'Track every deal from inbound brief to live deliverable and invoice payment. Never lose an opportunity in an unread thread.',
+    },
+    {
+      icon: '💳',
+      title: 'Milestone Payments & Tracking',
+      desc: 'Integrated with Razorpay & UPI. Require 50% advance deposits upfront and provide brands with a dedicated tracking portal.',
+    },
   ];
 
   const testimonials = [
-    { name: 'Priya S.', tag: '890K · Beauty', color: '#c2410c', initials: 'PS', text: "Before DealInbox I had a Notion doc, a spreadsheet, and forty unread DMs all tracking the same deals. First month in, I found a ₹18K deal I'd completely forgotten about." },
-    { name: 'Rohan K.', tag: '1.2M · Tech', color: '#2b52e0', initials: 'RK', text: "Brands fill in their budget upfront now, so I've stopped having the awkward money conversation. My average deal value went up 30% in three months." },
-    { name: 'Neha M.', tag: '450K · Lifestyle', color: '#178a4c', initials: 'NM', text: "I sent my DealInbox link to a top FMCG brand's marketing team. They called it the most professional outreach they'd seen from an indie creator — closed the deal that week." },
+    {
+      name: 'Rohan K.',
+      tag: '1.2M · Tech Creator',
+      text: "The AI Brief Analyzer spotted that a top audio brand was asking for 'perpetual paid ad rights' for only ₹20,000. I used the AI counter-offer script and closed at ₹60,000 for 30-day rights. It literally paid for itself 100x over.",
+    },
+    {
+      name: 'Priya S.',
+      tag: '850K · Lifestyle & Beauty',
+      text: "I used to have thirty unread emails and random WhatsApp chats from PR agencies. With my DealInbox link, brands submit proper budgets upfront. My average deal value went up 40% in two months.",
+    },
+    {
+      name: 'Sneha M.',
+      tag: '450K · Fitness & Sports',
+      text: "Brand agencies love the structured portal. They said it was the cleanest, most professional creator intake they had ever seen. Closed 3 retainer sponsorships in my first week.",
+    },
   ];
 
   return (
     <div style={{ background: 'var(--canvas)', color: 'var(--t1)', minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* ── NAV ── */}
+      {/* ── TOP NAV ── */}
       <nav className="lp-nav">
         <Link to="/" className="lp-logo">
+          <img src="/static/logo.jpeg" alt="DealInbox Logo" />
           DealInbox
         </Link>
         <div className="lp-nav-links">
+          <a href="#ai-demo">AI Demo</a>
           <a href="#features">Features</a>
           <a href="#testimonials">Creators</a>
           <a href="#pricing">Pricing</a>
         </div>
-        <div className="lp-nav-right">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={handleDemoClick}
+            disabled={submittingDemo}
+            className="btn btn-secondary btn-sm"
+            style={{ color: '#818cf8', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+          >
+            {submittingDemo ? 'Loading...' : '⚡ Instant Demo'}
+          </button>
           <Link to="/login" className="btn btn-ghost btn-sm">Log in</Link>
-          <Link to="/signup" className="btn btn-primary btn-sm">Sign up free</Link>
+          <Link to="/signup" className="btn btn-primary btn-sm">Launch workspace</Link>
         </div>
       </nav>
 
@@ -63,22 +168,210 @@ export const LandingPage = () => {
         </div>
       </div>
 
-      {/* ── HERO EDITORIAL STAGGER COMPONENT ── */}
+      {/* ── HERO COMPONENT ── */}
       <HeroEditorialStagger />
 
-      {/* ── PLATFORMS STRIP ── */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
-        viewport={{ once: true }}
-        className="lp-social"
-      >
-        <p>Creators on these platforms manage brand deals with DealInbox</p>
-        <div className="lp-platforms">
-          {['YouTube', 'Instagram', 'Moj', 'Josh', 'LinkedIn'].map((p) => <span key={p}>{p}</span>)}
+      {/* ── LIVE INTERACTIVE AI BRIEF ANALYZER SANDBOX ── */}
+      <section className="lp-section" id="ai-demo" style={{ paddingTop: '40px' }}>
+        <div
+          style={{
+            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '24px',
+            padding: '36px',
+            boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6), 0 0 30px rgba(99, 102, 241, 0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
+            <div>
+              <span className="mono-label" style={{ marginBottom: '8px' }}>
+                <Sparkles size={14} /> INTERACTIVE AI DEMO
+              </span>
+              <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+                Test the Deal Intelligence Engine Live
+              </h2>
+              <p style={{ color: 'var(--t2)', fontSize: '14px', marginTop: '6px' }}>
+                Paste any brand email or pitch below to extract deliverables, spot contract traps, and generate counter-offers in real-time.
+              </p>
+            </div>
+
+            {/* Presets */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {presets.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setLiveBrief(p.text);
+                    handleRunLiveDemo(p.text);
+                  }}
+                  style={{
+                    fontSize: '12px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#e2e8f0',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  ⚡ {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Input & Action */}
+          <div style={{ position: 'relative', marginBottom: '24px' }}>
+            <textarea
+              rows={3}
+              value={liveBrief}
+              onChange={(e) => setLiveBrief(e.target.value)}
+              placeholder="Paste any brand collab pitch or DM here..."
+              style={{
+                width: '100%',
+                fontSize: '14px',
+                padding: '16px',
+                borderRadius: '14px',
+                background: 'rgba(15, 23, 42, 0.9)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#fff',
+                lineHeight: 1.6,
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <button
+                onClick={() => handleRunLiveDemo()}
+                disabled={liveLoading || !liveBrief.trim()}
+                className="btn btn-primary"
+                style={{ padding: '12px 24px', fontSize: '14px', gap: '8px' }}
+              >
+                {liveLoading ? (
+                  <>
+                    <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Analyzing with AI Engine...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} /> Analyze Deal with AI
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Result Output */}
+          {liveResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '20px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                paddingTop: '24px',
+              }}
+            >
+              {/* Card 1: Deliverables & Rate */}
+              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Scope &amp; Fair Value</span>
+                <h4 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: '6px 0 10px' }}>
+                  {liveResult.brand_name}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
+                  {liveResult.deliverables?.map((d, idx) => (
+                    <div key={idx} style={{ fontSize: '13px', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="#10b981" /> {d}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--t2)' }}>Brand Offer:</span>
+                    <strong style={{ fontSize: '15px', color: '#fff' }}>₹{liveResult.offered_budget?.toLocaleString() || 'TBD'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', color: '#38bdf8' }}>AI Fair Market Rate:</span>
+                    <strong style={{ fontSize: '18px', color: '#38bdf8' }}>
+                      ₹{liveResult.fair_market_value?.min?.toLocaleString()} – ₹{liveResult.fair_market_value?.max?.toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Contract Risk Radar */}
+              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '11px', color: '#f43f5e', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertTriangle size={14} /> Contract Safety Scan
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  {liveResult.risk_radar?.map((r, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: r.severity === 'high' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        border: `1px solid ${r.severity === 'high' ? 'rgba(244, 63, 94, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      }}
+                    >
+                      <strong style={{ fontSize: '12.5px', color: r.severity === 'high' ? '#fb7185' : '#fcd34d', display: 'block' }}>
+                        {r.flag}
+                      </strong>
+                      <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: '4px 0' }}>{r.warning}</p>
+                      <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
+                        Clause fix: {r.counter_clause}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card 3: Counter-Offer Script */}
+              <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#818cf8', textTransform: 'uppercase', fontWeight: 700 }}>
+                    AI Generated Counter-Offer
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(liveResult.counter_draft);
+                      setCopiedPitch(true);
+                      setTimeout(() => setCopiedPitch(false), 2000);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11px',
+                      color: copiedPitch ? '#10b981' : '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {copiedPitch ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedPitch ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <div
+                  style={{
+                    fontSize: '12px',
+                    lineHeight: 1.6,
+                    color: '#e2e8f0',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    maxHeight: '160px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {liveResult.counter_draft}
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
-      </motion.section>
+      </section>
 
       {/* ── FEATURES GRID ── */}
       <section className="lp-section" id="features">
@@ -90,10 +383,12 @@ export const LandingPage = () => {
           className="lp-section-head"
         >
           <span className="lp-section-eyebrow">FEATURES</span>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>
-            Built for how creators <span style={{ fontFamily: 'var(--font-ui)', fontStyle: 'normal', fontWeight: 800 }}>actually work</span>
+          <h2>
+            Engineered for High-Volume Creator Sponsorships
           </h2>
-          <p>No spreadsheets. No forgotten follow-ups. Just a clean, high-clarity deal pipeline.</p>
+          <p style={{ color: 'var(--t2)', fontSize: '16px', marginTop: '8px' }}>
+            No spreadsheets. No awkward rate discussions. Just a seamless, AI-assisted deal pipeline from brief to payment.
+          </p>
         </motion.div>
 
         <div className="lp-feature-grid">
@@ -104,10 +399,9 @@ export const LandingPage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: i * 0.08 }}
               viewport={{ once: true }}
-              whileHover={{ y: -6, borderColor: 'var(--accent)' }}
               className="lp-feature"
             >
-              <div className="lp-feature-icon" style={{ fontSize: 22 }}>{f.icon}</div>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>{f.icon}</div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
             </motion.article>
@@ -124,11 +418,13 @@ export const LandingPage = () => {
           viewport={{ once: true }}
           className="lp-section-head"
         >
-          <span className="lp-section-eyebrow">CREATORS LOVE IT</span>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>
-            Real creators, <span style={{ fontFamily: 'var(--font-ui)', fontStyle: 'normal', fontWeight: 800 }}>real pipeline results</span>
+          <span className="lp-section-eyebrow">CREATOR STORIES</span>
+          <h2>
+            Loved by 2,400+ Creators Across India
           </h2>
-          <p>Built from actual creator workflows, not generic productivity theory.</p>
+          <p style={{ color: 'var(--t2)', fontSize: '16px', marginTop: '8px' }}>
+            From tech YouTubers to beauty & lifestyle creators on Instagram.
+          </p>
         </motion.div>
 
         <div className="lp-test-grid">
@@ -139,14 +435,12 @@ export const LandingPage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
               viewport={{ once: true }}
-              whileHover={{ y: -4 }}
               className="lp-test-card"
             >
-              <div className="lp-stars">★★★★★</div>
               <p className="lp-test-text">"{t.text}"</p>
-              <div className="lp-test-user">
-                <div className="lp-test-av" style={{ background: t.color }}>{t.initials}</div>
-                <div><strong>{t.name}</strong><span>{t.tag}</span></div>
+              <div>
+                <strong style={{ fontSize: '15px', color: '#fff', display: 'block' }}>{t.name}</strong>
+                <span style={{ fontSize: '12px', color: 'var(--t3)' }}>{t.tag}</span>
               </div>
             </motion.article>
           ))}
@@ -160,53 +454,52 @@ export const LandingPage = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
           viewport={{ once: true }}
-          className="lp-section-head"
+          style={{ textAlign: 'center', marginBottom: '48px' }}
         >
           <span className="lp-section-eyebrow">PRICING</span>
-          <h2>Simple, transparent pricing</h2>
-          <p>Start for free, upgrade when your deal volume scales.</p>
+          <h2>Simple, Transparent Pricing</h2>
+          <p style={{ color: 'var(--t2)', fontSize: '16px', marginTop: '8px' }}>
+            Start completely free. Upgrade to Pro as your brand sponsorship volume expands.
+          </p>
         </motion.div>
 
         <div className="lp-pricing-grid">
-          <motion.article
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="lp-price-card"
-          >
-            <span className="badge badge-accepted">Free</span>
-            <div className="lp-price">₹0 <small>/forever</small></div>
+          {/* Free Tier */}
+          <motion.article className="lp-price-card">
+            <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--t3)' }}>Starter</span>
+            <div className="lp-price">₹0 <small>/month</small></div>
             <p style={{ marginTop: 6, fontSize: 13, color: 'var(--t3)' }}>Everything to get started</p>
-            <hr className="divider" />
-            <ul className="lp-price-list">
-              <li><CheckIcon /> 1 public DealInbox link</li>
-              <li><CheckIcon /> Up to 20 active deals</li>
-              <li><CheckIcon /> Basic earnings tracker</li>
-              <li><CheckIcon /> Brand submission form</li>
+            <div style={{ height: 1, background: 'var(--border)', margin: '20px 0' }} />
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, fontSize: '13.5px', color: 'var(--t2)' }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon /> 1 public DealInbox bio link</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon /> Up to 20 active brand deals</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon /> AI Brief Parser (Basic)</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon /> Automated brand status tracking</li>
             </ul>
-            <Link to="/signup" className="btn btn-secondary btn-full" style={{ marginTop: 20 }}>Start for free</Link>
+            <Link to="/signup" className="btn btn-secondary btn-full" style={{ marginTop: 28 }}>Start Free</Link>
           </motion.article>
 
-          <motion.article
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="lp-price-card pro"
-          >
-            <span className="badge" style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Most popular</span>
+          {/* Pro Tier */}
+          <motion.article className="lp-price-card pro">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#818cf8' }}>Pro Creator</span>
+              <span className="badge" style={{ background: 'var(--accent-soft)', color: '#a5b4fc', border: '1px solid var(--accent-border)' }}>
+                Most Popular
+              </span>
+            </div>
             <div className="lp-price">₹199 <small>/month</small></div>
-            <p style={{ marginTop: 6, fontSize: 13, color: 'var(--t3)' }}>Everything in Free, plus</p>
-            <hr className="divider" />
-            <ul className="lp-price-list">
-              <li><CheckIcon color="var(--gold)" /> Unlimited active deals</li>
-              <li><CheckIcon color="var(--gold)" /> Advanced earnings analytics</li>
-              <li><CheckIcon color="var(--gold)" /> Priority board &amp; positioning tools</li>
-              <li><CheckIcon color="var(--gold)" /> Priority support</li>
+            <p style={{ marginTop: 6, fontSize: 13, color: 'var(--t3)' }}>For professional and agency creators</p>
+            <div style={{ height: 1, background: 'var(--border)', margin: '20px 0' }} />
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, fontSize: '13.5px', color: '#e2e8f0' }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon color="var(--accent)" /> <strong>Unlimited</strong> active deals</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon color="var(--accent)" /> <strong>Full AI Copilot &amp; Risk Scanner</strong></li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon color="var(--accent)" /> Dynamic rate card &amp; multi-strategy pitch</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon color="var(--accent)" /> Earnings analytics &amp; CSV export</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CheckIcon color="var(--accent)" /> Priority brand positioning studio</li>
             </ul>
-            <Link to="/signup" className="btn btn-gold btn-full" style={{ marginTop: 20 }}>Start with Pro →</Link>
-            <p style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: 'var(--t4)' }}>No credit card required to sign up</p>
+            <Link to="/signup" className="btn btn-primary btn-full" style={{ marginTop: 28 }}>
+              Start Pro Trial →
+            </Link>
           </motion.article>
         </div>
       </section>
@@ -219,29 +512,43 @@ export const LandingPage = () => {
         viewport={{ once: true }}
         className="lp-final"
       >
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400, fontSize: '42px' }}>
-            Your next brand deal is <span style={{ fontFamily: 'var(--font-ui)', fontStyle: 'normal', fontWeight: 800 }}>waiting.</span>
+        <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '42px', fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' }}>
+            Ready to Take Control of Your Sponsorships?
           </h2>
-          <p style={{ marginTop: 12 }}>Join 2,400+ Indian creators who actually know what's in their inbox.</p>
-          <Link to="/signup" className="btn btn-primary btn-xl" style={{ marginTop: 28, padding: '16px 36px' }}>
-            Create your free page <ArrowRight size={18} />
-          </Link>
-          <small style={{ display: 'block', marginTop: 16, color: 'var(--t4)' }}>No credit card required · Free forever plan · 2 min setup</small>
+          <p style={{ marginTop: 14, fontSize: '16px', color: 'var(--t2)' }}>
+            Join 2,400+ creators who use DealInbox to protect their rates, spot contract traps, and close more deals.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', marginTop: '32px', flexWrap: 'wrap' }}>
+            <Link to="/signup" className="btn btn-primary btn-xl" style={{ padding: '16px 36px', gap: '8px' }}>
+              Create your free workspace <ArrowRight size={18} />
+            </Link>
+            <button
+              onClick={handleDemoClick}
+              disabled={submittingDemo}
+              className="btn btn-secondary btn-xl"
+            >
+              ⚡ 1-Click Instant Demo
+            </button>
+          </div>
+          <small style={{ display: 'block', marginTop: 18, color: 'var(--t3)' }}>
+            No credit card required · Free plan available · 2-minute setup
+          </small>
         </div>
       </motion.section>
 
       {/* ── FOOTER ── */}
       <footer className="lp-footer">
-        <div className="lp-footer-inner">
-          <div className="lp-footer-left">
-            <span className="lp-logo"><img src="/static/logo.jpeg" alt="" style={{ width: 20, height: 20, borderRadius: 4 }} /> DealInbox</span>
-            <span>© 2026 DealInbox. Made for Indian creators.</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', maxWidth: '1140px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/static/logo.jpeg" alt="Logo" style={{ width: 22, height: 22, borderRadius: 6 }} />
+            <strong style={{ color: '#fff' }}>DealInbox</strong>
+            <span style={{ color: 'var(--t3)' }}>· AI-Powered Sponsorship Workspace</span>
           </div>
-          <div className="lp-footer-right">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <Link to="/login">For Brands</Link>
+          <div style={{ display: 'flex', gap: '20px', color: 'var(--t2)', fontSize: '13px' }}>
+            <a href="https://dealsinbox.in" target="_blank" rel="noreferrer">dealsinbox.in</a>
+            <a href="https://github.com/rudrasalokhe/dealinbox" target="_blank" rel="noreferrer">GitHub</a>
+            <Link to="/login">Sign In</Link>
           </div>
         </div>
       </footer>

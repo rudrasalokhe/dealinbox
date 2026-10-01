@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, BrainCircuit } from 'lucide-react';
+import { AiBriefAnalyzerModal } from './AiBriefAnalyzerModal';
 
 export const Navbar = () => {
   const { user } = useAuth();
@@ -9,6 +10,7 @@ export const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showPalette, setShowPalette] = useState(false);
+  const [showAnalyzer, setShowAnalyzer] = useState(false);
 
   const handleSearch = async (q) => {
     setSearchQuery(q);
@@ -27,12 +29,12 @@ export const Navbar = () => {
 
   if (!user) {
     return (
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '2px solid #000', background: 'var(--paper)' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '20px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-          <img src="/static/logo.jpeg" alt="logo" style={{ width: '24px', height: '24px', borderRadius: '0' }} />
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1px solid var(--border)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(16px)' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+          <img src="/static/logo.jpeg" alt="logo" style={{ width: '26px', height: '26px', borderRadius: '8px' }} />
           DealInbox
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginLeft: 'auto' }}>
           <Link to="/login" className="btn btn-secondary btn-sm">Log in</Link>
           <Link to="/signup" className="btn btn-primary btn-sm">Launch workspace</Link>
         </div>
@@ -43,9 +45,23 @@ export const Navbar = () => {
   return (
     <>
       <header className="os-topbar">
-        <button className="cmd-btn" onClick={() => setShowPalette(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Search size={14} /> ⌘K &nbsp; Jump to brands, deals, reminders
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button className="cmd-btn" onClick={() => setShowPalette(true)}>
+            <Search size={14} /> ⌘K &nbsp; Search opportunities, brands...
+          </button>
+          <button
+            onClick={() => setShowAnalyzer(true)}
+            className="btn btn-secondary btn-sm"
+            style={{
+              background: 'rgba(99, 102, 241, 0.1)',
+              borderColor: 'rgba(99, 102, 241, 0.3)',
+              color: '#a5b4fc',
+              gap: '6px',
+            }}
+          >
+            <Sparkles size={14} color="#818cf8" /> AI Brief Analyzer
+          </button>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span className="os-pill">{user.plan.toUpperCase()} PLAN</span>
           {user.plan !== 'pro' && (
@@ -55,6 +71,8 @@ export const Navbar = () => {
           )}
         </div>
       </header>
+
+      <AiBriefAnalyzerModal isOpen={showAnalyzer} onClose={() => setShowAnalyzer(false)} />
 
       {showPalette && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '100px', background: 'rgba(0,0,0,.8)' }} onClick={() => setShowPalette(false)}>

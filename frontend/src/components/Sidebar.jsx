@@ -19,21 +19,21 @@ export const Sidebar = ({ newEnquiryCount = 0 }) => {
       <div className="os-brand">
         <img src="/static/logo.jpeg" alt="logo" />
         <div>
-          <strong>DEALINBOX</strong>
-          <span>CREATOR OS ✦ 2026</span>
+          <strong>DealInbox</strong>
+          <span>AI Deal CRM</span>
         </div>
       </div>
 
       <div className="os-user">
         <div className="os-av">{user.name ? user.name[0].toUpperCase() : 'U'}</div>
         <div style={{ overflow: 'hidden' }}>
-          <p style={{ fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>{user.name}</p>
-          <small style={{ fontFamily: 'var(--font-mono)', color: 'var(--acid)', fontSize: '11px' }}>@{user.username}</small>
+          <p style={{ fontWeight: 700, fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>{user.name}</p>
+          <small style={{ color: 'var(--accent)', fontSize: '11px', fontWeight: 600 }}>@{user.username}</small>
         </div>
       </div>
 
       <div className="os-nav-group">
-        <p className="os-nav-label">01 // WORKSPACE</p>
+        <p className="os-nav-label">WORKSPACE</p>
         <nav className="os-nav">
           <NavLink to="/dashboard" className={({ isActive }) => `os-link ${isActive ? 'active' : ''}`}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -63,7 +63,7 @@ export const Sidebar = ({ newEnquiryCount = 0 }) => {
       </div>
 
       <div className="os-nav-group">
-        <p className="os-nav-label">02 // GROWTH &amp; TOOLS</p>
+        <p className="os-nav-label">GROWTH &amp; TOOLS</p>
         <nav className="os-nav">
           <NavLink to="/positioning" className={({ isActive }) => `os-link ${isActive ? 'active' : ''}`}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

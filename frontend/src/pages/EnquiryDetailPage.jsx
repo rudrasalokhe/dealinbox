@@ -80,11 +80,14 @@ export const EnquiryDetailPage = () => {
             {enq.brand_name?.[0]?.toUpperCase() || 'B'}
           </div>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', lineHeight: 1 }}>{enq.brand_name}</h1>
-            <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', marginTop: 8 }}>Contact: {enq.contact_name} ({enq.email}) · Received {enq.created_at_fmt}</p>
+            <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1.15 }}>{enq.brand_name}</h1>
+            <p style={{ color: 'var(--t2)', fontSize: 13, marginTop: 4 }}>Contact: {enq.contact_name} ({enq.email}) · Received {enq.created_at_fmt}</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to={`/enquiries/${eid}/respond`} className="btn btn-primary btn-sm" style={{ gap: 6 }}>
+            <Sparkles size={14} /> AI Response Studio
+          </Link>
           <select value={status} onChange={(e) => handleStatusUpdate(e.target.value)} style={{ padding: '8px 14px', fontSize: 13, width: 'auto' }}>
             {data.statuses?.map((st) => <option key={st.key} value={st.key}>{st.label}</option>)}
           </select>

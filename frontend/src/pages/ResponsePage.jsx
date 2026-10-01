@@ -109,11 +109,13 @@ export const ResponsePage = () => {
         <ArrowLeft size={16} /> Back to deal overview
       </Link>
 
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <span className="os-pill" style={{ marginBottom: 8, display: 'inline-block' }}>PITCH &amp; RESPONSE STUDIO</span>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', lineHeight: 1 }}>Respond to {enq.brand_name}</h1>
-          <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', marginTop: 8 }}>
+          <span className="tilted-badge" style={{ marginBottom: 10, display: 'inline-block' }}>AI PITCH &amp; RESPONSE STUDIO</span>
+          <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1.15 }}>
+            Respond to {enq.brand_name}
+          </h1>
+          <p style={{ color: 'var(--t2)', fontSize: 13.5, marginTop: 6 }}>
             Contact: {enq.contact_name} ({enq.email}) · Budget: <strong style={{ color: 'var(--green)' }}>{enq.budget || 'Open'}</strong>
           </p>
         </div>

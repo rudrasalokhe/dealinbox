@@ -57,13 +57,30 @@ export const AuthProvider = ({ children }) => {
     return { success: false, error: data.error || 'Signup failed' };
   };
 
+  const demoLogin = async () => {
+    try {
+      const res = await fetch('/api/auth/demo-login', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.ok) {
+        await checkAuth();
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Demo login failed' };
+    } catch {
+      return { success: false, error: 'Connection error' };
+    }
+  };
+
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser: checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, demoLogin, logout, refreshUser: checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
