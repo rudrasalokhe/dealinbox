@@ -515,27 +515,46 @@ def api_demo_login():
 
 # ── Generative AI Engine & Copilot Endpoints ─────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 def call_gemini_raw(prompt_text, system_instruction=None):
-    """Calls Gemini REST API if configured, else returns None to invoke fallback."""
+    """Calls Gemini REST API using high-speed flash models (gemini-2.5-flash-lite or gemini-2.5-flash)."""
     if not GEMINI_API_KEY or not http_requests:
         return None
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt_text}]}],
-            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 800}
-        }
-        if system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-        resp = http_requests.post(url, json=payload, timeout=6)
-        if resp.status_code == 200:
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                return candidates[0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        print(f"Gemini API request failed: {e}")
+    
+    # Try preferred model first, then fallback to next fastest
+    models_to_try = [
+        GEMINI_MODEL,
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash"
+    ]
+    # Deduplicate while preserving order
+    seen = set()
+    models = [m for m in models_to_try if not (m in seen or seen.add(m))]
+
+    for model_name in models:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt_text}]}],
+                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 800}
+            }
+            if system_instruction:
+                payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+            
+            resp = http_requests.post(url, json=payload, timeout=6)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    return candidates[0]["content"]["parts"][0]["text"]
+            else:
+                print(f"Gemini API model {model_name} returned HTTP {resp.status_code}")
+        except Exception as e:
+            print(f"Gemini API attempt with {model_name} failed: {e}")
+            continue
+
     return None
 
 @app.route("/api/ai/analyze-brief", methods=["POST"])
