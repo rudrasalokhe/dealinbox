@@ -536,6 +536,10 @@ def call_gemini_raw(prompt_text, system_instruction=None):
     for model_name in models:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY
+            }
             payload = {
                 "contents": [{"parts": [{"text": prompt_text}]}],
                 "generationConfig": {"temperature": 0.3, "maxOutputTokens": 800}
@@ -543,14 +547,14 @@ def call_gemini_raw(prompt_text, system_instruction=None):
             if system_instruction:
                 payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
             
-            resp = http_requests.post(url, json=payload, timeout=6)
+            resp = http_requests.post(url, headers=headers, json=payload, timeout=6)
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])
                 if candidates:
                     return candidates[0]["content"]["parts"][0]["text"]
             else:
-                print(f"Gemini API model {model_name} returned HTTP {resp.status_code}")
+                print(f"Gemini API model {model_name} returned HTTP {resp.status_code}: {resp.text[:120]}")
         except Exception as e:
             print(f"Gemini API attempt with {model_name} failed: {e}")
             continue
