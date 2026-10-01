@@ -518,19 +518,23 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 def call_gemini_raw(prompt_text, system_instruction=None):
-    """Calls Gemini REST API using high-speed flash models (gemini-2.5-flash-lite or gemini-2.5-flash)."""
-    if not GEMINI_API_KEY or not http_requests:
+    """Calls Gemini REST API using high-speed flash models (gemini-flash-latest or gemini-2.5-flash)."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("GEMINI_API_KEY is not set or empty in environment.")
+        return None
+    if not http_requests:
+        print("http_requests module not available.")
         return None
     
-    # Try preferred model first, then fallback to next fastest
+    preferred_model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite").strip()
     models_to_try = [
-        "gemini-flash-latest",
-        GEMINI_MODEL,
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-1.5-flash"
+        preferred_model,
+        "gemini-3.1-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-flash-lite-latest",
+        "gemini-flash-latest"
     ]
-    # Deduplicate while preserving order
     seen = set()
     models = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
@@ -539,7 +543,7 @@ def call_gemini_raw(prompt_text, system_instruction=None):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
             headers = {
                 "Content-Type": "application/json",
-                "X-goog-api-key": GEMINI_API_KEY
+                "X-goog-api-key": api_key
             }
             payload = {
                 "contents": [{"parts": [{"text": prompt_text}]}],
@@ -548,12 +552,16 @@ def call_gemini_raw(prompt_text, system_instruction=None):
             if system_instruction:
                 payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
             
-            resp = http_requests.post(url, headers=headers, json=payload, timeout=6)
+            resp = http_requests.post(url, headers=headers, json=payload, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])
                 if candidates:
-                    return candidates[0]["content"]["parts"][0]["text"]
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    texts = [p.get("text", "") for p in parts if "text" in p]
+                    full_text = "".join(texts).strip()
+                    if full_text:
+                        return full_text
             else:
                 print(f"Gemini API model {model_name} returned HTTP {resp.status_code}: {resp.text[:120]}")
         except Exception as e:
