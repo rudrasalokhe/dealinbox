@@ -570,6 +570,21 @@ def call_gemini_raw(prompt_text, system_instruction=None):
 
     return None
 
+@app.route("/api/ai/diagnostics")
+def api_ai_diagnostics():
+    """Health check for AI engine to see why Render environment is connecting or falling back."""
+    key = os.getenv("GEMINI_API_KEY", "")
+    masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else "NOT_SET"
+    test_res = call_gemini_raw("Hello! Say 'Gemini Live Active' in 3 words.")
+    return jsonify({
+        "gemini_api_key_set": bool(key),
+        "masked_key": masked_key,
+        "key_length": len(key),
+        "preferred_model": os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+        "test_call_success": bool(test_res),
+        "test_reply": test_res or "FAILED"
+    })
+
 @app.route("/api/ai/analyze-brief", methods=["POST"])
 def api_ai_analyze_brief():
     data = json_body()
