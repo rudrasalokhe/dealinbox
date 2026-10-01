@@ -56,10 +56,10 @@ export const PositioningPage = () => {
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', display: 'flex', alignItems: 'center', gap: 10, lineHeight: 1 }}>
-          <Compass color="var(--accent)" size={36} /> Creator Positioning Engine
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.02em' }}>
+          <Compass color="var(--primary)" size={28} /> Creator Positioning Engine
         </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', marginTop: 8 }}>AI suggestions to raise your rates and attract higher-quality brands.</p>
+        <p style={{ color: 'var(--t2)', fontSize: 14, marginTop: 4 }}>AI suggestions to raise your rates and attract higher-quality brands.</p>
       </div>
 
       {!data?.ready ? (
@@ -75,7 +75,7 @@ export const PositioningPage = () => {
               <ScoreRing score={score} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, color: 'var(--t3)', textTransform: 'uppercase', fontWeight: 600 }}>Positioning Health Score</div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, color: '#fff', margin: '4px 0', lineHeight: 1 }}>{score} / 100</h2>
+                <h2 style={{ fontSize: 36, fontWeight: 800, color: 'var(--t1)', margin: '4px 0', lineHeight: 1 }}>{score} / 100</h2>
                 <div className="pos-bar-row">
                   <div className="pos-bar-track"><div className="pos-bar-fill" style={{ width: `${score}%` }} /></div>
                   <div className="pos-bar-labels">
@@ -84,7 +84,7 @@ export const PositioningPage = () => {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: 13, color: 'var(--t2)' }}>Avg Budget: <strong style={{ color: '#fff' }}>₹{(data.avg_budget || 0).toLocaleString()}</strong></p>
+                <p style={{ fontSize: 13, color: 'var(--t2)' }}>Avg Budget: <strong style={{ color: 'var(--t1)' }}>₹{(data.avg_budget || 0).toLocaleString()}</strong></p>
                 <p style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Low deals (&lt;₹10k): <strong style={{ color: 'var(--gold)' }}>{data.pct_low || 0}%</strong></p>
               </div>
             </div>
@@ -126,7 +126,7 @@ export const PositioningPage = () => {
           {/* ── RIGHT: Profile Preview ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="card">
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 16 }}>How brands see you</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 16 }}>How brands see you</h3>
               <div className="profile-preview">
                 <div className="pp-mock-av">{user?.name?.[0]?.toUpperCase() || 'C'}</div>
                 <div className="pp-mock-name">{user?.name || 'Creator'}</div>
@@ -143,7 +143,7 @@ export const PositioningPage = () => {
             </div>
 
             <div className="card">
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 14 }}>Deal Data</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 14 }}>Deal Data</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--t3)' }}>Total enquiries</span>

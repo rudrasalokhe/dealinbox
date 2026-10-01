@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Lock, KeyRound } from 'lucide-react';
 
 export const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -34,28 +35,75 @@ export const ResetPasswordPage = () => {
   return (
     <div className="auth-split">
       <section className="auth-left">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '56px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', lineHeight: 0.95 }}>Set a new password.</h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: '13px', textTransform: 'uppercase', marginTop: '12px', maxWidth: '420px' }}>Choose a strong password for your DealInbox workspace.</p>
+        <Link to="/" style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px' }}>
+          <img src="/static/logo.jpeg" alt="logo" style={{ width: '28px', height: '28px', borderRadius: '8px' }} />
+          DealInbox
+        </Link>
+        <span className="tilted-badge acid" style={{ width: 'fit-content', marginBottom: 16 }}>SECURITY</span>
+        <h1 style={{ fontSize: '42px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '16px' }}>
+          Set a new password.
+        </h1>
+        <p style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '15px', lineHeight: 1.6, maxWidth: '420px' }}>
+          Choose a strong password for your DealInbox workspace.
+        </p>
       </section>
 
       <section className="auth-right">
         <div className="auth-card">
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: '16px' }}>New Password</h2>
+          <h2 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--t1)', marginBottom: '6px', letterSpacing: '-0.02em' }}>
+            New Password
+          </h2>
+          <p style={{ fontSize: '13.5px', color: 'var(--t2)', marginBottom: '24px' }}>
+            Create a secure password with at least 6 characters.
+          </p>
 
-          {error && <div style={{ padding: '10px', borderRadius: 'var(--r-sm)', background: 'rgba(239,68,68,.15)', color: '#f87171', fontSize: '13px', marginBottom: '16px' }}>{error}</div>}
+          {error && (
+            <div style={{
+              padding: '12px 14px', borderRadius: '12px', background: 'var(--red-soft)',
+              color: 'var(--red)', fontSize: '13px', fontWeight: 600, marginBottom: '16px'
+            }}>
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--t2)', display: 'block', marginBottom: '6px' }}>New Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Min. 6 characters" />
+              <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t1)', display: 'block', marginBottom: '6px' }}>
+                New Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Min. 6 characters"
+                  style={{ paddingRight: '40px' }}
+                />
+                <Lock size={18} color="var(--t3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--t2)', display: 'block', marginBottom: '6px' }}>Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} placeholder="Confirm password" />
+              <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t1)', display: 'block', marginBottom: '6px' }}>
+                Confirm Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Confirm password"
+                  style={{ paddingRight: '40px' }}
+                />
+                <KeyRound size={18} color="var(--t3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full" disabled={submitting}>
+            <button type="submit" className="btn btn-primary btn-full" disabled={submitting} style={{ height: 48, borderRadius: 14, fontSize: 14.5 }}>
               {submitting ? 'Updating...' : 'Update Password →'}
             </button>
           </form>

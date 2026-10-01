@@ -80,7 +80,7 @@ export const EnquiryDetailPage = () => {
             {enq.brand_name?.[0]?.toUpperCase() || 'B'}
           </div>
           <div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1.15 }}>{enq.brand_name}</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--t1)', lineHeight: 1.15 }}>{enq.brand_name}</h1>
             <p style={{ color: 'var(--t2)', fontSize: 13, marginTop: 4 }}>Contact: {enq.contact_name} ({enq.email}) · Received {enq.created_at_fmt}</p>
           </div>
         </div>
@@ -162,7 +162,7 @@ export const EnquiryDetailPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Contact info */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>Brand Contact</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Brand Contact</h3>
             <p style={{ fontSize: 13, color: 'var(--t2)' }}><strong>Name:</strong> {enq.contact_name}</p>
             <p style={{ fontSize: 13, color: 'var(--t2)', marginTop: 6 }}><strong>Email:</strong> {enq.email}</p>
             <Link to={`/enquiries/${eid}/respond`} className="btn btn-primary btn-sm btn-full" style={{ marginTop: 14 }}>
@@ -172,7 +172,7 @@ export const EnquiryDetailPage = () => {
 
           {/* Actions */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>Quick Actions</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Quick Actions</h3>
             <div className="sidebar-actions">
               <button className="btn btn-secondary btn-sm btn-full" onClick={() => copyToClipboard(enq.brief || '', 'brief')}>
                 <Copy size={14} /> {copied === 'brief' ? 'Copied!' : 'Copy campaign brief'}
@@ -192,7 +192,7 @@ export const EnquiryDetailPage = () => {
 
           {/* Timeline */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 14 }}>Deal Timeline</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 14 }}>Deal Timeline</h3>
             <div className="timeline">
               {timelineSteps.map((step, i) => (
                 <div className="tl-item" key={i}>

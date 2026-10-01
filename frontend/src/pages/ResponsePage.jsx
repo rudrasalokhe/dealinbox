@@ -112,7 +112,7 @@ export const ResponsePage = () => {
       <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <span className="tilted-badge" style={{ marginBottom: 10, display: 'inline-block' }}>AI PITCH &amp; RESPONSE STUDIO</span>
-          <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1.15 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--t1)', lineHeight: 1.15 }}>
             Respond to {enq.brand_name}
           </h1>
           <p style={{ color: 'var(--t2)', fontSize: 13.5, marginTop: 6 }}>
@@ -127,7 +127,7 @@ export const ResponsePage = () => {
           {/* Response Type Selector */}
           <div className="card">
             <h2 className="card-title" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Sparkles size={16} color="var(--accent)" /> Select Response Strategy
+              <Sparkles size={16} color="var(--primary)" /> Select Response Strategy
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
               {[
@@ -141,12 +141,12 @@ export const ResponsePage = () => {
                   onClick={() => handleTypeChange(t.key)}
                   style={{
                     padding: '12px 14px', borderRadius: 'var(--r-md)', textAlign: 'left',
-                    background: replyType === t.key ? 'var(--accent-soft)' : 'rgba(255,255,255,.02)',
-                    border: replyType === t.key ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    background: replyType === t.key ? 'var(--mint)' : 'var(--canvas-subtle)',
+                    border: replyType === t.key ? '1.5px solid var(--primary)' : '1px solid var(--border)',
                     cursor: 'pointer', transition: 'all .2s'
                   }}
                 >
-                  <strong style={{ fontSize: 13, color: replyType === t.key ? '#fff' : 'var(--t1)', display: 'block' }}>{t.label}</strong>
+                  <strong style={{ fontSize: 13, color: 'var(--t1)', display: 'block' }}>{t.label}</strong>
                   <span style={{ fontSize: 11, color: 'var(--t3)' }}>{t.sub}</span>
                 </button>
               ))}
@@ -172,7 +172,7 @@ export const ResponsePage = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{ fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase', fontWeight: 600 }}>Original Inquiry Budget</span>
-                  <strong style={{ fontSize: 15, color: '#fff', marginTop: 2 }}>{enq.budget || 'Not specified'}</strong>
+                  <strong style={{ fontSize: 15, color: 'var(--t1)', marginTop: 2 }}>{enq.budget || 'Not specified'}</strong>
                 </div>
               </div>
 
@@ -239,18 +239,18 @@ export const ResponsePage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Brand Info */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>Campaign Summary</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Campaign Summary</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
-              <div><span style={{ color: 'var(--t3)' }}>Brand:</span> <strong style={{ color: '#fff' }}>{enq.brand_name}</strong></div>
-              <div><span style={{ color: 'var(--t3)' }}>Contact:</span> <strong style={{ color: '#fff' }}>{enq.contact_name}</strong></div>
-              <div><span style={{ color: 'var(--t3)' }}>Platform:</span> <strong style={{ color: '#fff' }}>{enq.platform || 'TBD'}</strong></div>
-              <div><span style={{ color: 'var(--t3)' }}>Timeline:</span> <strong style={{ color: '#fff' }}>{enq.timeline || 'Flexible'}</strong></div>
+              <div><span style={{ color: 'var(--t3)' }}>Brand:</span> <strong style={{ color: 'var(--t1)' }}>{enq.brand_name}</strong></div>
+              <div><span style={{ color: 'var(--t3)' }}>Contact:</span> <strong style={{ color: 'var(--t1)' }}>{enq.contact_name}</strong></div>
+              <div><span style={{ color: 'var(--t3)' }}>Platform:</span> <strong style={{ color: 'var(--t1)' }}>{enq.platform || 'TBD'}</strong></div>
+              <div><span style={{ color: 'var(--t3)' }}>Timeline:</span> <strong style={{ color: 'var(--t1)' }}>{enq.timeline || 'Flexible'}</strong></div>
             </div>
           </div>
 
           {/* Original Brief */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 10 }}>Original Brief</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 10 }}>Original Brief</h3>
             <p style={{ fontSize: 12.5, color: 'var(--t2)', lineHeight: 1.5, maxHeight: 180, overflowY: 'auto', whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,.02)', padding: 10, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
               {enq.brief}
             </p>

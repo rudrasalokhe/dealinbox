@@ -29,10 +29,10 @@ export const NegotiationReplayPage = () => {
       </Link>
 
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', display: 'flex', alignItems: 'center', gap: 10, lineHeight: 1 }}>
-          <Sparkles color="var(--accent)" size={36} /> Negotiation Replay &amp; AI Analysis
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.02em' }}>
+          <Sparkles color="var(--primary)" size={28} /> Negotiation Replay &amp; AI Analysis
         </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', marginTop: 8 }}>Timeline analysis and actionable AI feedback for {enq.brand_name}.</p>
+        <p style={{ color: 'var(--t2)', fontSize: 14, marginTop: 4 }}>Timeline analysis and actionable AI feedback for {enq.brand_name}.</p>
       </div>
 
       {/* Deal summary strip */}
@@ -91,21 +91,21 @@ export const NegotiationReplayPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Deal Health Score */}
           <div className="card" style={{ textAlign: 'center' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>Deal Velocity Score</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Deal Velocity Score</h3>
             <div className="rs-circle-wrap">
               <svg className="rs-circle" width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="40" cy="40" r="34" stroke="rgba(255,255,255,.06)" fill="none" strokeWidth="6" />
-                <circle cx="40" cy="40" r="34" stroke="var(--accent)" fill="none" strokeWidth="6"
+                <circle cx="40" cy="40" r="34" stroke="rgba(22,78,67,.08)" fill="none" strokeWidth="6" />
+                <circle cx="40" cy="40" r="34" stroke="var(--primary)" fill="none" strokeWidth="6"
                   strokeDasharray={213} strokeDashoffset={213 - (score / 100) * 213} strokeLinecap="round" />
               </svg>
-              <div className="rs-val">{score}</div>
+              <div className="rs-val" style={{ color: 'var(--t1)' }}>{score}</div>
             </div>
-            <div className="rs-label">{score >= 70 ? 'High Momentum' : 'Average Pace'}</div>
+            <div className="rs-label" style={{ color: 'var(--t2)' }}>{score >= 70 ? 'High Momentum' : 'Average Pace'}</div>
           </div>
 
           {/* Quick Stats */}
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>Deal Metrics</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Deal Metrics</h3>
             <div className="rstat-row"><span className="rstat-label">Notes added</span><span className="rstat-val">{enq.notes_thread?.length || 0}</span></div>
             <div className="rstat-row"><span className="rstat-label">Initial inquiry</span><span className="rstat-val">{enq.created_at_fmt}</span></div>
             <div className="rstat-row"><span className="rstat-label">Contact email</span><span className="rstat-val" style={{ fontSize: 11 }}>{enq.email}</span></div>

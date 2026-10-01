@@ -27,10 +27,10 @@ export const HeatmapPage = () => {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', display: 'flex', alignItems: 'center', gap: 10, lineHeight: 1 }}>
-          <Flame color="var(--gold)" size={36} /> Priority & Urgency Board
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.02em' }}>
+          <Flame color="var(--primary)" size={28} /> Priority &amp; Urgency Board
         </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Deals scored by deadline urgency, deal size, and response delay.</p>
+        <p style={{ color: 'var(--t2)', fontSize: 14, marginTop: 4 }}>Deals scored by deadline urgency, deal size, and response delay.</p>
       </div>
 
       {/* Legend */}

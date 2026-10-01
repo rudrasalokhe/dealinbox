@@ -35,8 +35,8 @@ export const EnquiriesPage = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '48px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', lineHeight: 1 }}>Brand Opportunities</h1>
-          <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--t2)', fontSize: '11px', textTransform: 'uppercase' }}>Track, negotiate, and organize incoming sponsorship inquiries.</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>Brand Opportunities</h1>
+          <p style={{ color: 'var(--t2)', fontSize: 14, marginTop: 4 }}>Track, negotiate, and organize incoming sponsorship inquiries.</p>
         </div>
         <a href="/enquiries/export" className="btn btn-secondary btn-sm">
           <Download size={14} /> Export CSV
@@ -82,7 +82,7 @@ export const EnquiriesPage = () => {
                   {enq.brand_name ? enq.brand_name[0].toUpperCase() : 'B'}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {enq.brand_name} {enq.starred && <Star size={14} color="var(--gold)" fill="var(--gold)" />}
                   </h3>
                   <p style={{ fontSize: '12.5px', color: 'var(--t3)', marginTop: '2px' }}>

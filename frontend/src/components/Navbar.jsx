@@ -29,9 +29,9 @@ export const Navbar = () => {
 
   if (!user) {
     return (
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1px solid var(--border)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(16px)' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          <img src="/static/logo.jpeg" alt="logo" style={{ width: '26px', height: '26px', borderRadius: '8px' }} />
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1.5px solid var(--border)', background: '#ffffff' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>
+          <img src="/static/logo.jpeg" alt="logo" style={{ width: '28px', height: '28px', borderRadius: '8px' }} />
           DealInbox
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginLeft: 'auto' }}>
@@ -53,13 +53,14 @@ export const Navbar = () => {
             onClick={() => setShowAnalyzer(true)}
             className="btn btn-secondary btn-sm"
             style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              borderColor: 'rgba(99, 102, 241, 0.3)',
-              color: '#a5b4fc',
+              background: 'var(--mint)',
+              borderColor: 'var(--mint-border)',
+              color: 'var(--primary)',
+              fontWeight: 700,
               gap: '6px',
             }}
           >
-            <Sparkles size={14} color="#818cf8" /> AI Brief Analyzer
+            <Sparkles size={14} color="var(--primary)" /> AI Brief Analyzer
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -75,15 +76,15 @@ export const Navbar = () => {
       <AiBriefAnalyzerModal isOpen={showAnalyzer} onClose={() => setShowAnalyzer(false)} />
 
       {showPalette && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '100px', background: 'rgba(0,0,0,.8)' }} onClick={() => setShowPalette(false)}>
-          <div style={{ width: '100%', maxWidth: '540px', background: 'var(--paper)', border: '2px solid #000', borderRadius: '0', padding: '16px', boxShadow: '8px 8px 0 #000' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '100px', background: 'rgba(18, 52, 45, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setShowPalette(false)}>
+          <div style={{ width: '100%', maxWidth: '540px', background: '#ffffff', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '18px', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
             <input
               type="text"
               placeholder="Search brand, campaign, budget..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               autoFocus
-              style={{ fontSize: '15px', padding: '12px 16px', marginBottom: '12px' }}
+              style={{ fontSize: '14.5px', padding: '12px 16px', marginBottom: '12px' }}
             />
             <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {searchResults.length === 0 && searchQuery.length >= 2 && (
@@ -96,10 +97,10 @@ export const Navbar = () => {
                     navigate(`/enquiries/${item.id}`);
                     setShowPalette(false);
                   }}
-                  style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', background: 'rgba(255,255,255,.03)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--canvas-subtle)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <strong style={{ fontSize: '13.5px', color: '#fff' }}>{item.brand}</strong>
-                  <span style={{ fontSize: '12px', color: 'var(--t3)' }}>{item.status} · {item.budget || 'TBD'}</span>
+                  <strong style={{ fontSize: '13.5px', color: 'var(--t1)' }}>{item.brand}</strong>
+                  <span style={{ fontSize: '12px', color: 'var(--t2)' }}>{item.status} · {item.budget || 'TBD'}</span>
                 </div>
               ))}
             </div>

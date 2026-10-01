@@ -27,8 +27,8 @@ export const Sidebar = ({ newEnquiryCount = 0 }) => {
       <div className="os-user">
         <div className="os-av">{user.name ? user.name[0].toUpperCase() : 'U'}</div>
         <div style={{ overflow: 'hidden' }}>
-          <p style={{ fontWeight: 700, fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>{user.name}</p>
-          <small style={{ color: 'var(--accent)', fontSize: '11px', fontWeight: 600 }}>@{user.username}</small>
+          <p style={{ fontWeight: 700, fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--t1)' }}>{user.name}</p>
+          <small style={{ color: 'var(--primary)', fontSize: '11px', fontWeight: 700 }}>@{user.username}</small>
         </div>
       </div>
 

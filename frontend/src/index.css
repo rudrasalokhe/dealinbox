@@ -769,3 +769,6 @@ select {
   .auth-left { display: none; }
   .deal-layout { grid-template-columns: 1fr; }
 }
+@media (max-width: 768px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+}
