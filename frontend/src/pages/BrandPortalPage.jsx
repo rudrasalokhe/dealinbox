@@ -41,7 +41,9 @@ export const BrandPortalPage = () => {
           <div className="bp-header">
             <div className="bp-header-av">{data.creator_name?.[0]?.toUpperCase() || 'C'}</div>
             <div>
-              <h1 className="bp-collab-title" style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, textTransform: 'uppercase', color: 'var(--acid)', lineHeight: 1, marginBottom: 8 }}>{data.brand_name} <span className="bp-x" style={{ color: '#fff' }}>×</span> {data.creator_name}</h1>
+              <h1 className="bp-collab-title" style={{ fontSize: 28, fontWeight: 800, color: 'var(--t1)', lineHeight: 1.2, marginBottom: 6 }}>
+                {data.brand_name} <span style={{ color: 'var(--t3)', fontWeight: 500 }}>×</span> {data.creator_name}
+              </h1>
               <p className="bp-submitted" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--t2)' }}>Brief submitted {data.created_at_fmt}</p>
             </div>
           </div>
@@ -107,7 +109,7 @@ export const BrandPortalPage = () => {
           <div className="bp-creator-card">
             <div className="bp-creator-av">{data.creator_name?.[0]?.toUpperCase() || 'C'}</div>
             <div>
-              <h3 className="bp-creator-name" style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, textTransform: 'uppercase', color: '#fff', marginBottom: 4 }}>{data.creator_name}</h3>
+              <h3 className="bp-creator-name" style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)', marginBottom: 4 }}>{data.creator_name}</h3>
               <p className="bp-creator-meta" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--t3)' }}>@{data.creator.username} · {data.creator.niche} Creator</p>
               {data.creator.bio && <p className="bp-creator-bio">{data.creator.bio}</p>}
             </div>

@@ -26,7 +26,11 @@ import { UpgradePage } from './pages/UpgradePage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ padding: '60px', textAlign: 'center', color: 'var(--t3)' }}>Loading DealInbox...</div>;
+  if (loading) return (
+    <div style={{ padding: '60px', textAlign: 'center', color: 'var(--t2)', background: 'var(--canvas)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="spinner" style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%' }} />
+    </div>
+  );
   if (!user) return <Navigate to="/login" replace />;
   return children;
 };
@@ -35,16 +39,17 @@ const LayoutShell = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute =
-    location.pathname === '/' ||
-    location.pathname === '/login' ||
-    location.pathname === '/signup' ||
-    location.pathname === '/forgot-password' ||
-    location.pathname.startsWith('/reset-password') ||
-    location.pathname.startsWith('/@') ||
-    location.pathname.startsWith('/track/');
+  // App workspace routes that render inside the creator sidebar + navbar shell
+  const isWorkspaceRoute =
+    location.pathname === '/dashboard' ||
+    location.pathname.startsWith('/enquiries') ||
+    location.pathname === '/heatmap' ||
+    location.pathname === '/analytics' ||
+    location.pathname === '/positioning' ||
+    location.pathname === '/settings' ||
+    location.pathname === '/upgrade';
 
-  if (!user || isPublicRoute) {
+  if (!user || !isWorkspaceRoute) {
     return <>{children}</>;
   }
 
@@ -66,13 +71,12 @@ export default function App() {
       <Router>
         <LayoutShell>
           <Routes>
-            {/* Public Routes */}
+            {/* Public Static Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="/@:username" element={<PublicPage />} />
             <Route path="/track/:token" element={<BrandPortalPage />} />
 
             {/* Protected Workspace Routes */}
@@ -86,6 +90,10 @@ export default function App() {
             <Route path="/positioning" element={<ProtectedRoute><PositioningPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
+
+            {/* Public Creator Intake Profiles (matches /@demo and /demo) */}
+            <Route path="/@:username" element={<PublicPage />} />
+            <Route path="/:username" element={<PublicPage />} />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

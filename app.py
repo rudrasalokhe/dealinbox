@@ -896,7 +896,26 @@ def api_enquiry_detail_data(eid):
 
 @app.route("/api/public-creator/<username>")
 def api_public_creator(username):
-    user = users_col.find_one({"username": username})
+    clean_username = username.lstrip("@").strip().lower()
+    user = users_col.find_one({"username": {"$regex": f"^{re.escape(clean_username)}$", "$options": "i"}})
+    if not user and clean_username == "demo":
+        demo_uid = users_col.insert_one({
+            "name": "Demo Creator",
+            "email": "demo@dealinbox.in",
+            "username": "demo",
+            "password_hash": generate_password_hash("demo123"),
+            "niche": "Tech & Creator Economy",
+            "platform": "Instagram",
+            "followers": "65,000",
+            "bio": "Tech, AI & lifestyle creator. Partnering with forward-thinking consumer brands and tech products.",
+            "collab_email": "demo@dealinbox.in",
+            "min_budget": "Rs.25,000",
+            "response_time": "24 hours",
+            "plan": "pro",
+            "created_at": now(),
+            "auth_provider": "demo",
+        }).inserted_id
+        user = users_col.find_one({"_id": demo_uid})
     if not user:
         return jsonify({"found": False}), 404
     return jsonify({
@@ -915,7 +934,10 @@ def api_public_creator(username):
 
 @app.route("/api/public-creator/<username>/submit", methods=["POST"])
 def api_public_submit(username):
-    user = users_col.find_one({"username": username})
+    clean_username = username.lstrip("@").strip().lower()
+    user = users_col.find_one({"username": {"$regex": f"^{re.escape(clean_username)}$", "$options": "i"}})
+    if not user and clean_username == "demo":
+        user = users_col.find_one({"email": "demo@dealinbox.in"})
     if not user:
         return jsonify({"ok": False, "error": "Creator not found"}), 404
     if not is_pro(user):
