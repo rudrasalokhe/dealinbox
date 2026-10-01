@@ -524,9 +524,10 @@ def call_gemini_raw(prompt_text, system_instruction=None):
     
     # Try preferred model first, then fallback to next fastest
     models_to_try = [
+        "gemini-flash-latest",
         GEMINI_MODEL,
-        "gemini-2.5-flash-lite",
         "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
         "gemini-1.5-flash"
     ]
     # Deduplicate while preserving order
@@ -535,10 +536,10 @@ def call_gemini_raw(prompt_text, system_instruction=None):
 
     for model_name in models:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
             headers = {
                 "Content-Type": "application/json",
-                "x-goog-api-key": GEMINI_API_KEY
+                "X-goog-api-key": GEMINI_API_KEY
             }
             payload = {
                 "contents": [{"parts": [{"text": prompt_text}]}],
