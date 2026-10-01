@@ -564,14 +564,68 @@ def api_ai_analyze_brief():
     if not brief_raw:
         return jsonify({"ok": False, "error": "Brief text is required."}), 400
 
-    # Extract entities & heuristics
+    # 1. Try Live Gemini Flash Analysis
+    gemini_prompt = f"""
+You are an expert sponsorship contract strategist and creator agent in India.
+Analyze this brand collaboration brief and return ONLY a valid JSON object matching the exact schema below:
+
+BRIEF TEXT:
+\"\"\"{brief_raw}\"\"\"
+
+JSON SCHEMA TO RETURN:
+{{
+  "brand_name": "string (name of brand)",
+  "deliverables": ["string", "string"],
+  "offered_budget": number or 0,
+  "fair_market_value": {{
+    "min": number (fair min in INR),
+    "max": number (fair max in INR),
+    "currency": "INR",
+    "rationale": "string explanation based on reach/deliverables"
+  }},
+  "urgency": {{
+    "score": number between 10 and 100,
+    "label": "string (e.g. High Urgency)",
+    "description": "string (tactical leverage advice)"
+  }},
+  "risk_radar": [
+    {{
+      "severity": "high" | "medium" | "low",
+      "flag": "string title",
+      "warning": "string why it harms the creator",
+      "counter_clause": "string legal or negotiation counter-clause"
+    }}
+  ],
+  "counter_draft": "string (professional counter-pitch email with rates and deliverables)",
+  "strategies": [
+    {{"title": "string", "proposed_rate": number, "benefit": "string"}},
+    {{"title": "string", "proposed_rate": number, "benefit": "string"}},
+    {{"title": "string", "proposed_rate": number, "benefit": "string"}}
+  ]
+}}
+Do NOT wrap the output in markdown code blocks like ```json. Return pure raw JSON only.
+"""
+    raw_response = call_gemini_raw(
+        prompt_text=gemini_prompt,
+        system_instruction="You are a deal-making agent for creators. Extract numbers and contract clauses precisely. Output pure valid JSON only."
+    )
+
+    if raw_response:
+        try:
+            # Strip potential markdown formatting if Gemini added it
+            cleaned = re.sub(r'^```(?:json)?\s*', '', raw_response.strip(), flags=re.MULTILINE)
+            cleaned = re.sub(r'\s*```$', '', cleaned.strip(), flags=re.MULTILINE)
+            parsed = json.loads(cleaned)
+            parsed["ok"] = True
+            return jsonify(parsed)
+        except Exception as err:
+            print(f"Failed to parse Gemini brief JSON: {err}, raw={raw_response[:200]}")
+
+    # 2. Heuristic fallback only if Gemini is unreachable or no key provided
     text_lower = brief_raw.lower()
-    
-    # Detect brand
     brand_match = re.search(r'(?:from|with|team|at|for)\s+([A-Z][a-zA-Z0-9_\-\s]{2,20})', brief_raw)
     brand_name = data.get("brand_name") or (brand_match.group(1).strip() if brand_match else "Brand Partner")
 
-    # Detect budget
     budget_match = re.search(r'(?:rs\.?|inr|₹|\$)\s*([\d,]+(?:\s*(?:k|lakh|lac))?)', text_lower)
     offered_budget = 0
     if budget_match:
@@ -586,85 +640,43 @@ def api_ai_analyze_brief():
             try: offered_budget = int(val_str)
             except: pass
 
-    # Deliverables extraction
     delivs = []
     if "reel" in text_lower or "short" in text_lower:
-        count = 1
         m = re.search(r'(\d+)\s*(?:reels?|shorts?)', text_lower)
-        if m: count = int(m.group(1))
-        delivs.append(f"{count}x Dedicated Instagram Reel" if "reel" in text_lower else f"{count}x YouTube Short")
+        count = int(m.group(1)) if m else 1
+        delivs.append(f"{count}x Dedicated Instagram Reel")
     if "story" in text_lower or "stories" in text_lower:
-        count = 2
         m = re.search(r'(\d+)\s*(?:stories|story)', text_lower)
-        if m: count = int(m.group(1))
+        count = int(m.group(1)) if m else 2
         delivs.append(f"{count}x Story Amplification Frames")
-    if "youtube" in text_lower or "video" in text_lower or "integration" in text_lower:
-        delivs.append("1x YouTube Integration / Showcase")
+    if "youtube" in text_lower or "video" in text_lower:
+        delivs.append("1x YouTube Integration")
     if not delivs:
         delivs.append("1x Social Deliverable (Scope TBD)")
 
-    # Contract Risk Radar
     risks = []
     if any(k in text_lower for k in ["perpetual", "forever", "in perpetuity", "unlimited usage"]):
         risks.append({
-            "severity": "high",
-            "flag": "Perpetual Copyright & Usage Rights",
-            "warning": "The brand is requesting perpetual/indefinite ownership of your likeness and footage. Standard creator contracts license content for 30 to 90 days only.",
-            "counter_clause": "Replace with: '30-day non-exclusive digital ad usage rights. Extension available at +25% monthly retainer.'"
+            "severity": "high", "flag": "Perpetual Copyright & Usage Rights",
+            "warning": "The brand is requesting perpetual ownership of your likeness and footage.",
+            "counter_clause": "Replace with: '30-day non-exclusive digital ad usage rights.'"
         })
-    if any(k in text_lower for k in ["whitelisting", "spark ad", "paid ad", "dark post", "meta ads"]):
+    if any(k in text_lower for k in ["whitelisting", "spark ad", "paid ad", "meta ads"]):
         risks.append({
-            "severity": "medium",
-            "flag": "Paid Whitelisting / Spark Ads Access",
-            "warning": "Brand wants to run paid ads through your account/handle. This drives direct sales for them and exhausts your audience without proper compensation.",
-            "counter_clause": "Add paid amplification fee: 'Paid ads access billed at +₹10,000–₹15,000 per 30-day window.'"
-        })
-    if any(k in text_lower for k in ["exclusiv", "sole partner", "lockout"]):
-        risks.append({
-            "severity": "high",
-            "flag": "Category Exclusivity Lockout",
-            "warning": "Exclusivity prevents you from taking paid deals from any competitors in this vertical for the term.",
-            "counter_clause": "Charge a 50% to 100% exclusivity premium or limit exclusivity strictly to 14 days post-posting."
-        })
-    if any(k in text_lower for k in ["net 60", "net 90", "90 days", "after 60 days"]):
-        risks.append({
-            "severity": "high",
-            "flag": "Extreme Payment Delay (Net-60/90)",
-            "warning": "Payment scheduled 2 to 3 months after work completion carries high non-payment risk for creators.",
-            "counter_clause": "Insist on 50% advance on brief signoff, remaining 50% Net-15 upon live draft delivery."
+            "severity": "medium", "flag": "Paid Whitelisting / Spark Ads Access",
+            "warning": "Brand wants to run paid ads through your account/handle.",
+            "counter_clause": "Add paid amplification fee: 'Paid ads access billed at +₹10,000–₹15,000.'"
         })
     if not risks:
         risks.append({
-            "severity": "low",
-            "flag": "Standard Campaign Terms",
-            "warning": "No predatory copyright or extended lockout clauses detected in initial brief text.",
+            "severity": "low", "flag": "Standard Campaign Terms",
+            "warning": "No predatory copyright or extended lockout clauses detected.",
             "counter_clause": "Maintain standard terms: 50% advance deposit and 2 rounds of creative revisions max."
         })
 
-    # Rate benchmark & leverage
     base_calc = max(offered_budget or 20000, 25000)
     fair_min = round(base_calc * 1.25 / 1000) * 1000
     fair_max = round(base_calc * 1.6 / 1000) * 1000
-
-    # Urgency detection
-    urgency_score = 45
-    urgent_keywords = ["asap", "urgent", "immediate", "tomorrow", "this week", "rush", "friday", "monday"]
-    if any(k in text_lower for k in urgent_keywords):
-        urgency_score = 88
-        urgency_label = "High Urgency (Tight Deadline)"
-        urgency_desc = "Brand has an imminent launch date. Creator has strong leverage to charge a 15–20% rush fee."
-    else:
-        urgency_label = "Normal / Planned Timeline"
-        urgency_desc = "Timeline allows standard review, script approvals, and revision rounds."
-
-    counter_pitch = (
-        f"Hi {brand_name} Team,\n\n"
-        f"Thank you for reaching out! The campaign scope aligns well with my audience demographic and engagement style.\n\n"
-        f"For the requested package ({', '.join(delivs)}) with high-resolution production and organic engagement analytics, my rate is ₹{fair_min:,}.\n\n"
-        f"If you'd like to include 30-day paid ad usage rights, I can bundle that in as an all-inclusive package for ₹{fair_max:,}.\n\n"
-        f"Let me know if this works so we can lock in dates on my production calendar!\n\n"
-        f"Best regards,\nDemo Creator"
-    )
 
     return jsonify({
         "ok": True,
@@ -672,22 +684,20 @@ def api_ai_analyze_brief():
         "deliverables": delivs,
         "offered_budget": offered_budget,
         "fair_market_value": {
-            "min": fair_min,
-            "max": fair_max,
-            "currency": "INR",
-            "rationale": f"Benchmark calculated for ~50k-100k creator reach across {', '.join(delivs)}."
+            "min": fair_min, "max": fair_max, "currency": "INR",
+            "rationale": f"Calculated for ~50k-100k creator reach across {', '.join(delivs)}."
         },
         "urgency": {
-            "score": urgency_score,
-            "label": urgency_label,
-            "description": urgency_desc
+            "score": 85 if any(k in text_lower for k in ["asap", "urgent", "friday", "rush"]) else 45,
+            "label": "High Urgency" if any(k in text_lower for k in ["asap", "urgent", "friday", "rush"]) else "Normal Timeline",
+            "description": "Creator has strong leverage to charge rush fee." if any(k in text_lower for k in ["asap", "urgent"]) else "Standard review timeline."
         },
         "risk_radar": risks,
-        "counter_draft": counter_pitch,
+        "counter_draft": f"Hi {brand_name} Team,\n\nThank you for reaching out! For the requested package ({', '.join(delivs)}), my rate is ₹{fair_min:,}.\n\nBest regards,\nCreator",
         "strategies": [
             {"title": "🚀 Value Bundle Upsell", "proposed_rate": fair_max, "benefit": "Packages deliverables + 30-day ad rights to maximize total payout."},
             {"title": "🎯 Precision Counter", "proposed_rate": fair_min, "benefit": "Maintains exact scope while upgrading compensation to fair market tier."},
-            {"title": "🛡️ Scope Boundary", "proposed_rate": offered_budget or 25000, "benefit": "Accepts budget but limits scope strictly to 1 Reel (no ad rights/exclusivity)."}
+            {"title": "🛡️ Scope Boundary", "proposed_rate": offered_budget or 25000, "benefit": "Accepts budget but limits scope strictly to 1 Reel."}
         ]
     })
 
@@ -699,10 +709,25 @@ def api_ai_copilot_chat():
     if not user_msg:
         return jsonify({"ok": False, "error": "Message is required."}), 400
 
-    # Try Gemini if key is active
+    # Format conversation history for Gemini context
+    history_context = ""
+    if history:
+        for turn in history:
+            role = "Creator" if turn.get("role") == "user" else "Copilot"
+            content = turn.get("text") or turn.get("content") or ""
+            history_context += f"{role}: {content}\n"
+
+    copilot_prompt = f"""Conversation History:
+{history_context}
+Creator: {user_msg}
+
+Respond directly to the creator's latest message with specific tactical steps, exact numbers (INR ₹), and ready-to-send email/DM scripts.
+"""
+
+    # Try Gemini Flash
     gemini_reply = call_gemini_raw(
-        prompt_text=f"You are the DealInbox AI Copilot, a high-stakes sponsorship negotiator and deal strategist for top digital creators in India and globally. Give tactical, crisp, direct advice with actionable numbers (INR ₹) and scripts. User asks: {user_msg}",
-        system_instruction="Be concise, punchy, strategic, and protective of creators' rates and rights. Avoid generic fluff."
+        prompt_text=copilot_prompt,
+        system_instruction="You are the DealInbox AI Copilot, a high-stakes sponsorship negotiator and deal strategist for top Indian and global digital creators. Give tactical, crisp, direct advice with actionable numbers (INR ₹) and scripts. Avoid generic fluff. Do NOT repeat yourself."
     )
     if gemini_reply:
         return jsonify({"ok": True, "reply": gemini_reply.strip()})
